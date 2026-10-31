@@ -215,6 +215,13 @@ class LiveEngine:
         { (ANSIBLE_DIR / "roles/webapp/files/app/app.js").read_text(encoding="utf-8") }
         EOF'
         sudo bash -c 'echo \'{{"status":"UP","web_server":"{web_server}","hostname":"\'$(hostname)\'","deployed_by":"Ansible"}}\' > /var/www/devops_app/healthz.json'
+        if [ "{web_server}" = "nginx" ]; then
+            sudo sed -i 's|root /var/www/html;|root /var/www/devops_app;|g' /etc/nginx/sites-available/default
+            sudo systemctl reload nginx
+        else
+            sudo sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/devops_app|g' /etc/apache2/sites-available/000-default.conf
+            sudo systemctl reload apache2
+        fi
         sudo ufw allow 80/tcp
         sudo ufw allow 22/tcp
         """
