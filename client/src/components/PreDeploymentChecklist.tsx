@@ -6,16 +6,12 @@ import {
   FolderX,
   Radio,
   HeartPulse,
-  Server,
-  Layers,
   ChevronDown,
   ChevronUp,
   Copy,
   Check,
   Code2,
-  Info,
   ShieldCheck,
-  Terminal,
   FileText,
   AlertCircle,
   ArrowRight
@@ -52,7 +48,6 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
   const [copiedSample, setCopiedSample] = useState(false);
   const [showSampleSnippet, setShowSampleSnippet] = useState(false);
 
-  // Manual checklist states saved in localStorage so verification persists across views and steps
   const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -72,7 +67,6 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
     }
   });
 
-  // Sync active framework tab with user selections
   useEffect(() => {
     if (backendType === 'python') setActiveTab('python');
     else if (backendType === 'nodejs') setActiveTab('nodejs');
@@ -103,65 +97,29 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
 
   const sampleManifests: { [key: string]: { title: string; filename: string; code: string } } = {
     python: {
-      title: 'Python Requirements Manifest',
+      title: 'requirements.txt',
       filename: 'requirements.txt',
-      code: `fastapi>=0.110.0
-uvicorn[standard]>=0.28.0
-pydantic>=2.6.0
-requests>=2.31.0
-psycopg2-binary>=2.9.9`
+      code: `fastapi>=0.110.0\nuvicorn[standard]>=0.28.0\nrequests>=2.31.0`
     },
     nodejs: {
-      title: 'Node.js Package Manifest',
+      title: 'package.json',
       filename: 'package.json',
-      code: `{
-  "name": "my-express-backend",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5"
-  }
-}`
+      code: `{\n  "name": "my-app",\n  "version": "1.0.0",\n  "scripts": { "start": "node server.js" },\n  "dependencies": { "express": "^4.19.2", "cors": "^2.8.5" }\n}`
     },
     springboot: {
-      title: 'Spring Boot Application Config',
+      title: 'application.properties',
       filename: 'application.properties',
-      code: `server.port=8080
-spring.application.name=cloudops-springboot-backend
-management.endpoints.web.exposure.include=health,info`
+      code: `server.port=8080\nmanagement.endpoints.web.exposure.include=health`
     },
     react: {
-      title: 'Vite React Relative Base Config',
+      title: 'vite.config.ts',
       filename: 'vite.config.ts',
-      code: `import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// Relative base path ensures assets load cleanly on Nginx subpaths
-export default defineConfig({
-  plugins: [react()],
-  base: './',
-})`
+      code: `import { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\n\nexport default defineConfig({\n  plugins: [react()],\n  base: './',\n})`
     },
     html: {
-      title: 'Static HTML5 Entry Point',
+      title: 'index.html',
       filename: 'index.html',
-      code: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>My Cloud App</title>
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <h1>App Deployed via DevOps Platform</h1>
-  <script src="./app.js"></script>
-</body>
-</html>`
+      code: `<!DOCTYPE html>\n<html>\n<head><title>App</title><link rel="stylesheet" href="./style.css"></head>\n<body><h1>Running</h1><script src="./app.js"></script></body>\n</html>`
     }
   };
 
@@ -175,7 +133,7 @@ export default defineConfig({
 
   return (
     <div className="pre-deploy-box">
-      {/* 1. Header Bar */}
+      {/* Header Bar */}
       <div className="pre-deploy-header" onClick={() => setIsOpen(!isOpen)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <div className="pre-deploy-icon-badge">
@@ -183,10 +141,10 @@ export default defineConfig({
           </div>
           <div>
             <div className="pre-deploy-title">
-              <span>{titlePrefix ? `${titlePrefix} ` : ''}Pre-Deployment Readiness Checklist & Required Files</span>
+              <span>{titlePrefix ? `${titlePrefix} ` : ''}Pre-Deployment Checklist</span>
             </div>
             <div className="pre-deploy-sub">
-              Ask yourself / your project to verify manifest files, port bindings, and exclude rules before deploying your website.
+              Verify manifests, host binding, and health route before deploy.
             </div>
           </div>
         </div>
@@ -196,19 +154,19 @@ export default defineConfig({
             {isAllReady ? (
               <>
                 <CheckCircle2 size={13} />
-                <span>5/5 All Checks Passed</span>
+                <span>5/5 Verified</span>
               </>
             ) : (
               <>
                 <AlertTriangle size={13} />
-                <span>{completedCount}/{totalSteps} Steps Verified</span>
+                <span>{completedCount}/{totalSteps} Verified</span>
               </>
             )}
           </div>
           <button
             type="button"
             className="pre-deploy-toggle-btn"
-            title={isOpen ? "Collapse Checklist" : "Expand Checklist"}
+            title={isOpen ? "Collapse" : "Expand"}
           >
             {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
@@ -217,36 +175,31 @@ export default defineConfig({
 
       {isOpen && (
         <div className="pre-deploy-body">
-          {/* Action Required Callout Banner */}
+          {/* Minimalist Action Callout */}
           <div style={{
             background: 'rgba(255, 153, 0, 0.08)',
             border: '1px solid rgba(255, 153, 0, 0.25)',
             borderRadius: '6px',
-            padding: '0.75rem 0.95rem',
-            marginBottom: '0.85rem',
+            padding: '0.55rem 0.85rem',
+            marginBottom: '0.75rem',
             display: 'flex',
-            alignItems: 'flex-start',
-            gap: '0.65rem'
+            alignItems: 'center',
+            gap: '0.55rem'
           }}>
-            <AlertCircle size={18} color="var(--aws-orange)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Action Required: Complete this Project Readiness Check before deployment
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.45 }}>
-                Before deploying your website to AWS, ensure your project codebase contains the required dependency manifest (<code>requirements.txt</code>, <code>package.json</code>, or executable <code>.jar</code>), binds to <code>0.0.0.0</code>, excludes heavy local folders (<code>.venv/</code>, <code>node_modules/</code>), and provides a <code>/api/health</code> endpoint.
-              </div>
+            <AlertCircle size={15} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Check before deploy:</strong> Ensure dependency manifest is included, binds to <code>0.0.0.0</code>, and <code>.venv/node_modules</code> are excluded.
             </div>
           </div>
 
-          {/* 2. Interactive Framework Instruction Tabs */}
+          {/* Framework Tabs */}
           <div className="pre-deploy-tabs">
             {[
-              { id: 'python', label: 'Python (FastAPI / Flask)', icon: '🐍' },
+              { id: 'python', label: 'Python (FastAPI)', icon: '🐍' },
               { id: 'nodejs', label: 'Node.js (Express)', icon: '🟩' },
-              { id: 'springboot', label: 'Java (Spring Boot)', icon: '☕' },
-              { id: 'react', label: 'React SPA (Vite/CRA)', icon: '⚛️' },
-              { id: 'html', label: 'Static HTML5', icon: '🌐' },
+              { id: 'springboot', label: 'Spring Boot', icon: '☕' },
+              { id: 'react', label: 'React SPA', icon: '⚛️' },
+              { id: 'html', label: 'Static HTML', icon: '🌐' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -263,48 +216,37 @@ export default defineConfig({
             ))}
           </div>
 
-          {/* 3. Detailed Framework File Requirements */}
+          {/* Concise Rule Cards */}
           <div className="pre-deploy-requirements-grid">
             {activeTab === 'python' && (
               <>
                 <div className="req-card highlight">
                   <div className="req-card-header">
                     <FileCode2 size={14} color="var(--aws-orange)" />
-                    <strong>1. Dependency Manifest: requirements.txt</strong>
+                    <strong>1. Manifest: requirements.txt</strong>
                   </div>
-                  <p>
-                    Must be at the root of your project folder. List all packages (e.g. <code>fastapi</code>, <code>uvicorn</code>, <code>requests</code>). The orchestrator runs <code>pip install -r requirements.txt</code> inside an isolated virtual environment.
-                  </p>
+                  <p>Root file with packages (e.g. <code>fastapi</code>, <code>uvicorn</code>). Auto-installed in Linux venv.</p>
                 </div>
-
                 <div className="req-card warning">
                   <div className="req-card-header">
                     <FolderX size={14} color="var(--status-danger)" />
-                    <strong>2. DO NOT Upload .venv or __pycache__</strong>
+                    <strong>2. Exclude .venv/</strong>
                   </div>
-                  <p>
-                    Delete or exclude your local <code>.venv/</code> or <code>env/</code> folder before upload. Virtual environments contain OS-specific binaries. The server builds a fresh Linux venv automatically.
-                  </p>
+                  <p>Do not upload local <code>.venv/</code>; server builds fresh environment.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <Radio size={14} color="var(--aws-blue)" />
-                    <strong>3. Port & Host Binding: 0.0.0.0:8000</strong>
+                    <strong>3. Port: 0.0.0.0:8000</strong>
                   </div>
-                  <p>
-                    Ensure your app binds to <code>host="0.0.0.0"</code> and <code>port=8000</code> so the Nginx reverse proxy can forward web traffic to your backend.
-                  </p>
+                  <p>Bind host <code>0.0.0.0</code> on port <code>8000</code> for Nginx reverse proxy.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <HeartPulse size={14} color="var(--status-success)" />
-                    <strong>4. Health Route: /api/health</strong>
+                    <strong>4. Health: /api/health</strong>
                   </div>
-                  <p>
-                    Provide a route returning HTTP 200 (e.g. <code>@app.get("/api/health")</code>). Nagios telemetry probes this endpoint every 4 seconds.
-                  </p>
+                  <p>Return HTTP 200 on <code>/api/health</code> for Nagios telemetry.</p>
                 </div>
               </>
             )}
@@ -314,41 +256,30 @@ export default defineConfig({
                 <div className="req-card highlight">
                   <div className="req-card-header">
                     <FileCode2 size={14} color="var(--aws-orange)" />
-                    <strong>1. Dependency Manifest: package.json</strong>
+                    <strong>1. Manifest: package.json</strong>
                   </div>
-                  <p>
-                    Must include your dependencies (e.g. <code>express</code>, <code>cors</code>) and a <code>"start": "node server.js"</code> script. The orchestrator runs <code>npm install --production</code> on the host.
-                  </p>
+                  <p>Must contain dependencies and a <code>"start": "node server.js"</code> script.</p>
                 </div>
-
                 <div className="req-card warning">
                   <div className="req-card-header">
                     <FolderX size={14} color="var(--status-danger)" />
-                    <strong>2. DO NOT Upload node_modules</strong>
+                    <strong>2. Exclude node_modules/</strong>
                   </div>
-                  <p>
-                    Delete or exclude <code>node_modules/</code> before uploading. It is huge, slows upload speeds, and contains platform-dependent binaries. The platform will install them cleanly on Ubuntu.
-                  </p>
+                  <p>Do not upload <code>node_modules/</code>; installed cleanly on Ubuntu.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <Radio size={14} color="var(--aws-blue)" />
-                    <strong>3. Port & Host Binding: 0.0.0.0:5000</strong>
+                    <strong>3. Port: 0.0.0.0:5000</strong>
                   </div>
-                  <p>
-                    Configure Express to listen on <code>app.listen(5000, '0.0.0.0')</code> to connect with the Nginx proxy layer.
-                  </p>
+                  <p>Listen on <code>0.0.0.0:5000</code> for Nginx proxy forwarding.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <HeartPulse size={14} color="var(--status-success)" />
-                    <strong>4. Health Route: /api/health</strong>
+                    <strong>4. Health: /api/health</strong>
                   </div>
-                  <p>
-                    Implement <code>{'app.get("/api/health", (req, res) => res.json({ status: "UP" }))'}</code> for Nagios telemetry monitoring.
-                  </p>
+                  <p>Return HTTP 200 on <code>/api/health</code> for Nagios telemetry.</p>
                 </div>
               </>
             )}
@@ -358,31 +289,23 @@ export default defineConfig({
                 <div className="req-card highlight">
                   <div className="req-card-header">
                     <FileCode2 size={14} color="var(--aws-orange)" />
-                    <strong>1. Standalone Executable JAR (app.jar)</strong>
+                    <strong>1. Executable: app.jar</strong>
                   </div>
-                  <p>
-                    Run <code>./mvnw clean package</code> locally and upload the resulting <code>.jar</code> file. Spring Boot packages all dependencies inside <code>BOOT-INF/lib/</code>, guaranteeing zero missing libraries.
-                  </p>
+                  <p>Build standalone JAR (<code>./mvnw clean package</code>) with embedded dependencies.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <Radio size={14} color="var(--aws-blue)" />
-                    <strong>2. Port Binding: server.port=8080</strong>
+                    <strong>2. Port: 8080</strong>
                   </div>
-                  <p>
-                    Configure <code>server.port=8080</code> in your <code>application.properties</code> or <code>application.yml</code>.
-                  </p>
+                  <p>Set <code>server.port=8080</code> in <code>application.properties</code>.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <HeartPulse size={14} color="var(--status-success)" />
-                    <strong>3. Health Endpoint: /api/health or Actuator</strong>
+                    <strong>3. Health Route</strong>
                   </div>
-                  <p>
-                    Provide <code>/api/health</code> or enable Spring Boot Actuator at <code>/actuator/health</code>.
-                  </p>
+                  <p>Expose <code>/api/health</code> or Actuator <code>/actuator/health</code>.</p>
                 </div>
               </>
             )}
@@ -392,21 +315,16 @@ export default defineConfig({
                 <div className="req-card highlight">
                   <div className="req-card-header">
                     <FileCode2 size={14} color="var(--aws-orange)" />
-                    <strong>1. Upload Production Build (dist/ or build/)</strong>
+                    <strong>1. Build Output: dist/</strong>
                   </div>
-                  <p>
-                    Run <code>npm run build</code> locally and upload the contents of your <code>dist/</code> folder containing <code>index.html</code> and bundled CSS/JS. Nginx will serve these files directly.
-                  </p>
+                  <p>Run <code>npm run build</code> and upload the generated <code>dist/</code> folder.</p>
                 </div>
-
                 <div className="req-card">
                   <div className="req-card-header">
                     <Radio size={14} color="var(--aws-blue)" />
-                    <strong>2. Use Relative Asset Base (base: './')</strong>
+                    <strong>2. Base Path: base: './'</strong>
                   </div>
-                  <p>
-                    In your <code>vite.config.ts</code>, set <code>base: './'</code> so assets load properly behind the web server without root-domain path conflicts.
-                  </p>
+                  <p>Set relative base in <code>vite.config.ts</code> for clean asset loading.</p>
                 </div>
               </>
             )}
@@ -416,30 +334,28 @@ export default defineConfig({
                 <div className="req-card highlight">
                   <div className="req-card-header">
                     <FileCode2 size={14} color="var(--aws-orange)" />
-                    <strong>1. Root index.html Entry Point</strong>
+                    <strong>1. Entry Point: index.html</strong>
                   </div>
-                  <p>
-                    Ensure your root HTML file is named exactly <code>index.html</code> with relative references to CSS and JS files (e.g. <code>./style.css</code>).
-                  </p>
+                  <p>Root HTML file named <code>index.html</code> with relative CSS/JS paths.</p>
                 </div>
               </>
             )}
           </div>
 
-          {/* 4. Interactive Pre-Flight Checklist */}
+          {/* Interactive Checklist */}
           <div className="checklist-container">
             <div className="checklist-title-row">
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Pre-Flight Checklist (Click to Confirm)
+              <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Pre-Flight Checks (Click to Confirm)
               </span>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={() => setShowSampleSnippet(!showSampleSnippet)}
-                style={{ fontSize: '0.72rem', height: '26px', padding: '0 0.55rem' }}
+                style={{ fontSize: '0.72rem', height: '24px', padding: '0 0.5rem' }}
               >
                 <Code2 size={12} />
-                <span>{showSampleSnippet ? 'Hide Template' : `View ${currentSample.filename}`}</span>
+                <span>{showSampleSnippet ? 'Hide' : `Template: ${currentSample.filename}`}</span>
               </button>
             </div>
 
@@ -451,10 +367,10 @@ export default defineConfig({
                 </div>
                 <div className="checklist-content">
                   <div className="checklist-item-title">
-                    Step 1: Cloud Infrastructure Ready
+                    Step 1: Cloud Infrastructure
                   </div>
                   <div className="checklist-item-desc">
-                    {isInfraReady ? 'VPC & EC2 instance provisioned and accessible.' : 'Pending: Please run Step 1 (Terraform IaC) first.'}
+                    {isInfraReady ? 'VPC & EC2 instance ready.' : 'Pending: Run Step 1 (Terraform IaC) first.'}
                   </div>
                 </div>
               </div>
@@ -469,10 +385,10 @@ export default defineConfig({
                 </div>
                 <div className="checklist-content">
                   <div className="checklist-item-title">
-                    Dependency Manifest Included ({activeTab === 'python' ? 'requirements.txt' : activeTab === 'nodejs' ? 'package.json' : activeTab === 'springboot' ? 'app.jar' : 'index.html'})
+                    Dependency Manifest Included
                   </div>
                   <div className="checklist-item-desc">
-                    Project includes required library and package declarations.
+                    Root {activeTab === 'python' ? 'requirements.txt' : activeTab === 'nodejs' ? 'package.json' : activeTab === 'springboot' ? 'app.jar' : 'index.html'} present.
                   </div>
                 </div>
               </div>
@@ -490,7 +406,7 @@ export default defineConfig({
                     Heavy Local Folders Excluded
                   </div>
                   <div className="checklist-item-desc">
-                    No .venv, node_modules, or .git included in upload package.
+                    No .venv/ or node_modules/ in upload.
                   </div>
                 </div>
               </div>
@@ -505,10 +421,10 @@ export default defineConfig({
                 </div>
                 <div className="checklist-content">
                   <div className="checklist-item-title">
-                    Network Binding (0.0.0.0 on Target Port)
+                    Host Binding (0.0.0.0)
                   </div>
                   <div className="checklist-item-desc">
-                    Application listens on 0.0.0.0 (Port {activeTab === 'python' ? '8000' : activeTab === 'nodejs' ? '5000' : activeTab === 'springboot' ? '8080' : '80'}).
+                    Listens on 0.0.0.0 on port {activeTab === 'python' ? '8000' : activeTab === 'nodejs' ? '5000' : activeTab === 'springboot' ? '8080' : '80'}.
                   </div>
                 </div>
               </div>
@@ -523,31 +439,31 @@ export default defineConfig({
                 </div>
                 <div className="checklist-content">
                   <div className="checklist-item-title">
-                    Health Check Endpoint (/api/health)
+                    Health Check (/api/health)
                   </div>
                   <div className="checklist-item-desc">
-                    Returns HTTP 200 for Nagios telemetry and service checks.
+                    Returns HTTP 200 for Nagios telemetry.
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Starter Manifest Code Snippet Box */}
+            {/* Template Snippet */}
             {showSampleSnippet && (
               <div className="sample-snippet-box">
                 <div className="sample-snippet-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: 'var(--text-primary)', fontWeight: 700 }}>
                     <FileText size={13} color="var(--aws-orange)" />
-                    <span>Starter Template: <code>{currentSample.filename}</code></span>
+                    <span>Starter: <code>{currentSample.filename}</code></span>
                   </div>
                   <button
                     type="button"
                     className="btn-secondary"
                     onClick={() => handleCopySample(currentSample.code)}
-                    style={{ fontSize: '0.7rem', height: '24px', padding: '0 0.45rem' }}
+                    style={{ fontSize: '0.7rem', height: '22px', padding: '0 0.45rem' }}
                   >
                     {copiedSample ? <Check size={11} color="var(--status-success)" /> : <Copy size={11} />}
-                    <span>{copiedSample ? 'Copied!' : 'Copy Template'}</span>
+                    <span>{copiedSample ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
                 <pre className="sample-snippet-code">
@@ -556,24 +472,24 @@ export default defineConfig({
               </div>
             )}
 
-            {/* Optional Proceed to Next Step Button */}
+            {/* Proceed Button */}
             {onProceed && (
-              <div style={{ marginTop: '0.95rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: '0.85rem', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
                   className="btn-primary"
                   onClick={onProceed}
                   style={{
-                    fontSize: '0.82rem',
-                    padding: '0.5rem 1.15rem',
+                    fontSize: '0.8rem',
+                    padding: '0.45rem 1rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
+                    gap: '0.45rem',
                     fontWeight: 700
                   }}
                 >
-                  <span>{proceedLabel || 'Proceed to Step 1: Terraform IaC'}</span>
-                  <ArrowRight size={14} />
+                  <span>{proceedLabel || 'Proceed to Step 1 ➔'}</span>
+                  <ArrowRight size={13} />
                 </button>
               </div>
             )}

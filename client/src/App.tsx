@@ -176,12 +176,12 @@ export function App() {
       setCompletionNotice({
         stepNumber: 1,
         stepName: 'Terraform IaC',
-        title: 'Step 1 Complete: AWS Infrastructure Provisioned!',
-        description: 'VPC, subnets, and EC2 compute instance are ready for software deployment.',
+        title: 'Step 1 Complete: Infrastructure Provisioned',
+        description: 'VPC and EC2 compute instance are ready.',
         details: [
           { label: 'Public IP', value: status.infrastructure.public_ip || 'Assigned' },
           { label: 'Instance ID', value: status.infrastructure.instance_id || 'i-ec2-node' },
-          { label: 'Network', value: 'VPC 10.0.0.0/16 (Port 22, 80)' },
+          { label: 'Ports', value: '22, 80 open' },
           { label: 'Status', value: 'Ready for Ansible' }
         ],
         nextStepTab: 'ans',
@@ -194,13 +194,13 @@ export function App() {
       setCompletionNotice({
         stepNumber: 2,
         stepName: 'Ansible Deployment',
-        title: 'Step 2 Complete: Application Stack Deployed!',
-        description: `Full-stack application stack configured and running smoothly behind ${status.deployment.web_server.toUpperCase()} reverse proxy.`,
+        title: 'Step 2 Complete: Stack Deployed',
+        description: `Application stack running behind ${status.deployment.web_server.toUpperCase()} proxy.`,
         details: [
-          { label: 'Web Server', value: status.deployment.web_server.toUpperCase() },
-          { label: 'Application', value: status.deployment.deployed_app || 'Polyglot Stack' },
-          { label: 'HTTP Port', value: 'Port 80 (Active Proxy)' },
-          { label: 'Live URL', value: status.infrastructure.app_url || `http://${status.infrastructure.public_ip}` }
+          { label: 'Server', value: status.deployment.web_server.toUpperCase() },
+          { label: 'App', value: status.deployment.deployed_app || 'Polyglot Stack' },
+          { label: 'Port', value: 'Port 80 (Active)' },
+          { label: 'URL', value: status.infrastructure.app_url || `http://${status.infrastructure.public_ip}` }
         ],
         nextStepTab: 'pup',
         nextStepLabel: 'Proceed to Step 3: Puppet Baseline ➔',
@@ -213,13 +213,13 @@ export function App() {
       setCompletionNotice({
         stepNumber: 3,
         stepName: 'Puppet Compliance',
-        title: 'Step 3 Complete: Security Baseline Enforced!',
-        description: 'Zero drift detected. SSH hardening, sysctl policies, and service locks verified.',
+        title: 'Step 3 Complete: Baseline Enforced',
+        description: 'Security policies locked with zero drift detected.',
         details: [
-          { label: 'Drift Violations', value: '0 (Zero Drift)' },
-          { label: 'SSH Security', value: 'Root Login Disabled' },
-          { label: 'Baseline', value: 'Nginx Conf Locked' },
-          { label: 'Compliance', value: '100% Enforced' }
+          { label: 'Drift', value: '0 Violations' },
+          { label: 'SSH', value: 'Root Disabled' },
+          { label: 'Config', value: 'Nginx Locked' },
+          { label: 'State', value: '100% Compliant' }
         ],
         nextStepTab: 'nag',
         nextStepLabel: 'Proceed to Step 4: Nagios Telemetry ➔'
@@ -231,13 +231,13 @@ export function App() {
       setCompletionNotice({
         stepNumber: 4,
         stepName: 'Nagios Telemetry',
-        title: 'Step 4 Complete: Telemetry & Monitoring Active!',
-        description: 'All system health probes passing. End-to-end 4-stage DevOps pipeline is 100% operational!',
+        title: 'Step 4 Complete: Telemetry Active',
+        description: 'All system health probes passing.',
         details: [
-          { label: 'Overall Health', value: 'HEALTHY (100% UP)' },
-          { label: 'Port 80 (HTTP)', value: 'OK (200 Status)' },
-          { label: 'Port 22 (SSH)', value: 'OK (Reachable)' },
-          { label: 'Telemetry', value: 'All Probes Passing' }
+          { label: 'Health', value: 'HEALTHY (100% UP)' },
+          { label: 'Port 80', value: 'HTTP OK (200)' },
+          { label: 'Port 22', value: 'SSH OK' },
+          { label: 'Status', value: 'All Probes Passing' }
         ],
         nextStepTab: 'all',
         nextStepLabel: 'View Full Console Overview ➔',
@@ -419,7 +419,7 @@ export function App() {
                   customCode={status.custom_code}
                   onProceed={() => handleSelectTab('tf')}
                   proceedLabel="Proceed to Step 1: Terraform IaC"
-                  defaultOpen={true}
+                  defaultOpen={false}
                   titlePrefix="Pre-Flight Readiness:"
                 />
               </div>
@@ -467,10 +467,10 @@ export function App() {
                 <div>
                   <div className="section-banner-title">
                     <ShieldCheck size={18} color="var(--aws-orange)" />
-                    <span>0. Pre-Deployment Project Readiness & Manifest Verification</span>
+                    <span>0. Pre-Deployment Readiness Checklist</span>
                   </div>
                   <div className="section-banner-sub">
-                    Verify that your project includes required dependency manifests, network bindings, and health checks before deploying your website.
+                    Verify manifests, host binding, and health route before deploy.
                   </div>
                 </div>
               </div>
@@ -516,7 +516,7 @@ export function App() {
                   hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
                   customCode={status.custom_code}
                   titlePrefix="Step 1 Prerequisite:"
-                  defaultOpen={status.infrastructure.status !== 'ready'}
+                  defaultOpen={false}
                 />
 
                 <TerraformStep

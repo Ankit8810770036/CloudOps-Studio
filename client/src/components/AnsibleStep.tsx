@@ -267,7 +267,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
             hasCustomCode={hasCustomCode}
             customCode={customCode}
             titlePrefix="Step 2 Prerequisite:"
-            defaultOpen={!isDeployed}
+            defaultOpen={false}
           />
         </div>
 
