@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Search,
   Globe,
@@ -7,7 +7,17 @@ import {
   RefreshCw,
   Copy,
   Check,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Package,
+  ShieldCheck,
+  Activity,
+  Flame,
+  Terminal,
+  Network,
+  HelpCircle,
+  Settings,
+  X
 } from 'lucide-react';
 import { ExecutionMode, FullStatus } from '../types';
 
@@ -19,7 +29,10 @@ interface TopNavbarProps {
   status: FullStatus;
   selectedRegion: string;
   onSelectRegion: (reg: string) => void;
-  onSearchFocus: () => void;
+  onNavigate: (tabId: string) => void;
+  onOpenConfig: () => void;
+  onOpenArch: () => void;
+  onOpenViva: () => void;
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({
@@ -30,9 +43,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   status,
   selectedRegion,
   onSelectRegion,
-  onSearchFocus,
+  onNavigate,
+  onOpenConfig,
+  onOpenArch,
+  onOpenViva,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+
   const isReady = status.infrastructure.status === 'ready';
   const isRunning = status.is_running_pipeline;
 
@@ -44,23 +65,139 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     }
   };
 
+  // Keyboard shortcut Ctrl+K to focus search input in-place
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const searchItems = [
+    { id: 'tf', label: '1. Terraform IaC', sub: 'Provision VPC, Subnets, EC2', icon: Layers, action: () => onNavigate('tf') },
+    { id: 'ans', label: '2. Ansible Deploy', sub: 'Configure Frontend, Backend, DB', icon: Package, action: () => onNavigate('ans') },
+    { id: 'pup', label: '3. Puppet Baseline', sub: 'Enforce desired security state', icon: ShieldCheck, action: () => onNavigate('pup') },
+    { id: 'nag', label: '4. Nagios Telemetry', sub: 'Live service & hardware probes', icon: Activity, action: () => onNavigate('nag') },
+    { id: 'chaos', label: 'Chaos Engineering', sub: 'Simulate crashes & test healing', icon: Flame, action: () => onNavigate('chaos') },
+    { id: 'term', label: 'Live Terminal', sub: 'Streaming WebSocket logs', icon: Terminal, action: () => onNavigate('term') },
+    { id: 'arch', label: 'Architecture Blueprint', sub: '3-tier and automation design', icon: Network, action: onOpenArch },
+    { id: 'viva', label: 'Viva Q&A Guide', sub: 'Class presentation & defense', icon: HelpCircle, action: onOpenViva },
+    { id: 'config', label: 'AWS Settings', sub: 'Credentials & Region config', icon: Settings, action: onOpenConfig },
+  ];
+
+  const filteredItems = searchItems.filter(item =>
+    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.sub.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <header className="top-navbar">
-      {/* 1. Global Search Bar */}
-      <div className="navbar-search-wrapper" onClick={onSearchFocus}>
-        <Search size={14} color="var(--text-dim)" />
+      {/* 1. In-Place Global Search Bar (No Drag to Center) */}
+      <div className="navbar-search-wrapper" ref={searchWrapperRef}>
+        <Search size={14} color="var(--text-dim)" style={{ flexShrink: 0 }} />
         <input
+          ref={searchInputRef}
           type="text"
           className="navbar-search-input"
-          placeholder="Search cloud resources, EC2, playbooks, logs..."
-          readOnly
+          placeholder="Search resources, steps, commands..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setIsSearchOpen(true);
+          }}
+          onFocus={() => setIsSearchOpen(true)}
         />
-        <span className="navbar-kbd-shortcut">Ctrl+K</span>
+        {searchQuery ? (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('');
+              setIsSearchOpen(false);
+            }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 0 }}
+          >
+            <X size={13} />
+          </button>
+        ) : (
+          <span className="navbar-kbd-shortcut">Ctrl+K</span>
+        )}
+
+        {/* In-Place Anchored Dropdown (Directly Underneath Search Bar) */}
+        {isSearchOpen && (
+          <div className="navbar-search-dropdown">
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-dim)', padding: '0.35rem 0.55rem 0.25rem', textTransform: 'uppercase' }}>
+              Quick Navigation
+            </div>
+            {filteredItems.length === 0 ? (
+              <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                No matching results found for "{searchQuery}".
+              </div>
+            ) : (
+              filteredItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.id}
+                    className="search-result-item"
+                    onClick={() => {
+                      item.action();
+                      setIsSearchOpen(false);
+                      setSearchQuery('');
+                    }}
+                  >
+                    <div style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 4,
+                      background: 'var(--bg-card-subtle)',
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--aws-orange)',
+                      flexShrink: 0
+                    }}>
+                      <Icon size={14} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.label}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.sub}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 2. Controls & Actions */}
+      {/* 2. Top Bar Action Controls (Perfect Vertical Centering & Exact Baseline Alignment) */}
       <div className="navbar-actions">
-        {/* Pipeline In-Progress Spinner */}
+        {/* Pipeline Status Badge */}
         {isRunning && (
           <div className="running-action-badge">
             <RefreshCw size={12} className="animate-spin" />
@@ -68,9 +205,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
         )}
 
-        {/* Global AWS Region Selector */}
+        {/* Global AWS Region Selector (Controlled Width, No Overflow) */}
         <div className="navbar-region-dropdown">
-          <Globe size={14} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
+          <Globe size={13} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
           <select
             value={selectedRegion}
             onChange={(e) => onSelectRegion(e.target.value)}
@@ -113,7 +250,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
         )}
 
-        {/* Mode Toggle (Simulation vs Live AWS) */}
+        {/* Mode Toggle Button */}
         <button
           className="navbar-mode-btn"
           onClick={onToggleMode}
@@ -123,7 +260,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           <span>{mode.toUpperCase()} MODE</span>
         </button>
 
-        {/* Theme Switcher (Light vs Dark) */}
+        {/* Theme Toggle Button */}
         <button
           className="navbar-theme-btn"
           onClick={onToggleTheme}

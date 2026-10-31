@@ -23,12 +23,12 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
   return (
     <div className={`chaos-lab-container ${hasFault ? 'fault-active' : ''}`}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: 6,
+            width: 30,
+            height: 30,
+            borderRadius: 5,
             background: hasFault ? 'var(--status-danger-bg)' : 'rgba(220, 38, 38, 0.12)',
             border: `1px solid ${hasFault ? 'var(--status-danger)' : 'rgba(220, 38, 38, 0.3)'}`,
             display: 'flex',
@@ -37,14 +37,14 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
             color: 'var(--status-danger)',
             flexShrink: 0
           }}>
-            <Flame size={18} />
+            <Flame size={16} />
           </div>
           <div>
-            <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Chaos Engineering & Failure Simulation Lab
+            <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Chaos Engineering Lab
             </h4>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Inject real or simulated outages to demonstrate Nagios incident detection and Puppet/Ansible automated self-healing.
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
+              Inject outages to test automated detection and self-healing.
             </p>
           </div>
         </div>
@@ -57,11 +57,13 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
             style={{
               background: 'var(--status-success)',
               border: '1px solid var(--status-success)',
-              color: '#FFFFFF'
+              color: '#FFFFFF',
+              height: '32px',
+              fontSize: '0.78rem'
             }}
           >
-            <Wrench size={15} />
-            <span>Auto-Remediate & Heal All</span>
+            <Wrench size={13} />
+            <span>Auto-Remediate</span>
           </button>
         )}
       </div>
@@ -69,22 +71,22 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
       {/* Outage Alert Banner */}
       {hasFault && (
         <div className="chaos-banner">
-          <AlertOctagon size={16} color="var(--status-danger)" style={{ flexShrink: 0 }} />
+          <AlertOctagon size={15} color="var(--status-danger)" style={{ flexShrink: 0 }} />
           <span>
-            <strong>ACTIVE OUTAGE:</strong> {chaos.description} &mdash; Nagios has triggered critical alerts! Click &quot;Auto-Remediate&quot; to restore baseline.
+            <strong>ACTIVE OUTAGE:</strong> {chaos.description} &mdash; Click &quot;Auto-Remediate&quot; to restore baseline.
           </span>
         </div>
       )}
 
       {/* Fault Injection Buttons */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.65rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.55rem' }}>
         <button
           onClick={() => onInject('http_down')}
           disabled={isRunning || !isInfraReady || hasFault}
           className="chaos-btn"
         >
-          <Zap size={14} color="var(--status-danger)" style={{ flexShrink: 0 }} />
-          <span>Crash Frontend (Nginx 80)</span>
+          <Zap size={13} color="var(--status-danger)" style={{ flexShrink: 0 }} />
+          <span>Crash Frontend (80)</span>
         </button>
 
         <button
@@ -92,8 +94,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
           disabled={isRunning || !isInfraReady || hasFault}
           className="chaos-btn"
         >
-          <Server size={14} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
-          <span>Crash Backend API Tier</span>
+          <Server size={13} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
+          <span>Crash Backend API</span>
         </button>
 
         <button
@@ -101,8 +103,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
           disabled={isRunning || !isInfraReady || hasFault}
           className="chaos-btn"
         >
-          <Database size={14} color="var(--status-success)" style={{ flexShrink: 0 }} />
-          <span>Crash Database Daemon</span>
+          <Database size={13} color="var(--status-success)" style={{ flexShrink: 0 }} />
+          <span>Crash Database</span>
         </button>
 
         <button
@@ -110,8 +112,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
           disabled={isRunning || !isInfraReady || hasFault}
           className="chaos-btn"
         >
-          <Cpu size={14} color="var(--accent-terraform)" style={{ flexShrink: 0 }} />
-          <span>Simulate CPU Spike (&gt;90%)</span>
+          <Cpu size={13} color="var(--accent-terraform)" style={{ flexShrink: 0 }} />
+          <span>CPU Spike (&gt;90%)</span>
         </button>
 
         <button
@@ -119,8 +121,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
           disabled={isRunning || !isInfraReady || hasFault}
           className="chaos-btn"
         >
-          <RefreshCw size={14} color="var(--aws-blue)" style={{ flexShrink: 0 }} />
-          <span>Simulate Drift (/etc/motd)</span>
+          <RefreshCw size={13} color="var(--aws-blue)" style={{ flexShrink: 0 }} />
+          <span>Drift (/etc/motd)</span>
         </button>
       </div>
     </div>

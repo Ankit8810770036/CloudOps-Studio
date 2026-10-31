@@ -12,7 +12,6 @@ import { Terminal } from './components/Terminal';
 import { ConfigModal } from './components/ConfigModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { VivaModal } from './components/VivaModal';
-import { SearchModal } from './components/SearchModal';
 
 import {
   fetchStatus,
@@ -45,25 +44,12 @@ export function App() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isArchOpen, setIsArchOpen] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Apply theme to document element
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('cloudops_theme', theme);
   }, [theme]);
-
-  // Keyboard shortcut Ctrl+K
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsSearchOpen(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Poll status periodically
   useEffect(() => {
@@ -154,23 +140,23 @@ export function App() {
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'column',
-        gap: '1rem',
+        gap: '0.85rem',
         background: 'var(--bg-global)',
         color: 'var(--text-primary)'
       }}>
         <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: 8,
+          width: 40,
+          height: 40,
+          borderRadius: 6,
           background: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <div style={{ width: 20, height: 20, border: '2.5px solid var(--aws-orange)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 18, height: 18, border: '2px solid var(--aws-orange)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
-        <p style={{ fontSize: '0.86rem', color: 'var(--text-dim)', fontWeight: 600 }}>Connecting to CloudOps Orchestrator...</p>
+        <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', fontWeight: 600 }}>Connecting to CloudOps Orchestrator...</p>
       </div>
     );
   }
@@ -193,7 +179,7 @@ export function App() {
 
       {/* 2. Main Wrapper */}
       <div className="main-wrapper">
-        {/* Top Navbar */}
+        {/* Top Navbar with In-Place Search */}
         <TopNavbar
           mode={status.mode}
           onToggleMode={handleToggleMode}
@@ -202,7 +188,10 @@ export function App() {
           status={status}
           selectedRegion={selectedRegion}
           onSelectRegion={setSelectedRegion}
-          onSearchFocus={() => setIsSearchOpen(true)}
+          onNavigate={setActiveTab}
+          onOpenConfig={() => setIsConfigOpen(true)}
+          onOpenArch={() => setIsArchOpen(true)}
+          onOpenViva={() => setIsVivaOpen(true)}
         />
 
         {/* Main Content Area */}
@@ -213,11 +202,11 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <LayoutDashboard size={20} color="var(--aws-orange)" />
+                    <LayoutDashboard size={18} color="var(--aws-orange)" />
                     <span>Console Overview</span>
                   </div>
                   <div className="section-banner-sub">
-                    Automated cloud infrastructure, polyglot application deployment, configuration baseline, and observability dashboard.
+                    Infrastructure, deployment, compliance, and observability.
                   </div>
                 </div>
               </div>
@@ -237,7 +226,7 @@ export function App() {
                 isRunning={isRunning}
               />
 
-              {/* 4 Pipeline Steps Grid */}
+              {/* 4 Pipeline Steps Grid (Equal Stretch Alignment) */}
               <div className="main-grid">
                 <TerraformStep
                   infra={status.infrastructure}
@@ -277,16 +266,16 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <Layers size={20} color="var(--accent-terraform)" />
-                    <span>Step 1: Terraform Infrastructure as Code (IaC)</span>
+                    <Layers size={18} color="var(--accent-terraform)" />
+                    <span>Step 1: Terraform IaC</span>
                   </div>
                   <div className="section-banner-sub">
-                    Declarative provisioning of AWS VPC, Internet Gateway, Subnets, Security Groups, and EC2 compute instance.
+                    AWS VPC, Subnets, Security Groups & EC2 provisioning.
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <TerraformStep
                   infra={status.infrastructure}
                   onApply={handleApplyTerraform}
@@ -304,16 +293,16 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <Package size={20} color="var(--accent-ansible)" />
-                    <span>Step 2: Full-Stack Polyglot Application Deployment (Ansible)</span>
+                    <Package size={18} color="var(--accent-ansible)" />
+                    <span>Step 2: Ansible Deployment</span>
                   </div>
                   <div className="section-banner-sub">
-                    Idempotent configuration management for 3-tier architectures (Frontend, Backend API, Database) and Nginx reverse proxy.
+                    Polyglot 3-tier application stack & Nginx reverse proxy.
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <AnsibleStep
                   deployment={status.deployment}
                   infra={status.infrastructure}
@@ -332,16 +321,16 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <ShieldCheck size={20} color="var(--accent-puppet)" />
-                    <span>Step 3: Configuration Baseline & Self-Healing (Puppet)</span>
+                    <ShieldCheck size={18} color="var(--accent-puppet)" />
+                    <span>Step 3: Puppet Compliance</span>
                   </div>
                   <div className="section-banner-sub">
-                    Continuous desired-state enforcement, SSH hardening, database localhost isolation, and automatic drift remediation.
+                    Configuration baseline, SSH hardening, and drift self-healing.
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <PuppetStep
                   compliance={status.compliance}
                   infra={status.infrastructure}
@@ -359,19 +348,19 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <Activity size={20} color="var(--accent-nagios)" />
-                    <span>Step 4: Observability & Proactive Monitoring (Nagios Core & NRPE)</span>
+                    <Activity size={18} color="var(--accent-nagios)" />
+                    <span>Step 4: Nagios Observability</span>
                   </div>
                   <div className="section-banner-sub">
-                    Active HTTP port 80 health checks, backend API latency probes, database socket checks, and Linux load monitoring.
+                    Active HTTP port 80 health checks, backend API latency, and host load.
                   </div>
                 </div>
               </div>
 
-              {/* Real-time Hardware Charts right inside Monitoring */}
+              {/* Real-time Hardware Charts inside Monitoring */}
               <MetricCharts telemetry={status.telemetry} />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <NagiosStep
                   telemetry={status.telemetry}
                   infra={status.infrastructure}
@@ -389,16 +378,16 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <Flame size={20} color="var(--status-danger)" />
-                    <span>Chaos Engineering Lab & Automated Self-Healing Verification</span>
+                    <Flame size={18} color="var(--status-danger)" />
+                    <span>Chaos Engineering Lab</span>
                   </div>
                   <div className="section-banner-sub">
-                    Inject real or simulated outages into frontend, backend, or database tiers to test Nagios alert triggers and Puppet/Ansible remediation.
+                    Failure simulation and automated self-healing verification.
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <ChaosPanel
                   chaos={status.chaos}
                   infra={status.infrastructure}
@@ -423,11 +412,11 @@ export function App() {
               <div className="section-banner-header">
                 <div>
                   <div className="section-banner-title">
-                    <TerminalIcon size={20} color="var(--aws-orange)" />
-                    <span>DevOps Orchestrator Live Terminal</span>
+                    <TerminalIcon size={18} color="var(--aws-orange)" />
+                    <span>DevOps Live Terminal</span>
                   </div>
                   <div className="section-banner-sub">
-                    Real-time WebSocket streaming logs from Terraform, Ansible, Puppet, and Nagios runtime execution engines.
+                    Real-time WebSocket streaming logs from Terraform, Ansible, Puppet, and Nagios.
                   </div>
                 </div>
               </div>
@@ -442,14 +431,6 @@ export function App() {
       <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
       <ArchitectureModal isOpen={isArchOpen} onClose={() => setIsArchOpen(false)} />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onNavigate={setActiveTab}
-        onOpenConfig={() => setIsConfigOpen(true)}
-        onOpenArch={() => setIsArchOpen(true)}
-        onOpenViva={() => setIsVivaOpen(true)}
-      />
     </div>
   );
 }

@@ -22,105 +22,109 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
 
   return (
     <div className="panel-card">
-      <div className="panel-header">
-        <h3>
-          <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: 'rgba(124, 58, 237, 0.15)',
-            border: '1px solid rgba(124, 58, 237, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--accent-terraform)',
-            flexShrink: 0
+      <div>
+        {/* Header */}
+        <div className="panel-header">
+          <h3>
+            <div style={{
+              width: 26,
+              height: 26,
+              borderRadius: 5,
+              background: 'rgba(124, 58, 237, 0.15)',
+              border: '1px solid rgba(124, 58, 237, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--accent-terraform)',
+              flexShrink: 0
+            }}>
+              <Layers size={14} />
+            </div>
+            <span>Step 1: Terraform IaC</span>
+          </h3>
+          <span style={{
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            padding: '0.15rem 0.55rem',
+            borderRadius: '4px',
+            background: isProvisioned ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
+            color: isProvisioned ? 'var(--status-success)' : 'var(--aws-orange)',
+            border: `1px solid ${isProvisioned ? 'var(--status-success)' : 'var(--status-warning)'}`,
+            letterSpacing: '0.04em'
           }}>
-            <Layers size={15} />
+            {infra.status.toUpperCase()}
+          </span>
+        </div>
+
+        {/* Minimal Subtitle */}
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.85rem' }}>
+          AWS VPC, Subnets, Security Groups & Ubuntu 22.04 EC2 compute.
+        </p>
+
+        {/* Region & Instance Selectors (Never Overflow) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">AWS Region</label>
+            <select
+              className="form-select"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              disabled={isRunning || isProvisioned}
+            >
+              <option value="us-east-1">us-east-1 (N. Virginia)</option>
+              <option value="us-west-2">us-west-2 (Oregon)</option>
+              <option value="eu-west-1">eu-west-1 (Ireland)</option>
+              <option value="ap-south-1">ap-south-1 (Mumbai)</option>
+            </select>
           </div>
-          <span>Step 1: Terraform Infrastructure as Code</span>
-        </h3>
-        <span style={{
-          fontSize: '0.74rem',
-          fontWeight: 700,
-          padding: '0.2rem 0.6rem',
-          borderRadius: '4px',
-          background: isProvisioned ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
-          color: isProvisioned ? 'var(--status-success)' : 'var(--aws-orange)',
-          border: `1px solid ${isProvisioned ? 'var(--status-success)' : 'var(--status-warning)'}`,
-          letterSpacing: '0.04em'
-        }}>
-          {infra.status.toUpperCase()}
-        </span>
-      </div>
 
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.15rem' }}>
-        Declaratively provisions AWS VPC, Security Group with ingress ports (22, 80, 443, 5000-8080, 5666), and EC2 compute instance running Ubuntu 22.04 LTS.
-      </p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.85rem', marginBottom: '1.15rem' }}>
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">AWS Region</label>
-          <select
-            className="form-select"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            disabled={isRunning || isProvisioned}
-          >
-            <option value="us-east-1">US East (N. Virginia) [us-east-1]</option>
-            <option value="us-west-2">US West (Oregon) [us-west-2]</option>
-            <option value="eu-west-1">EU (Ireland) [eu-west-1]</option>
-            <option value="ap-south-1">Asia Pacific (Mumbai) [ap-south-1]</option>
-          </select>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">EC2 Instance</label>
+            <select
+              className="form-select"
+              value={instanceType}
+              onChange={(e) => setInstanceType(e.target.value)}
+              disabled={isRunning || isProvisioned}
+            >
+              <option value="t2.micro">t2.micro (1 vCPU, 1 GB)</option>
+              <option value="t3.micro">t3.micro (2 vCPU, 1 GB)</option>
+              <option value="t3.small">t3.small (2 vCPU, 2 GB)</option>
+            </select>
+          </div>
         </div>
 
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">EC2 Instance Type</label>
-          <select
-            className="form-select"
-            value={instanceType}
-            onChange={(e) => setInstanceType(e.target.value)}
-            disabled={isRunning || isProvisioned}
-          >
-            <option value="t2.micro">t2.micro (1 vCPU, 1 GB RAM - Free Tier)</option>
-            <option value="t3.micro">t3.micro (2 vCPU, 1 GB RAM)</option>
-            <option value="t3.small">t3.small (2 vCPU, 2 GB RAM)</option>
-          </select>
+        {/* Resource Spec Box */}
+        <div className="spec-box">
+          <div className="spec-row">
+            <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Shield size={13} color="var(--accent-terraform)" />
+              <span>Ingress Ports:</span>
+            </span>
+            <span className="spec-value">22, 80, 443, 5000-8080, 5666</span>
+          </div>
+          <div className="spec-row">
+            <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <HardDrive size={13} color="var(--aws-blue)" />
+              <span>Storage:</span>
+            </span>
+            <span className="spec-value">20 GB gp3 SSD</span>
+          </div>
+          <div className="spec-row">
+            <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Key size={13} color="var(--aws-orange)" />
+              <span>SSH Keypair:</span>
+            </span>
+            <span className="spec-value">devops-key.pem (RSA 4096)</span>
+          </div>
         </div>
       </div>
 
-      {/* Resource Spec Box */}
-      <div className="spec-box">
-        <div className="spec-row">
-          <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Shield size={14} color="var(--accent-terraform)" />
-            <span>Security Ingress:</span>
-          </span>
-          <span className="spec-value" style={{ color: 'var(--text-primary)' }}>
-            22, 80, 443, 5000, 8000, 8080, 5666
-          </span>
-        </div>
-        <div className="spec-row">
-          <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <HardDrive size={14} color="var(--aws-blue)" />
-            <span>Storage Volume:</span>
-          </span>
-          <span className="spec-value">20 GB gp3 High-IOPS SSD</span>
-        </div>
-        <div className="spec-row">
-          <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Key size={14} color="var(--aws-orange)" />
-            <span>SSH Keypair:</span>
-          </span>
-          <span className="spec-value">devops-key.pem (RSA 4096-bit)</span>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', flexWrap: 'wrap' }}>
+      {/* Aligned Action Footer */}
+      <div className="panel-footer-actions">
         <button
           className="btn-primary"
           style={{
-            flex: '1 1 240px',
+            flex: '1 1 200px',
             background: isProvisioned ? 'var(--bg-card-subtle)' : 'var(--accent-terraform)',
             color: isProvisioned ? 'var(--text-muted)' : '#FFFFFF',
             border: isProvisioned ? '1px solid var(--border-color)' : '1px solid var(--accent-terraform)'
@@ -128,8 +132,8 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
           onClick={() => onApply(region, instanceType)}
           disabled={isRunning || isProvisioned}
         >
-          <Play size={15} />
-          <span>{isProvisioned ? 'Infrastructure Provisioned (Ready)' : 'Provision Infrastructure (Terraform Apply)'}</span>
+          <Play size={14} />
+          <span>{isProvisioned ? 'Provisioned (Ready)' : 'Apply (Terraform)'}</span>
         </button>
 
         {isProvisioned && (
@@ -137,10 +141,10 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
             className="btn-danger"
             onClick={onDestroy}
             disabled={isRunning}
-            title="Tear down all AWS resources created by Terraform"
+            title="Tear down all AWS resources"
             style={{ flex: '0 0 auto' }}
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} />
             <span>Destroy</span>
           </button>
         )}
