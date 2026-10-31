@@ -1,0 +1,37 @@
+---
+- name: Install Apache Web Server
+  apt:
+    name: apache2
+    state: present
+
+- name: Create Web Application Root Directory
+  file:
+    path: "{{ web_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Configure Apache Virtual Host
+  template:
+    src: devops_app.conf.j2
+    dest: /etc/apache2/sites-available/devops_app.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload Apache
+
+- name: Enable devops_app site and rewrite module
+  command: a2ensite devops_app.conf
+  notify: Reload Apache
+
+- name: Disable default Apache site
+  command: a2dissite 000-default.conf
+  ignore_errors: yes
+  notify: Reload Apache
+
+- name: Ensure Apache Service is Started and Enabled
+  service:
+    name: apache2
+    state: started
+    enabled: yes

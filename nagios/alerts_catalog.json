@@ -1,0 +1,48 @@
+{
+  "system": "Nagios Core & NRPE Monitoring Engine",
+  "version": "4.4.6",
+  "services": [
+    {
+      "id": "http_check",
+      "name": "HTTP Web Application",
+      "port": 80,
+      "type": "HTTP",
+      "warning_threshold": "Latency > 1500ms or non-200 status",
+      "critical_threshold": "Connection refused / Process down / 500 error",
+      "remediation": "systemctl restart nginx (or apache2)"
+    },
+    {
+      "id": "ssh_check",
+      "name": "SSH Daemon Accessibility",
+      "port": 22,
+      "type": "TCP",
+      "warning_threshold": "Response latency > 2000ms",
+      "critical_threshold": "Port 22 unreachable / timed out",
+      "remediation": "systemctl restart ssh"
+    },
+    {
+      "id": "cpu_check",
+      "name": "CPU Utilization (Load Average)",
+      "type": "NRPE",
+      "warning_threshold": "> 75% load",
+      "critical_threshold": "> 90% load",
+      "remediation": "Inspect top processes, kill runaway tasks or scale EC2"
+    },
+    {
+      "id": "memory_check",
+      "name": "RAM Memory Utilization",
+      "type": "NRPE",
+      "warning_threshold": "> 80% used",
+      "critical_threshold": "> 92% used",
+      "remediation": "Clear buffer cache or restart leaking services"
+    },
+    {
+      "id": "disk_check",
+      "name": "Root Volume Storage (/)",
+      "type": "NRPE",
+      "warning_threshold": "> 80% disk consumed",
+      "critical_threshold": "> 90% disk consumed",
+      "remediation": "Rotate /var/log or purge old apt caches"
+    }
+  ]
+}

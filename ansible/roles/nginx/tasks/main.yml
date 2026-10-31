@@ -1,0 +1,41 @@
+---
+- name: Install Nginx Web Server
+  apt:
+    name: nginx
+    state: present
+
+- name: Create Web Application Root Directory
+  file:
+    path: "{{ web_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Configure Nginx Virtual Host
+  template:
+    src: devops_app.conf.j2
+    dest: /etc/nginx/sites-available/devops_app
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reload Nginx
+
+- name: Enable Nginx Virtual Host
+  file:
+    src: /etc/nginx/sites-available/devops_app
+    dest: /etc/nginx/sites-enabled/devops_app
+    state: link
+  notify: Reload Nginx
+
+- name: Remove Default Nginx Site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
+
+- name: Ensure Nginx Service is Started and Enabled
+  service:
+    name: nginx
+    state: started
+    enabled: yes

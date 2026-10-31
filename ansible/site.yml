@@ -1,0 +1,65 @@
+---
+- name: Configure Cloud Server and Deploy Application
+  hosts: webservers
+  become: yes
+  vars:
+    web_server_type: "{{ web_server_type | default('nginx') }}"
+    web_root: "/var/www/devops_app"
+
+  pre_tasks:
+    - name: Update apt repository cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install baseline system dependencies
+      apt:
+        name:
+          - curl
+          - wget
+          - ufw
+          - htop
+          - git
+          - net-tools
+        state: present
+
+    - name: Stop conflicting web server if switching
+      service:
+        name: "{{ 'apache2' if web_server_type == 'nginx' else 'nginx' }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+  roles:
+    - role: nginx
+      when: web_server_type == 'nginx'
+    - role: apache
+      when: web_server_type == 'apache'
+    - role: webapp
+
+  post_tasks:
+    - name: Ensure UFW firewall allows HTTP traffic
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+
+    - name: Ensure UFW firewall allows SSH traffic
+      ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: Verify Web Service is running and responding
+      uri:
+        url: "http://127.0.0.1:80"
+        status_code: 200
+        timeout: 10
+      register: web_check
+      retries: 5
+      delay: 3
+      until: web_check.status == 200
+
+    - name: Display Deployment Verification
+      debug:
+        msg: "Success! {{ web_server_type | upper }} is active and serving the application on port 80."

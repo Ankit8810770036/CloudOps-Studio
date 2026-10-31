@@ -1,0 +1,8 @@
+[webservers]
+cloud_target ansible_host={{ TARGET_HOST }} ansible_user=ubuntu ansible_ssh_private_key_file={{ KEY_PATH }} ansible_python_interpreter=/usr/bin/python3
+
+[all:vars]
+web_server_type={{ WEB_SERVER_TYPE }}
+http_port=80
+app_name=DevOps Cloud Operations Portal
+app_version=1.0.0
