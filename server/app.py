@@ -365,7 +365,7 @@ async def clear_uploaded_code(tier: str):
         d = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
         if d.exists():
             for item in d.iterdir():
-                if item.name != "index.html": # keep default index.html
+                if item.name not in ["index.html", "style.css", "app.js"]: # keep default webapp template files
                     if item.is_dir():
                         shutil.rmtree(item, ignore_errors=True)
                     else:

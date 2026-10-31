@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck } from 'lucide-react';
 import { ChaosState, InfrastructureState } from '../types';
 
 interface ChaosPanelProps {

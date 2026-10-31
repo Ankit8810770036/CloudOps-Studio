@@ -356,6 +356,30 @@ EOF'
             sudo docker ps --filter name=cloudops-custom-app
             """
 
+        # Build dynamic frontend file sync commands
+        webapp_dir = ANSIBLE_DIR / "roles" / "webapp" / "files" / "app"
+        frontend_files_cmd = ""
+        if webapp_dir.exists():
+            for p in webapp_dir.rglob("*"):
+                if p.is_file():
+                    rel = p.relative_to(webapp_dir)
+                    try:
+                        content = p.read_text(encoding="utf-8", errors="replace")
+                        frontend_files_cmd += f"""
+        sudo mkdir -p /var/www/devops_app/{rel.parent.as_posix()}
+        sudo bash -c 'cat << "EOF" > /var/www/devops_app/{rel.as_posix()}
+{content}
+EOF'
+                        """
+                    except Exception:
+                        pass
+        if not frontend_files_cmd:
+            frontend_files_cmd = """
+        sudo bash -c 'cat << "EOF" > /var/www/devops_app/index.html
+<!DOCTYPE html><html><body><h1>CloudOps Deployed</h1></body></html>
+EOF'
+            """
+
         # Execute deployment on target node
         deploy_cmd = f"""
         sudo apt-get update -y
@@ -363,16 +387,10 @@ EOF'
         sudo systemctl enable {web_server}
         sudo systemctl start {web_server}
         sudo mkdir -p /var/www/devops_app
+
+        {frontend_files_cmd}
+
         sudo chown -R www-data:www-data /var/www/devops_app
-        sudo bash -c 'cat << "EOF" > /var/www/devops_app/index.html
-        { (ANSIBLE_DIR / "roles/webapp/files/app/index.html").read_text(encoding="utf-8") }
-        EOF'
-        sudo bash -c 'cat << "EOF" > /var/www/devops_app/style.css
-        { (ANSIBLE_DIR / "roles/webapp/files/app/style.css").read_text(encoding="utf-8") }
-        EOF'
-        sudo bash -c 'cat << "EOF" > /var/www/devops_app/app.js
-        { (ANSIBLE_DIR / "roles/webapp/files/app/app.js").read_text(encoding="utf-8") }
-        EOF'
         sudo bash -c 'echo \'{{"status":"UP","web_server":"{web_server}","hostname":"\'$(hostname)\'","deployed_by":"Ansible"}}\' > /var/www/devops_app/healthz.json'
         if [ "{web_server}" = "nginx" ]; then
             sudo sed -i 's|root /var/www/html;|root /var/www/devops_app;|g' /etc/nginx/sites-available/default

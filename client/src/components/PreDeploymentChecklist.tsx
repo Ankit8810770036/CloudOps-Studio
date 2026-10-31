@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -36,15 +36,26 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
   backendType = 'python',
   frontendType = 'react',
   isInfraReady,
-  hasCustomCode,
-  customCode,
+  hasCustomCode: _hasCustomCode,
+  customCode: _customCode,
   onProceed,
   proceedLabel,
   defaultOpen = true,
   titlePrefix,
 }) => {
+  const getTargetTab = (bType: string, fType: string) => {
+    if (bType === 'docker') return 'docker';
+    if (bType === 'python') return 'python';
+    if (bType === 'nodejs') return 'nodejs';
+    if (bType === 'java_springboot') return 'springboot';
+    if (fType === 'react') return 'react';
+    if (fType === 'html') return 'html';
+    return 'python';
+  };
+
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [activeTab, setActiveTab] = useState<string>('python');
+  const [userSelectedTab, setUserSelectedTab] = useState<string | null>(null);
+  const activeTab = userSelectedTab ?? getTargetTab(backendType, frontendType);
   const [copiedSample, setCopiedSample] = useState(false);
   const [showSampleSnippet, setShowSampleSnippet] = useState(false);
 
@@ -66,15 +77,6 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
       };
     }
   });
-
-  useEffect(() => {
-    if (backendType === 'docker') setActiveTab('docker');
-    else if (backendType === 'python') setActiveTab('python');
-    else if (backendType === 'nodejs') setActiveTab('nodejs');
-    else if (backendType === 'java_springboot') setActiveTab('springboot');
-    else if (frontendType === 'react') setActiveTab('react');
-    else if (frontendType === 'html') setActiveTab('html');
-  }, [backendType, frontendType]);
 
   const toggleCheck = (key: string) => {
     setCheckedItems(prev => {
@@ -218,7 +220,7 @@ CMD ["./app"]`
                 type="button"
                 className={`pre-deploy-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTab(tab.id);
+                  setUserSelectedTab(tab.id);
                   setShowSampleSnippet(false);
                 }}
               >

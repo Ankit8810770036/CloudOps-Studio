@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, ChevronRight, X, ExternalLink, Sparkles } from 'lucide-react';
+import { CheckCircle2, ChevronRight, X, ExternalLink } from 'lucide-react';
 
 export interface StepCompletionData {
   stepNumber: number;
@@ -23,23 +23,20 @@ export const StepCompletionNotification: React.FC<StepCompletionNotificationProp
   onClose,
   onProceed,
 }) => {
-  const [visible, setVisible] = useState(false);
+  const [dismissedStep, setDismissedStep] = useState<number | null>(null);
 
   useEffect(() => {
     if (data) {
-      setVisible(true);
-      // Auto-dismiss after 14 seconds if user doesn't interact
+      const stepNum = data.stepNumber;
       const timer = setTimeout(() => {
-        setVisible(false);
+        setDismissedStep(stepNum);
         onClose();
       }, 14000);
       return () => clearTimeout(timer);
-    } else {
-      setVisible(false);
     }
   }, [data, onClose]);
 
-  if (!data || !visible) return null;
+  if (!data || data.stepNumber === dismissedStep) return null;
 
   return (
     <aside
@@ -58,7 +55,7 @@ export const StepCompletionNotification: React.FC<StepCompletionNotificationProp
           type="button"
           className="step-completion-close"
           onClick={() => {
-            setVisible(false);
+            setDismissedStep(data.stepNumber);
             onClose();
           }}
           title="Dismiss notification"
@@ -106,7 +103,7 @@ export const StepCompletionNotification: React.FC<StepCompletionNotificationProp
           type="button"
           className="btn-primary step-completion-proceed-btn"
           onClick={() => {
-            setVisible(false);
+            setDismissedStep(data.stepNumber);
             onProceed(data.nextStepTab);
             onClose();
           }}

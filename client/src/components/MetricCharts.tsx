@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Cpu, HardDrive, Wifi } from 'lucide-react';
 import { TelemetryState } from '../types';
 
@@ -7,27 +7,22 @@ interface MetricChartsProps {
 }
 
 export const MetricCharts: React.FC<MetricChartsProps> = React.memo(({ telemetry }) => {
-  // Rolling historical buffers (last 16 data points)
-  const [cpuHistory, setCpuHistory] = useState<number[]>([18, 22, 19, 25, 21, 23, 20, 24, 19, 22, 21, 25, 20, 22, 24, 21]);
-  const [memHistory, setMemHistory] = useState<number[]>([36, 37, 36, 38, 37, 39, 38, 37, 38, 39, 38, 37, 39, 38, 37, 38]);
-  const [latHistory, setLatHistory] = useState<number[]>([34, 38, 32, 41, 35, 36, 33, 40, 36, 34, 37, 35, 38, 34, 36, 33]);
+  // Derive historical data points from backend rolling history (pure rendering, zero render-cascade)
+  const defaultCpu = [18, 22, 19, 25, 21, 23, 20, 24, 19, 22, 21, 25, 20, 22, 24, 21];
+  const defaultMem = [36, 37, 36, 38, 37, 39, 38, 37, 38, 39, 38, 37, 39, 38, 37, 38];
+  const defaultLat = [34, 38, 32, 41, 35, 36, 33, 40, 36, 34, 37, 35, 38, 34, 36, 33];
 
-  useEffect(() => {
-    if (telemetry.history && telemetry.history.length >= 2) {
-      setCpuHistory(telemetry.history.map(pt => pt.cpu));
-      setMemHistory(telemetry.history.map(pt => pt.memory));
-      setLatHistory(telemetry.history.map(pt => pt.latency));
-      return;
-    }
+  const cpuHistory = (telemetry.history && telemetry.history.length >= 2)
+    ? telemetry.history.map(pt => pt.cpu)
+    : defaultCpu;
 
-    const curCpu = telemetry.checks.cpu?.value || 20;
-    const curMem = telemetry.checks.memory?.value || 38;
-    const curLat = telemetry.checks.http?.response_time_ms || 35;
+  const memHistory = (telemetry.history && telemetry.history.length >= 2)
+    ? telemetry.history.map(pt => pt.memory)
+    : defaultMem;
 
-    setCpuHistory(prev => [...prev.slice(1), curCpu]);
-    setMemHistory(prev => [...prev.slice(1), curMem]);
-    setLatHistory(prev => [...prev.slice(1), curLat]);
-  }, [telemetry]);
+  const latHistory = (telemetry.history && telemetry.history.length >= 2)
+    ? telemetry.history.map(pt => pt.latency)
+    : defaultLat;
 
   // Helper to generate SVG smooth Bezier curve path
   const generatePath = (data: number[], maxVal: number, width: number, height: number) => {

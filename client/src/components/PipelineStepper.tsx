@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Package, ShieldCheck, Activity, Check, RefreshCw, ChevronRight } from 'lucide-react';
+import { Layers, Package, ShieldCheck, Activity, Check, RefreshCw } from 'lucide-react';
 import { FullStatus } from '../types';
 
 interface PipelineStepperProps {
@@ -105,7 +105,6 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
 
       <div className="stepper-nodes-row">
         {steps.map((step, idx) => {
-          const Icon = step.icon;
           const isCurrentTab = activeTab === step.id;
 
           return (

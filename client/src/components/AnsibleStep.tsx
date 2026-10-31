@@ -10,7 +10,6 @@ import {
   Database,
   Server,
   Layout,
-  Sparkles,
   Layers,
   UploadCloud,
   FolderArchive,
@@ -21,8 +20,6 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  FolderUp,
-  X,
   CheckCircle2
 } from 'lucide-react';
 import { DeploymentState, InfrastructureState, StackConfig, CustomCodeState } from '../types';

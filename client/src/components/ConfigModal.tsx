@@ -47,6 +47,11 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose }) => 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <Key size={22} color="var(--aws-orange)" />
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>AWS Cloud Credentials & Settings</h3>
+            {hasKeys && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--status-success)', border: '1px solid var(--status-success)', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 700 }}>
+                Active
+              </span>
+            )}
           </div>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
