@@ -65,7 +65,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           borderBottom: '1px solid var(--border-color)',
           background: 'var(--bg-topbar)'
         }}>
-          <Search size={18} color="#FF9900" />
+          <Search size={18} color="var(--aws-orange)" />
           <input
             type="text"
             autoFocus

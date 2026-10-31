@@ -100,7 +100,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose }) => 
             alignItems: 'center',
             gap: '0.65rem'
           }}>
-            <Shield size={18} color="var(--aws-blue-bright)" />
+            <Shield size={18} color="var(--aws-blue)" />
             <span>Keys are securely stored in the local FastAPI orchestrator environment memory only.</span>
           </div>
 
@@ -109,7 +109,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose }) => 
             <button type="submit" className="btn-primary" style={{ minWidth: '130px' }}>
               {saved ? (
                 <>
-                  <Check size={16} color="#34d399" />
+                  <Check size={16} color="#FFFFFF" />
                   <span>Saved!</span>
                 </>
               ) : (

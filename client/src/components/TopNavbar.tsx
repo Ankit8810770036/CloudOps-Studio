@@ -4,12 +4,9 @@ import {
   Globe,
   Sun,
   Moon,
-  Server,
   RefreshCw,
   Copy,
   Check,
-  ChevronDown,
-  Terminal,
   ExternalLink
 } from 'lucide-react';
 import { ExecutionMode, FullStatus } from '../types';
@@ -51,7 +48,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     <header className="top-navbar">
       {/* 1. Global Search Bar */}
       <div className="navbar-search-wrapper" onClick={onSearchFocus}>
-        <Search size={15} color="var(--text-muted)" />
+        <Search size={14} color="var(--text-dim)" />
         <input
           type="text"
           className="navbar-search-input"
@@ -66,14 +63,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         {/* Pipeline In-Progress Spinner */}
         {isRunning && (
           <div className="running-action-badge">
-            <RefreshCw size={13} className="animate-spin" />
+            <RefreshCw size={12} className="animate-spin" />
             <span>{status.current_action || 'Processing...'}</span>
           </div>
         )}
 
         {/* Global AWS Region Selector */}
         <div className="navbar-region-dropdown">
-          <Globe size={14} color="#FF9900" />
+          <Globe size={14} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
           <select
             value={selectedRegion}
             onChange={(e) => onSelectRegion(e.target.value)}
@@ -90,10 +87,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
         {/* Target Node Connection Pill */}
         {isReady && status.infrastructure.public_ip ? (
           <div className="navbar-node-pill">
-            <span className="pulse-dot-green"></span>
-            <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{status.infrastructure.public_ip}</span>
+            <span className="status-dot healthy" />
+            <span style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", fontWeight: 700 }}>
+              {status.infrastructure.public_ip}
+            </span>
             <button onClick={handleCopy} className="navbar-icon-btn" title="Copy Public IP">
-              {copied ? <Check size={12} color="#10B981" /> : <Copy size={12} />}
+              {copied ? <Check size={12} color="var(--status-success)" /> : <Copy size={12} />}
             </button>
             {status.infrastructure.app_url && (
               <a
@@ -109,7 +108,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
         ) : (
           <div className="navbar-node-pill muted">
-            <span className="pulse-dot-amber"></span>
+            <span className="status-dot pending" />
             <span>No Node Active</span>
           </div>
         )}
@@ -120,8 +119,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           onClick={onToggleMode}
           title="Switch execution mode between Live AWS and Simulation"
         >
-          <span className={`mode-indicator-dot ${mode}`}></span>
-          <span style={{ fontWeight: 700 }}>{mode.toUpperCase()}</span>
+          <span className={`mode-indicator-dot ${mode}`} />
+          <span>{mode.toUpperCase()} MODE</span>
         </button>
 
         {/* Theme Switcher (Light vs Dark) */}
@@ -131,13 +130,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
           {theme === 'dark' ? (
-            <Sun size={16} color="#FF9900" />
+            <Sun size={15} color="var(--aws-orange)" />
           ) : (
-            <Moon size={16} color="#0073BB" />
+            <Moon size={15} color="var(--aws-blue)" />
           )}
         </button>
       </div>
     </header>
   );
 };
-

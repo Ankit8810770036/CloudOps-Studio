@@ -28,6 +28,7 @@ import {
   connectLogWebSocket,
 } from './services/api';
 import { FullStatus, LogEntry } from './types';
+import { Layers, Package, ShieldCheck, Activity, Flame, Terminal as TerminalIcon, LayoutDashboard } from 'lucide-react';
 
 export function App() {
   const [status, setStatus] = useState<FullStatus | null>(null);
@@ -36,7 +37,7 @@ export function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1');
 
-  // Theme: 'dark' (High-Performance NOC Console) or 'light' (Clean Dev Studio)
+  // Theme: 'dark' (Enterprise NOC) or 'light' (Clean Dev Studio)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('cloudops_theme') as 'dark' | 'light') || 'dark';
   });
@@ -154,22 +155,22 @@ export function App() {
         justifyContent: 'center',
         flexDirection: 'column',
         gap: '1rem',
-        background: '#0B0F19',
-        color: '#F8FAFC'
+        background: 'var(--bg-global)',
+        color: 'var(--text-primary)'
       }}>
         <div style={{
-          width: 48,
-          height: 48,
-          borderRadius: 12,
-          background: '#232F3E',
-          border: '1px solid #FF9900',
+          width: 44,
+          height: 44,
+          borderRadius: 8,
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <div style={{ width: 22, height: 22, border: '3px solid #FF9900', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{ width: 20, height: 20, border: '2.5px solid var(--aws-orange)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
-        <p style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: 600 }}>Connecting to CloudOps Orchestrator...</p>
+        <p style={{ fontSize: '0.86rem', color: 'var(--text-dim)', fontWeight: 600 }}>Connecting to CloudOps Orchestrator...</p>
       </div>
     );
   }
@@ -177,7 +178,7 @@ export function App() {
   const isRunning = status.is_running_pipeline;
 
   return (
-    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} data-theme={theme}>
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* 1. Left-Hand Collapsible Sidebar */}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -206,66 +207,233 @@ export function App() {
 
         {/* Main Content Area */}
         <main className="content-container">
-          {/* Executive Metric Cards */}
-          <TopStats status={status} />
+          {/* SECTION 1: CONSOLE OVERVIEW (ALL) */}
+          {activeTab === 'all' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <LayoutDashboard size={20} color="var(--aws-orange)" />
+                    <span>Console Overview</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Automated cloud infrastructure, polyglot application deployment, configuration baseline, and observability dashboard.
+                  </div>
+                </div>
+              </div>
 
-          {/* Real-time Glowing SVG Telemetry Charts */}
-          <MetricCharts telemetry={status.telemetry} />
+              {/* Executive Metric Cards */}
+              <TopStats status={status} />
 
-          {/* Chaos Engineering Failure Simulator Panel */}
-          {(activeTab === 'all' || activeTab === 'chaos') && (
-            <ChaosPanel
-              chaos={status.chaos}
-              infra={status.infrastructure}
-              onInject={handleInjectChaos}
-              onHeal={handleHealChaos}
-              isRunning={isRunning}
-            />
+              {/* Real-time Bezier Telemetry Charts */}
+              <MetricCharts telemetry={status.telemetry} />
+
+              {/* Chaos Engineering Panel */}
+              <ChaosPanel
+                chaos={status.chaos}
+                infra={status.infrastructure}
+                onInject={handleInjectChaos}
+                onHeal={handleHealChaos}
+                isRunning={isRunning}
+              />
+
+              {/* 4 Pipeline Steps Grid */}
+              <div className="main-grid">
+                <TerraformStep
+                  infra={status.infrastructure}
+                  onApply={handleApplyTerraform}
+                  onDestroy={handleDestroyTerraform}
+                  isRunning={isRunning}
+                />
+                <PuppetStep
+                  compliance={status.compliance}
+                  infra={status.infrastructure}
+                  onEnforce={handleEnforcePuppet}
+                  isRunning={isRunning}
+                />
+                <AnsibleStep
+                  deployment={status.deployment}
+                  infra={status.infrastructure}
+                  stack={status.stack}
+                  onDeploy={handleDeployAnsible}
+                  isRunning={isRunning}
+                />
+                <NagiosStep
+                  telemetry={status.telemetry}
+                  infra={status.infrastructure}
+                  onProbe={handleProbeNagios}
+                  isRunning={isRunning}
+                />
+              </div>
+
+              {/* Live Terminal */}
+              <Terminal logs={logs} onClear={handleClearLogs} />
+            </div>
           )}
 
-          {/* Pipeline Workflow Grid */}
-          <div className="main-grid">
-            {(activeTab === 'all' || activeTab === 'tf') && (
-              <TerraformStep
-                infra={status.infrastructure}
-                onApply={handleApplyTerraform}
-                onDestroy={handleDestroyTerraform}
-                isRunning={isRunning}
-              />
-            )}
+          {/* SECTION 2: TERRAFORM IAC FOCUSED VIEW */}
+          {activeTab === 'tf' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <Layers size={20} color="var(--accent-terraform)" />
+                    <span>Step 1: Terraform Infrastructure as Code (IaC)</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Declarative provisioning of AWS VPC, Internet Gateway, Subnets, Security Groups, and EC2 compute instance.
+                  </div>
+                </div>
+              </div>
 
-            {(activeTab === 'all' || activeTab === 'ans') && (
-              <AnsibleStep
-                deployment={status.deployment}
-                infra={status.infrastructure}
-                stack={status.stack}
-                onDeploy={handleDeployAnsible}
-                isRunning={isRunning}
-              />
-            )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <TerraformStep
+                  infra={status.infrastructure}
+                  onApply={handleApplyTerraform}
+                  onDestroy={handleDestroyTerraform}
+                  isRunning={isRunning}
+                />
+                <Terminal logs={logs.filter(l => l.stage === 'TERRAFORM' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
+              </div>
+            </div>
+          )}
 
-            {(activeTab === 'all' || activeTab === 'pup') && (
-              <PuppetStep
-                compliance={status.compliance}
-                infra={status.infrastructure}
-                onEnforce={handleEnforcePuppet}
-                isRunning={isRunning}
-              />
-            )}
+          {/* SECTION 3: ANSIBLE FULL-STACK DEPLOYMENT FOCUSED VIEW */}
+          {activeTab === 'ans' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <Package size={20} color="var(--accent-ansible)" />
+                    <span>Step 2: Full-Stack Polyglot Application Deployment (Ansible)</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Idempotent configuration management for 3-tier architectures (Frontend, Backend API, Database) and Nginx reverse proxy.
+                  </div>
+                </div>
+              </div>
 
-            {(activeTab === 'all' || activeTab === 'nag') && (
-              <NagiosStep
-                telemetry={status.telemetry}
-                infra={status.infrastructure}
-                onProbe={handleProbeNagios}
-                isRunning={isRunning}
-              />
-            )}
-          </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <AnsibleStep
+                  deployment={status.deployment}
+                  infra={status.infrastructure}
+                  stack={status.stack}
+                  onDeploy={handleDeployAnsible}
+                  isRunning={isRunning}
+                />
+                <Terminal logs={logs.filter(l => l.stage === 'ANSIBLE' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
+              </div>
+            </div>
+          )}
 
-          {/* Real-time Streaming Terminal */}
-          {(activeTab === 'all' || activeTab === 'term') && (
-            <Terminal logs={logs} onClear={handleClearLogs} />
+          {/* SECTION 4: PUPPET COMPLIANCE FOCUSED VIEW */}
+          {activeTab === 'pup' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <ShieldCheck size={20} color="var(--accent-puppet)" />
+                    <span>Step 3: Configuration Baseline & Self-Healing (Puppet)</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Continuous desired-state enforcement, SSH hardening, database localhost isolation, and automatic drift remediation.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <PuppetStep
+                  compliance={status.compliance}
+                  infra={status.infrastructure}
+                  onEnforce={handleEnforcePuppet}
+                  isRunning={isRunning}
+                />
+                <Terminal logs={logs.filter(l => l.stage === 'PUPPET' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 5: NAGIOS OBSERVABILITY FOCUSED VIEW */}
+          {activeTab === 'nag' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <Activity size={20} color="var(--accent-nagios)" />
+                    <span>Step 4: Observability & Proactive Monitoring (Nagios Core & NRPE)</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Active HTTP port 80 health checks, backend API latency probes, database socket checks, and Linux load monitoring.
+                  </div>
+                </div>
+              </div>
+
+              {/* Real-time Hardware Charts right inside Monitoring */}
+              <MetricCharts telemetry={status.telemetry} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <NagiosStep
+                  telemetry={status.telemetry}
+                  infra={status.infrastructure}
+                  onProbe={handleProbeNagios}
+                  isRunning={isRunning}
+                />
+                <Terminal logs={logs.filter(l => l.stage === 'NAGIOS' || l.stage === 'CHAOS')} onClear={handleClearLogs} />
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 6: CHAOS LAB FOCUSED VIEW */}
+          {activeTab === 'chaos' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <Flame size={20} color="var(--status-danger)" />
+                    <span>Chaos Engineering Lab & Automated Self-Healing Verification</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Inject real or simulated outages into frontend, backend, or database tiers to test Nagios alert triggers and Puppet/Ansible remediation.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <ChaosPanel
+                  chaos={status.chaos}
+                  infra={status.infrastructure}
+                  onInject={handleInjectChaos}
+                  onHeal={handleHealChaos}
+                  isRunning={isRunning}
+                />
+                <NagiosStep
+                  telemetry={status.telemetry}
+                  infra={status.infrastructure}
+                  onProbe={handleProbeNagios}
+                  isRunning={isRunning}
+                />
+                <Terminal logs={logs.filter(l => l.stage === 'CHAOS' || l.stage === 'NAGIOS' || l.stage === 'PUPPET')} onClear={handleClearLogs} />
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 7: LIVE TERMINAL FULL CONSOLE VIEW */}
+          {activeTab === 'term' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <TerminalIcon size={20} color="var(--aws-orange)" />
+                    <span>DevOps Orchestrator Live Terminal</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Real-time WebSocket streaming logs from Terraform, Ansible, Puppet, and Nagios runtime execution engines.
+                  </div>
+                </div>
+              </div>
+
+              <Terminal logs={logs} onClear={handleClearLogs} fullHeight={true} />
+            </div>
           )}
         </main>
       </div>

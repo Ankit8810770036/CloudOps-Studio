@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Play, Trash2, Shield, HardDrive, Cpu, Key } from 'lucide-react';
+import { Layers, Play, Trash2, Shield, HardDrive, Key } from 'lucide-react';
 import { InfrastructureState } from '../types';
 
 interface TerraformStepProps {
@@ -25,40 +25,41 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
       <div className="panel-header">
         <h3>
           <div style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
-            background: 'rgba(168, 85, 247, 0.18)',
-            border: '1px solid rgba(168, 85, 247, 0.4)',
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: 'rgba(124, 58, 237, 0.15)',
+            border: '1px solid rgba(124, 58, 237, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#D8B4FE'
+            color: 'var(--accent-terraform)',
+            flexShrink: 0
           }}>
-            <Layers size={16} />
+            <Layers size={15} />
           </div>
           <span>Step 1: Terraform Infrastructure as Code</span>
         </h3>
         <span style={{
-          fontSize: '0.75rem',
-          fontWeight: 800,
-          padding: '0.25rem 0.65rem',
-          borderRadius: '6px',
-          background: isProvisioned ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 153, 0, 0.15)',
-          color: isProvisioned ? '#34D399' : '#FFA726',
-          border: isProvisioned ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(255, 153, 0, 0.35)',
+          fontSize: '0.74rem',
+          fontWeight: 700,
+          padding: '0.2rem 0.6rem',
+          borderRadius: '4px',
+          background: isProvisioned ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
+          color: isProvisioned ? 'var(--status-success)' : 'var(--aws-orange)',
+          border: `1px solid ${isProvisioned ? 'var(--status-success)' : 'var(--status-warning)'}`,
           letterSpacing: '0.04em'
         }}>
           {infra.status.toUpperCase()}
         </span>
       </div>
 
-      <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.6' }}>
-        Declaratively provisions AWS VPC, Security Group with restricted ingress (ports 22, 80, 443, 5000-8080, 5666), and EC2 instance running Ubuntu 22.04 LTS.
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.15rem' }}>
+        Declaratively provisions AWS VPC, Security Group with ingress ports (22, 80, 443, 5000-8080, 5666), and EC2 compute instance running Ubuntu 22.04 LTS.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-        <div className="form-group">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.85rem', marginBottom: '1.15rem' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">AWS Region</label>
           <select
             className="form-select"
@@ -73,7 +74,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
           </select>
         </div>
 
-        <div className="form-group">
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">EC2 Instance Type</label>
           <select
             className="form-select"
@@ -92,43 +93,42 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
       <div className="spec-box">
         <div className="spec-row">
           <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Shield size={14} color="#A855F7" />
+            <Shield size={14} color="var(--accent-terraform)" />
             <span>Security Ingress:</span>
           </span>
-          <span className="spec-value" style={{ color: '#D8B4FE' }}>
+          <span className="spec-value" style={{ color: 'var(--text-primary)' }}>
             22, 80, 443, 5000, 8000, 8080, 5666
           </span>
         </div>
         <div className="spec-row">
           <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <HardDrive size={14} color="#38BDF8" />
+            <HardDrive size={14} color="var(--aws-blue)" />
             <span>Storage Volume:</span>
           </span>
           <span className="spec-value">20 GB gp3 High-IOPS SSD</span>
         </div>
         <div className="spec-row">
           <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Key size={14} color="#FF9900" />
+            <Key size={14} color="var(--aws-orange)" />
             <span>SSH Keypair:</span>
           </span>
           <span className="spec-value">devops-key.pem (RSA 4096-bit)</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.85rem', marginTop: 'auto' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', flexWrap: 'wrap' }}>
         <button
           className="btn-primary"
           style={{
-            flex: 1,
-            background: isProvisioned ? 'var(--bg-card-subtle)' : 'var(--accent-terraform-gradient)',
-            color: '#FFFFFF',
-            border: isProvisioned ? '1px solid var(--border-color)' : 'none',
-            boxShadow: isProvisioned ? 'none' : '0 4px 14px rgba(168, 85, 247, 0.4)'
+            flex: '1 1 240px',
+            background: isProvisioned ? 'var(--bg-card-subtle)' : 'var(--accent-terraform)',
+            color: isProvisioned ? 'var(--text-muted)' : '#FFFFFF',
+            border: isProvisioned ? '1px solid var(--border-color)' : '1px solid var(--accent-terraform)'
           }}
           onClick={() => onApply(region, instanceType)}
           disabled={isRunning || isProvisioned}
         >
-          <Play size={16} />
+          <Play size={15} />
           <span>{isProvisioned ? 'Infrastructure Provisioned (Ready)' : 'Provision Infrastructure (Terraform Apply)'}</span>
         </button>
 
@@ -138,8 +138,9 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
             onClick={onDestroy}
             disabled={isRunning}
             title="Tear down all AWS resources created by Terraform"
+            style={{ flex: '0 0 auto' }}
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
             <span>Destroy</span>
           </button>
         )}

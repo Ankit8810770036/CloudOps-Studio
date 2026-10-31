@@ -78,78 +78,92 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
       {/* Header */}
       <div className="panel-header">
         <h3>
-          <Package size={20} color="var(--accent-ansible)" />
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: 'rgba(220, 38, 38, 0.12)',
+            border: '1px solid rgba(220, 38, 38, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--accent-ansible)',
+            flexShrink: 0
+          }}>
+            <Package size={15} />
+          </div>
           <span>Step 2: Full-Stack Polyglot Deployment (Frontend &bull; Backend &bull; Database)</span>
         </h3>
         <span style={{
-          fontSize: '0.75rem',
-          fontWeight: 800,
-          padding: '0.25rem 0.75rem',
-          borderRadius: '9999px',
-          background: isDeployed ? 'var(--status-success-bg)' : 'rgba(148, 163, 184, 0.15)',
-          color: isDeployed ? 'var(--status-success)' : 'var(--text-dim)',
-          border: `1px solid ${isDeployed ? 'var(--status-success)' : 'var(--border-color)'}`
+          fontSize: '0.74rem',
+          fontWeight: 700,
+          padding: '0.2rem 0.6rem',
+          borderRadius: '4px',
+          background: isDeployed ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
+          color: isDeployed ? 'var(--status-success)' : 'var(--aws-orange)',
+          border: `1px solid ${isDeployed ? 'var(--status-success)' : 'var(--status-warning)'}`,
+          letterSpacing: '0.04em'
         }}>
           {deployment.status.toUpperCase()}
         </span>
       </div>
 
-      <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.15rem' }}>
         Ansible automates provisioning and configuration of your entire application tier. Select or customize your <strong>Frontend (React / HTML)</strong>, <strong>Backend API runtime (Python / Java Spring Boot / Node.js)</strong>, and <strong>Database (PostgreSQL / MySQL / MongoDB / SQLite)</strong>.
       </p>
 
       {/* Quick Architecture Presets */}
       <div style={{ marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--aws-orange)', marginBottom: '0.65rem' }}>
-          <Sparkles size={15} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--aws-orange)', marginBottom: '0.55rem' }}>
+          <Sparkles size={14} />
           <span>1-Click Stack Presets:</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.65rem' }}>
           <button
             type="button"
-            className={`preset-chip ${backendType === 'python' ? 'active-python' : ''}`}
+            className={`preset-chip ${backendType === 'python' ? 'active-preset' : ''}`}
             onClick={() => applyPreset('python')}
           >
-            <span>🐍</span>
+            <span style={{ fontSize: '1.1rem' }}>🐍</span>
             <div>
-              <div><strong>Python Full-Stack</strong></div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85 }}>React + FastAPI + PostgreSQL</div>
+              <div style={{ fontWeight: 700 }}>Python Full-Stack</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>React + FastAPI + PostgreSQL</div>
             </div>
           </button>
 
           <button
             type="button"
-            className={`preset-chip ${backendType === 'java_springboot' ? 'active-spring' : ''}`}
+            className={`preset-chip ${backendType === 'java_springboot' ? 'active-preset' : ''}`}
             onClick={() => applyPreset('spring')}
           >
-            <span>☕</span>
+            <span style={{ fontSize: '1.1rem' }}>☕</span>
             <div>
-              <div><strong>Enterprise Java</strong></div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85 }}>React + Spring Boot + MySQL</div>
+              <div style={{ fontWeight: 700 }}>Enterprise Java</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>React + Spring Boot + MySQL</div>
             </div>
           </button>
 
           <button
             type="button"
-            className={`preset-chip ${backendType === 'nodejs' ? 'active-mern' : ''}`}
+            className={`preset-chip ${backendType === 'nodejs' ? 'active-preset' : ''}`}
             onClick={() => applyPreset('mern')}
           >
-            <span>🟢</span>
+            <span style={{ fontSize: '1.1rem' }}>🟢</span>
             <div>
-              <div><strong>MERN Stack</strong></div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85 }}>React + Node.js + MongoDB</div>
+              <div style={{ fontWeight: 700 }}>MERN Stack</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>React + Node.js + MongoDB</div>
             </div>
           </button>
 
           <button
             type="button"
-            className={`preset-chip ${backendType === 'none' ? 'active-static' : ''}`}
+            className={`preset-chip ${backendType === 'none' ? 'active-preset' : ''}`}
             onClick={() => applyPreset('static')}
           >
-            <span>🌐</span>
+            <span style={{ fontSize: '1.1rem' }}>🌐</span>
             <div>
-              <div><strong>Static Website</strong></div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85 }}>HTML5 / CSS3 / Nginx</div>
+              <div style={{ fontWeight: 700 }}>Static Website</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>HTML5 / CSS3 / Nginx</div>
             </div>
           </button>
         </div>
@@ -157,11 +171,11 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
 
       {/* 3-Tier Customization Selectors Grid */}
       <div className="tier-container-box">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: '0.85rem' }}>
           {/* Tier 1: Frontend */}
           <div className="tier-card">
             <div className="tier-badge frontend">
-              <Layout size={16} />
+              <Layout size={15} />
               <span>1. Frontend UI Tier</span>
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -176,7 +190,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
                 <option value="nodejs_ssr">Node.js Server-Rendered Interface</option>
               </select>
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.45rem' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
               Served via Nginx Port 80 with Reverse Proxy
             </div>
           </div>
@@ -184,7 +198,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
           {/* Tier 2: Backend */}
           <div className="tier-card">
             <div className="tier-badge backend">
-              <Server size={16} />
+              <Server size={15} />
               <span>2. Backend API Tier</span>
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -200,7 +214,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
                 <option value="none">None (Static Frontend Only)</option>
               </select>
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.45rem' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
               Systemd daemon with automated /api/health probes
             </div>
           </div>
@@ -208,7 +222,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
           {/* Tier 3: Database */}
           <div className="tier-card">
             <div className="tier-badge database">
-              <Database size={16} />
+              <Database size={15} />
               <span>3. Database Tier</span>
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -225,7 +239,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
                 <option value="none">None (Stateless In-Memory)</option>
               </select>
             </div>
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.45rem' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.4rem' }}>
               Bound to 127.0.0.1, auto-migration schema
             </div>
           </div>
@@ -234,20 +248,20 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
 
       {/* Live Architecture Flow Banner */}
       <div className="topology-flow-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <Layers size={17} color="var(--aws-blue-bright)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+          <Layers size={16} color="var(--aws-blue)" style={{ flexShrink: 0 }} />
           <span>
-            <strong>Active Topology:</strong> User ➔ Nginx (Port 80) ➔ ProxyPass /api/ ➔ <span style={{ color: 'var(--accent-puppet)', fontWeight: 800 }}>{backendType.toUpperCase()} ({getBackendPort()})</span> ➔ <span style={{ color: 'var(--accent-nagios)', fontWeight: 800 }}>{databaseType.toUpperCase()}</span>
+            <strong>Active Topology:</strong> User ➔ Nginx (Port 80) ➔ ProxyPass /api/ ➔ <span style={{ color: 'var(--aws-orange)', fontWeight: 700 }}>{backendType.toUpperCase()} ({getBackendPort()})</span> ➔ <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>{databaseType.toUpperCase()}</span>
           </span>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
           <button
             type="button"
             className="btn-secondary"
             onClick={() => setShowEditor(!showEditor)}
-            style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+            style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', minHeight: '32px' }}
           >
-            <Code2 size={14} />
+            <Code2 size={13} />
             <span>{showEditor ? 'Hide Editor' : 'Edit Website / HTML Code'}</span>
           </button>
         </div>
@@ -256,17 +270,17 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
       {/* Expandable Code Editor */}
       {showEditor && (
         <div className="code-editor-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.65rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>
-              Frontend Source Code: <code>ansible/roles/webapp/files/app/index.html</code>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+              Source File: <code>ansible/roles/webapp/files/app/index.html</code>
             </span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <a href={previewUrl} target="_blank" rel="noreferrer" className="btn-secondary" style={{ fontSize: '0.76rem', padding: '0.28rem 0.65rem', textDecoration: 'none' }}>
-                <Eye size={13} />
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="btn-secondary" style={{ fontSize: '0.76rem', padding: '0.25rem 0.6rem', minHeight: '30px', textDecoration: 'none' }}>
+                <Eye size={12} />
                 <span>Preview</span>
               </a>
-              <button type="button" className="btn-primary" onClick={handleSaveHtml} style={{ fontSize: '0.76rem', padding: '0.28rem 0.85rem' }}>
-                {isSaved ? <Check size={14} color="#10b981" /> : <Save size={14} />}
+              <button type="button" className="btn-primary" onClick={handleSaveHtml} style={{ fontSize: '0.76rem', padding: '0.25rem 0.75rem', minHeight: '30px' }}>
+                {isSaved ? <Check size={13} color="#FFFFFF" /> : <Save size={13} />}
                 <span>{isSaved ? 'Saved!' : 'Save Code'}</span>
               </button>
             </div>
@@ -277,13 +291,13 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
             rows={7}
             style={{
               width: '100%',
-              background: '#070B14',
+              background: '#090D16',
               color: '#38BDF8',
               fontFamily: "'JetBrains Mono', Consolas, monospace",
               fontSize: '0.82rem',
               border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '0.85rem',
+              borderRadius: '6px',
+              padding: '0.75rem',
               outline: 'none',
               resize: 'vertical',
               lineHeight: 1.5
@@ -293,14 +307,14 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
       )}
 
       {/* Action Footer */}
-      <div style={{ display: 'flex', gap: '0.85rem', marginTop: 'auto' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', flexWrap: 'wrap' }}>
         <button
           className="btn-primary"
-          style={{ flex: 1, background: 'var(--accent-ansible-gradient)', color: '#FFFFFF', boxShadow: '0 4px 16px rgba(255, 77, 77, 0.35)' }}
+          style={{ flex: '1 1 260px', background: 'var(--accent-ansible)', color: '#FFFFFF', border: '1px solid var(--accent-ansible)' }}
           onClick={() => onDeploy(selectedServer, frontendType, backendType, databaseType)}
           disabled={isRunning || !isInfraReady}
         >
-          <Play size={16} />
+          <Play size={15} />
           <span>Deploy Full-Stack Application (Ansible Playbook)</span>
         </button>
 
@@ -309,10 +323,10 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
           target="_blank"
           rel="noreferrer"
           className="btn-secondary"
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--aws-blue-bright)', fontWeight: 700 }}
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--aws-blue)', fontWeight: 700, flex: '0 0 auto' }}
         >
           <span>{isDeployed ? 'Open App' : 'Preview Site'}</span>
-          <ExternalLink size={14} />
+          <ExternalLink size={13} />
         </a>
       </div>
     </div>

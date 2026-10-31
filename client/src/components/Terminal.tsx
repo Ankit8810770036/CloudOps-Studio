@@ -5,9 +5,10 @@ import { LogEntry } from '../types';
 interface TerminalProps {
   logs: LogEntry[];
   onClear: () => void;
+  fullHeight?: boolean;
 }
 
-export const Terminal: React.FC<TerminalProps> = ({ logs, onClear }) => {
+export const Terminal: React.FC<TerminalProps> = ({ logs, onClear, fullHeight = false }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -28,14 +29,14 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, onClear }) => {
   return (
     <div className="terminal-card">
       <div className="terminal-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="terminal-dots">
-            <span className="terminal-dot red"></span>
-            <span className="terminal-dot yellow"></span>
-            <span className="terminal-dot green"></span>
+            <span className="terminal-dot red" />
+            <span className="terminal-dot yellow" />
+            <span className="terminal-dot green" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8' }}>
-            <TerminalIcon size={14} color="#38bdf8" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.8rem', fontWeight: 700, color: '#94A3B8' }}>
+            <TerminalIcon size={14} color="var(--aws-orange)" />
             <span>DevOps Orchestrator Live Terminal &bull; Stream Socket (Port 8000)</span>
           </div>
         </div>
@@ -44,7 +45,7 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, onClear }) => {
           <button
             className="terminal-btn"
             onClick={() => setAutoScroll(!autoScroll)}
-            style={{ color: autoScroll ? '#38bdf8' : '#94a3b8' }}
+            style={{ color: autoScroll ? 'var(--aws-orange)' : '#94A3B8' }}
             title="Toggle Auto-Scroll"
           >
             <ArrowDownCircle size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
@@ -52,7 +53,7 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, onClear }) => {
           </button>
 
           <button className="terminal-btn" onClick={handleCopy} title="Copy all logs">
-            {copied ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+            {copied ? <Check size={13} color="var(--status-success)" /> : <Copy size={13} />}
           </button>
 
           <button className="terminal-btn" onClick={onClear} title="Clear terminal screen">
@@ -61,9 +62,9 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, onClear }) => {
         </div>
       </div>
 
-      <div className="terminal-body" ref={terminalRef}>
+      <div className={`terminal-body ${fullHeight ? 'full-height' : ''}`} ref={terminalRef}>
         {logs.length === 0 ? (
-          <div style={{ color: '#64748b', fontStyle: 'italic', padding: '1rem 0' }}>
+          <div style={{ color: '#64748B', fontStyle: 'italic', padding: '1rem 0' }}>
             Ready. Waiting for Terraform, Ansible, Puppet, or Nagios events...
           </div>
         ) : (
@@ -79,4 +80,3 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, onClear }) => {
     </div>
   );
 };
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Cpu, HardDrive, Wifi } from 'lucide-react';
+import { Cpu, HardDrive, Wifi } from 'lucide-react';
 import { TelemetryState } from '../types';
 
 interface MetricChartsProps {
@@ -46,9 +46,9 @@ export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
     return { path: pathD, area: areaD, lastX: last.x, lastY: last.y };
   };
 
-  const cpuData = generatePath(cpuHistory, 100, 320, 90);
-  const memData = generatePath(memHistory, 100, 320, 90);
-  const latData = generatePath(latHistory, 100, 320, 90);
+  const cpuData = generatePath(cpuHistory, 100, 320, 85);
+  const memData = generatePath(memHistory, 100, 320, 85);
+  const latData = generatePath(latHistory, 100, 320, 85);
 
   const curCpu = telemetry.checks.cpu?.value || 21;
   const curMem = telemetry.checks.memory?.value || 38;
@@ -59,16 +59,16 @@ export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
       gap: '1rem',
-      marginBottom: '1.5rem'
+      marginBottom: '1.25rem'
     }}>
-      {/* 1. CPU Trend Chart (AWS Orange #FF9900) */}
+      {/* 1. CPU Trend Chart (Clean AWS Orange #EC7211) */}
       <div className="telemetry-chart-card">
         <div className="chart-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div className="chart-icon-box" style={{ background: 'rgba(255, 153, 0, 0.12)', color: '#FF9900' }}>
-              <Cpu size={15} />
+            <div className="chart-icon-box" style={{ color: 'var(--aws-orange)' }}>
+              <Cpu size={16} />
             </div>
             <div>
               <span className="chart-title">CPU Compute Telemetry</span>
@@ -76,159 +76,135 @@ export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: isCpuCritical ? '#EF4444' : '#FF9900' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: isCpuCritical ? 'var(--status-danger)' : 'var(--aws-orange)' }}>
               {curCpu}%
             </span>
-            <div style={{ fontSize: '0.68rem', color: isCpuCritical ? '#EF4444' : 'var(--text-muted)' }}>
-              {isCpuCritical ? 'Threshold Exceeded' : 'Normal Operation'}
+            <div style={{ fontSize: '0.68rem', color: isCpuCritical ? 'var(--status-danger)' : 'var(--text-dim)' }}>
+              {isCpuCritical ? 'Threshold Exceeded' : 'Normal Load'}
             </div>
           </div>
         </div>
 
         <div className="chart-svg-container">
-          <svg viewBox="0 0 320 90" preserveAspectRatio="none" style={{ width: '100%', height: '90px' }}>
+          <svg viewBox="0 0 320 85" preserveAspectRatio="none" style={{ width: '100%', height: '85px' }}>
             <defs>
               <linearGradient id="cpuGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={isCpuCritical ? '#EF4444' : '#FF9900'} stopOpacity="0.4" />
-                <stop offset="100%" stopColor={isCpuCritical ? '#EF4444' : '#FF9900'} stopOpacity="0.0" />
+                <stop offset="0%" stopColor={isCpuCritical ? '#DC2626' : '#EC7211'} stopOpacity="0.15" />
+                <stop offset="100%" stopColor={isCpuCritical ? '#DC2626' : '#EC7211'} stopOpacity="0.0" />
               </linearGradient>
-              <filter id="cpuGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
             <path d={cpuData.area} fill="url(#cpuGradient)" />
             <path
               d={cpuData.path}
               fill="none"
-              stroke={isCpuCritical ? '#EF4444' : '#FF9900'}
-              strokeWidth="2.5"
-              filter="url(#cpuGlow)"
+              stroke={isCpuCritical ? '#DC2626' : '#EC7211'}
+              strokeWidth="2"
             />
             <circle
               cx={cpuData.lastX}
               cy={cpuData.lastY}
-              r="4.5"
+              r="3.5"
               fill="#FFFFFF"
-              stroke={isCpuCritical ? '#EF4444' : '#FF9900'}
-              strokeWidth="2.5"
+              stroke={isCpuCritical ? '#DC2626' : '#EC7211'}
+              strokeWidth="2"
             />
           </svg>
         </div>
       </div>
 
-      {/* 2. RAM Memory Chart (AWS Blue #0073BB) */}
+      {/* 2. RAM Memory Chart (Clean AWS Blue #0972D3) */}
       <div className="telemetry-chart-card">
         <div className="chart-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div className="chart-icon-box" style={{ background: 'rgba(0, 115, 187, 0.12)', color: '#0073BB' }}>
-              <HardDrive size={15} />
+            <div className="chart-icon-box" style={{ color: 'var(--aws-blue)' }}>
+              <HardDrive size={16} />
             </div>
             <div>
               <span className="chart-title">Memory Allocation (RAM)</span>
-              <div className="chart-sub">Active buffer & cache consumption</div>
+              <div className="chart-sub">Active buffer & cache usage</div>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0073BB' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--aws-blue)' }}>
               {curMem}%
             </span>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
               1.0 GB / 2.0 GB EC2
             </div>
           </div>
         </div>
 
         <div className="chart-svg-container">
-          <svg viewBox="0 0 320 90" preserveAspectRatio="none" style={{ width: '100%', height: '90px' }}>
+          <svg viewBox="0 0 320 85" preserveAspectRatio="none" style={{ width: '100%', height: '85px' }}>
             <defs>
               <linearGradient id="memGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0073BB" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#0073BB" stopOpacity="0.0" />
+                <stop offset="0%" stopColor="#0972D3" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#0972D3" stopOpacity="0.0" />
               </linearGradient>
-              <filter id="memGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
             <path d={memData.area} fill="url(#memGradient)" />
             <path
               d={memData.path}
               fill="none"
-              stroke="#0073BB"
-              strokeWidth="2.5"
-              filter="url(#memGlow)"
+              stroke="#0972D3"
+              strokeWidth="2"
             />
             <circle
               cx={memData.lastX}
               cy={memData.lastY}
-              r="4.5"
+              r="3.5"
               fill="#FFFFFF"
-              stroke="#0073BB"
-              strokeWidth="2.5"
+              stroke="#0972D3"
+              strokeWidth="2"
             />
           </svg>
         </div>
       </div>
 
-      {/* 3. HTTP Response Latency Chart (Emerald Green #10B981) */}
+      {/* 3. HTTP Response Latency Chart (Solid Emerald Green #16A34A) */}
       <div className="telemetry-chart-card">
         <div className="chart-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div className="chart-icon-box" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10B981' }}>
-              <Wifi size={15} />
+            <div className="chart-icon-box" style={{ color: 'var(--status-success)' }}>
+              <Wifi size={16} />
             </div>
             <div>
               <span className="chart-title">HTTP Response Latency</span>
-              <div className="chart-sub">End-to-end Nginx gateway roundtrip</div>
+              <div className="chart-sub">Gateway roundtrip response</div>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10B981' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--status-success)' }}>
               {curLat} ms
             </span>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
               HTTP 200 OK
             </div>
           </div>
         </div>
 
         <div className="chart-svg-container">
-          <svg viewBox="0 0 320 90" preserveAspectRatio="none" style={{ width: '100%', height: '90px' }}>
+          <svg viewBox="0 0 320 85" preserveAspectRatio="none" style={{ width: '100%', height: '85px' }}>
             <defs>
               <linearGradient id="latGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                <stop offset="0%" stopColor="#16A34A" stopOpacity="0.15" />
+                <stop offset="100%" stopColor="#16A34A" stopOpacity="0.0" />
               </linearGradient>
-              <filter id="latGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
             <path d={latData.area} fill="url(#latGradient)" />
             <path
               d={latData.path}
               fill="none"
-              stroke="#10B981"
-              strokeWidth="2.5"
-              filter="url(#latGlow)"
+              stroke="#16A34A"
+              strokeWidth="2"
             />
             <circle
               cx={latData.lastX}
               cy={latData.lastY}
-              r="4.5"
+              r="3.5"
               fill="#FFFFFF"
-              stroke="#10B981"
-              strokeWidth="2.5"
+              stroke="#16A34A"
+              strokeWidth="2"
             />
           </svg>
         </div>
@@ -236,4 +212,3 @@ export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
     </div>
   );
 };
-
