@@ -42,7 +42,7 @@
   --terminal-bg: #090D16;
   --code-bg: #090D16;
 
-  --sidebar-width: 240px;
+  --sidebar-width: 260px;
   --sidebar-collapsed-width: 64px;
   --topbar-height: 56px;
   --radius-base: 6px;
@@ -120,6 +120,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   padding: 0 0.85rem;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-sidebar);
@@ -127,22 +128,26 @@ body {
   top: 0;
   z-index: 10;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .sidebar-container.collapsed .sidebar-brand {
   justify-content: center;
   padding: 0;
+  gap: 0;
 }
 
 .brand-clickable-box {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.6rem;
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
   padding: 0.25rem 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .brand-logo-badge {
@@ -158,32 +163,43 @@ body {
 }
 
 .brand-text-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
 }
 
 .brand-app-name {
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .brand-app-badge {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: var(--aws-orange);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  line-height: 1.1;
+  margin-top: 1px;
+  white-space: nowrap;
 }
 
 .sidebar-collapse-btn {
+  width: 28px;
+  height: 28px;
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   cursor: pointer;
-  padding: 0.35rem;
-  border-radius: 4px;
+  padding: 0;
+  border-radius: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -458,30 +474,134 @@ body {
   box-sizing: border-box;
 }
 
-.navbar-region-dropdown {
+/* --- GLOBAL AWS REGION SELECTOR (Custom Anchored Dropdown with 100% Matching Width) --- */
+.navbar-region-wrapper {
+  position: relative;
+  display: inline-flex;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.navbar-region-btn {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   height: 34px;
-  padding: 0 0.45rem;
-  box-sizing: border-box;
-  flex-shrink: 0;
-}
-
-.navbar-region-select {
-  background: transparent !important;
-  border: none !important;
+  padding: 0 0.65rem;
   color: var(--text-primary);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  height: 100% !important;
-  padding: 0 1.25rem 0 0.2rem !important;
-  width: auto !important;
-  max-width: 165px !important;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.navbar-region-btn:hover,
+.navbar-region-btn.open {
+  border-color: var(--aws-orange);
+  background: var(--bg-card-hover);
+}
+
+.navbar-region-label {
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.navbar-region-arrow {
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+  margin-left: 0.15rem;
+}
+
+.navbar-region-arrow.open {
+  transform: rotate(180deg);
+  color: var(--aws-orange);
+}
+
+/* Custom Region Dropdown Menu (Strictly 100% Equal Width, Matching Trigger Edges) */
+.navbar-region-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  z-index: 1000;
+  padding: 0.3rem;
+  overscroll-behavior: contain;
+}
+
+.navbar-region-dropdown-header {
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding: 0.25rem 0.45rem 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.25rem;
+}
+
+.navbar-region-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.55rem;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  text-align: left;
+  transition: background 0.12s;
+  gap: 0.5rem;
+}
+
+.navbar-region-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.navbar-region-item.active {
+  background: var(--bg-card-subtle);
+  color: var(--aws-orange);
+  font-weight: 700;
+}
+
+.navbar-region-item-text {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-region-item-name {
+  font-weight: 600;
+}
+
+.navbar-region-item-location {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+
+.navbar-region-item.active .navbar-region-item-location {
+  color: var(--aws-orange);
+  opacity: 0.85;
 }
 
 .navbar-node-pill {

@@ -17,7 +17,8 @@ import {
   Network,
   HelpCircle,
   Settings,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import { ExecutionMode, FullStatus } from '../types';
 
@@ -34,6 +35,13 @@ interface TopNavbarProps {
   onOpenArch: () => void;
   onOpenViva: () => void;
 }
+
+const AWS_REGIONS = [
+  { id: 'us-east-1', code: 'us-east-1', name: 'N. Virginia' },
+  { id: 'us-west-2', code: 'us-west-2', name: 'Oregon' },
+  { id: 'eu-west-1', code: 'eu-west-1', name: 'Ireland' },
+  { id: 'ap-south-1', code: 'ap-south-1', name: 'Mumbai' },
+];
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({
   mode,
@@ -53,6 +61,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
+
+  const [isRegionOpen, setIsRegionOpen] = useState(false);
+  const regionDropdownRef = useRef<HTMLDivElement>(null);
+
+  const currentRegion = AWS_REGIONS.find(r => r.id === selectedRegion) || AWS_REGIONS[0];
 
   const isReady = status.infrastructure.status === 'ready';
   const isRunning = status.is_running_pipeline;
@@ -75,6 +88,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       }
       if (e.key === 'Escape') {
         setIsSearchOpen(false);
+        setIsRegionOpen(false);
         searchInputRef.current?.blur();
       }
     };
@@ -87,6 +101,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
         setIsSearchOpen(false);
+      }
+      if (regionDropdownRef.current && !regionDropdownRef.current.contains(e.target as Node)) {
+        setIsRegionOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -205,20 +222,48 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
         )}
 
-        {/* Global AWS Region Selector (Controlled Width, No Overflow) */}
-        <div className="navbar-region-dropdown">
-          <Globe size={13} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
-          <select
-            value={selectedRegion}
-            onChange={(e) => onSelectRegion(e.target.value)}
-            className="navbar-region-select"
-            title="Global AWS Region"
+        {/* Global AWS Region Selector (Exact Width Custom Dropdown, Never Mismatched) */}
+        <div className="navbar-region-wrapper" ref={regionDropdownRef}>
+          <button
+            type="button"
+            className={`navbar-region-btn ${isRegionOpen ? 'open' : ''}`}
+            onClick={() => setIsRegionOpen(!isRegionOpen)}
+            title="Select AWS Region"
           >
-            <option value="us-east-1">us-east-1 (N. Virginia)</option>
-            <option value="us-west-2">us-west-2 (Oregon)</option>
-            <option value="eu-west-1">eu-west-1 (Ireland)</option>
-            <option value="ap-south-1">ap-south-1 (Mumbai)</option>
-          </select>
+            <Globe size={13} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
+            <span className="navbar-region-label">
+              {currentRegion.code} ({currentRegion.name})
+            </span>
+            <ChevronDown size={12} className={`navbar-region-arrow ${isRegionOpen ? 'open' : ''}`} style={{ flexShrink: 0 }} />
+          </button>
+
+          {isRegionOpen && (
+            <div className="navbar-region-dropdown-menu">
+              <div className="navbar-region-dropdown-header">
+                AWS Global Regions
+              </div>
+              {AWS_REGIONS.map((reg) => {
+                const isSelected = selectedRegion === reg.id;
+                return (
+                  <button
+                    key={reg.id}
+                    type="button"
+                    className={`navbar-region-item ${isSelected ? 'active' : ''}`}
+                    onClick={() => {
+                      onSelectRegion(reg.id);
+                      setIsRegionOpen(false);
+                    }}
+                  >
+                    <div className="navbar-region-item-text">
+                      <span className="navbar-region-item-name">{reg.code}</span>
+                      <span className="navbar-region-item-location">({reg.name})</span>
+                    </div>
+                    {isSelected && <Check size={12} color="var(--aws-orange)" style={{ flexShrink: 0 }} />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Target Node Connection Pill */}
