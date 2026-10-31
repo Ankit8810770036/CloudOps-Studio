@@ -81,6 +81,19 @@ export interface ChaosState {
   injected_at: string | null;
 }
 
+export interface UploadedCodePackage {
+  framework: string;
+  file_count: number;
+  total_size_bytes: number;
+  files: string[];
+  uploaded_at: string;
+}
+
+export interface CustomCodeState {
+  frontend?: UploadedCodePackage | null;
+  backend?: UploadedCodePackage | null;
+}
+
 export interface FullStatus {
   mode: ExecutionMode;
   is_running_pipeline: boolean;
@@ -91,6 +104,7 @@ export interface FullStatus {
   compliance: ComplianceState;
   telemetry: TelemetryState;
   chaos: ChaosState;
+  custom_code?: CustomCodeState;
 }
 
 export interface LogEntry {

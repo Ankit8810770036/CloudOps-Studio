@@ -1,12 +1,17 @@
 import asyncio
 import json
+import shutil
+import zipfile
+import tarfile
+import io
+import time
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from state import state
 from simulator import simulator
@@ -88,7 +93,8 @@ async def get_status():
         "deployment": state.deployment,
         "compliance": state.compliance,
         "telemetry": state.telemetry,
-        "chaos": state.chaos
+        "chaos": state.chaos,
+        "custom_code": state.custom_code
     }
 
 # 2. Toggle Mode (Live AWS vs Simulation)
@@ -190,6 +196,156 @@ async def preview_webapp():
     if WEBAPP_INDEX.exists():
         return WEBAPP_INDEX.read_text(encoding="utf-8")
     return "<h1>Hello World!</h1>"
+
+# Polyglot Project Code Upload Endpoints (Node.js, Spring Boot, Python, React, Folder / Zip)
+BASE_PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+@app.post("/api/upload/code")
+async def upload_code(
+    target_tier: str = Form(...),      # 'frontend' or 'backend'
+    framework: str = Form(...),        # 'nodejs', 'springboot', 'python', 'react', 'html', etc.
+    files: List[UploadFile] = File(...),
+    paths: Optional[str] = Form(None)  # JSON array of relative paths for folder uploads
+):
+    path_list = []
+    if paths:
+        try:
+            path_list = json.loads(paths)
+        except Exception:
+            path_list = []
+
+    # Map target tier & framework to destination directory in Ansible roles
+    if target_tier == "frontend":
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
+    elif framework == "nodejs":
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_nodejs" / "files" / "app"
+    elif framework in ["springboot", "java"]:
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_java" / "files" / "app"
+    elif framework == "python":
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_python" / "files" / "app"
+    else:
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    saved_files = []
+    total_size = 0
+
+    for idx, f in enumerate(files):
+        filename = f.filename or f"file_{idx}"
+        rel_path = path_list[idx] if idx < len(path_list) and path_list[idx] else filename
+
+        # Strip common top-level folder name if uploading a folder
+        parts = Path(rel_path).parts
+        if len(parts) > 1 and parts[0] not in [".", ".."]:
+            clean_rel_path = Path(*parts[1:])
+        else:
+            clean_rel_path = Path(rel_path).name
+
+        content = await f.read()
+        total_size += len(content)
+
+        # 1. Zip Archive Auto-Extraction
+        if filename.lower().endswith(".zip"):
+            try:
+                with zipfile.ZipFile(io.BytesIO(content)) as z:
+                    for member in z.infolist():
+                        if not member.is_dir() and not member.filename.startswith("__MACOSX"):
+                            member_parts = Path(member.filename).parts
+                            if len(member_parts) > 1 and member_parts[0] not in [".", ".."]:
+                                dest_item = target_dir / Path(*member_parts[1:])
+                            else:
+                                dest_item = target_dir / Path(member.filename)
+                            dest_item.parent.mkdir(parents=True, exist_ok=True)
+                            with z.open(member) as source, open(dest_item, "wb") as dest:
+                                shutil.copyfileobj(source, dest)
+                            saved_files.append(str(dest_item.relative_to(target_dir)))
+            except Exception as e:
+                state.add_log(f"Zip extraction warning: {str(e)}", stream="stderr", stage="ANSIBLE")
+
+        # 2. Tar/Gzip Archive Auto-Extraction
+        elif filename.lower().endswith((".tar.gz", ".tgz")):
+            try:
+                with tarfile.open(fileobj=io.BytesIO(content), mode="r:gz") as t:
+                    for member in t.getmembers():
+                        if member.isfile():
+                            member_parts = Path(member.name).parts
+                            if len(member_parts) > 1:
+                                dest_item = target_dir / Path(*member_parts[1:])
+                            else:
+                                dest_item = target_dir / Path(member.name)
+                            dest_item.parent.mkdir(parents=True, exist_ok=True)
+                            f_obj = t.extractfile(member)
+                            if f_obj:
+                                with open(dest_item, "wb") as dest:
+                                    shutil.copyfileobj(f_obj, dest)
+                                saved_files.append(str(dest_item.relative_to(target_dir)))
+            except Exception as e:
+                state.add_log(f"Tar extraction warning: {str(e)}", stream="stderr", stage="ANSIBLE")
+
+        # 3. Spring Boot Executable JAR
+        elif filename.lower().endswith(".jar") and framework in ["springboot", "java"]:
+            dest_file = target_dir / "app.jar"
+            dest_file.write_bytes(content)
+            saved_files.append("app.jar")
+
+        # 4. Individual File or Preserved Subfolder File
+        else:
+            dest_file = target_dir / clean_rel_path
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            dest_file.write_bytes(content)
+            saved_files.append(str(clean_rel_path))
+
+    file_count = len(saved_files)
+    state.custom_code[target_tier] = {
+        "framework": framework,
+        "file_count": file_count,
+        "total_size_bytes": total_size,
+        "files": saved_files[:50],
+        "uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    state.add_log(
+        f"[Code Upload] Uploaded {file_count} file(s) for {framework.upper()} ({round(total_size / 1024, 1)} KB). Target Tier: {target_tier.upper()}",
+        stage="ANSIBLE"
+    )
+
+    return {
+        "status": "success",
+        "target_tier": target_tier,
+        "framework": framework,
+        "file_count": file_count,
+        "total_size_bytes": total_size,
+        "files": saved_files[:50]
+    }
+
+@app.get("/api/upload/status")
+async def get_upload_status():
+    return state.custom_code
+
+@app.delete("/api/upload/code/{tier}")
+async def clear_uploaded_code(tier: str):
+    if tier not in ["frontend", "backend"]:
+        raise HTTPException(status_code=400, detail="Invalid tier")
+
+    if tier == "frontend":
+        d = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
+        if d.exists():
+            for item in d.iterdir():
+                if item.name != "index.html": # keep default index.html
+                    if item.is_dir():
+                        shutil.rmtree(item, ignore_errors=True)
+                    else:
+                        item.unlink(missing_ok=True)
+    else:
+        for r in ["backend_nodejs", "backend_java", "backend_python"]:
+            d = BASE_PROJECT_DIR / "ansible" / "roles" / r / "files" / "app"
+            if d.exists():
+                shutil.rmtree(d, ignore_errors=True)
+
+    state.custom_code[tier] = None
+    state.add_log(f"Cleared custom uploaded code for {tier.upper()}. Reverted to default template.", stage="ANSIBLE")
+    return {"status": "cleared", "tier": tier}
 
 # 6. Puppet Compliance Endpoint
 @app.post("/api/puppet/enforce")

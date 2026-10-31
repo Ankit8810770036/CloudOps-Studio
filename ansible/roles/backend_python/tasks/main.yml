@@ -30,13 +30,36 @@
       - requests
     virtualenv: /opt/devops_backend/venv
 
-- name: Deploy Python Backend Application Code
+- name: Check if custom user-uploaded Python backend code exists
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/files/app"
+  register: custom_python_dir
+
+- name: Deploy Custom Python Backend Project Files
+  copy:
+    src: "app/"
+    dest: /opt/devops_backend/
+    owner: www-data
+    group: www-data
+    mode: '0755'
+  when: custom_python_dir.stat.exists and custom_python_dir.stat.isdir
+
+- name: Install custom Python requirements.txt if present
+  pip:
+    requirements: /opt/devops_backend/requirements.txt
+    virtualenv: /opt/devops_backend/venv
+  when: custom_python_dir.stat.exists
+  ignore_errors: yes
+
+- name: Deploy fallback Python Backend Application Code
   template:
     src: api_app.py.j2
     dest: /opt/devops_backend/app.py
     owner: www-data
     group: www-data
     mode: '0644'
+  when: not (custom_python_dir.stat.exists and custom_python_dir.stat.isdir)
 
 - name: Configure Systemd Service for Python Backend
   template:

@@ -111,6 +111,29 @@ export async function healChaos() {
   return res.json();
 }
 
+export async function uploadCustomCode(formData: FormData) {
+  const res = await fetch(`${API_BASE}/api/upload/code`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Failed to upload code');
+  return res.json();
+}
+
+export async function clearUploadedCode(tier: 'frontend' | 'backend') {
+  const res = await fetch(`${API_BASE}/api/upload/code/${tier}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to clear code');
+  return res.json();
+}
+
+export async function fetchUploadStatus() {
+  const res = await fetch(`${API_BASE}/api/upload/status`);
+  if (!res.ok) throw new Error('Failed to fetch upload status');
+  return res.json();
+}
+
 export async function clearLogs() {
   const res = await fetch(`${API_BASE}/api/logs/clear`, {
     method: 'POST',

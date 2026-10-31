@@ -140,4 +140,3 @@ Devops331/
 * **Architecture Deep-Dive**: Consult [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for full data flows and diagrams.
 * **Viva Questions & Answers**: Consult [`docs/VIVA_QA.md`](docs/VIVA_QA.md) for 20+ common examination questions covering Terraform, Ansible, Puppet, and Nagios.
 * **Demonstration Script**: Consult [`docs/LAB_MANUAL.md`](docs/LAB_MANUAL.md) for a structured step-by-step walkthrough to present to your professor.
-

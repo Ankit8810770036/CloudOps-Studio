@@ -14,7 +14,22 @@
     group: www-data
     mode: '0755'
 
-- name: Deploy package.json
+- name: Check if custom user-uploaded Node.js code exists
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/files/app"
+  register: custom_node_dir
+
+- name: Deploy Custom User-Uploaded Node.js Code
+  copy:
+    src: "app/"
+    dest: /opt/devops_node/
+    owner: www-data
+    group: www-data
+    mode: '0755'
+  when: custom_node_dir.stat.exists and custom_node_dir.stat.isdir
+
+- name: Deploy fallback package.json if not present
   copy:
     content: |
       {
@@ -25,14 +40,22 @@
       }
     dest: /opt/devops_node/package.json
     owner: www-data
+    force: no
 
-- name: Deploy Express/Node.js Server Code
+- name: Deploy fallback Express/Node.js Server Code
   template:
     src: server.js.j2
     dest: /opt/devops_node/server.js
     owner: www-data
     group: www-data
     mode: '0644'
+  when: not (custom_node_dir.stat.exists and custom_node_dir.stat.isdir)
+
+- name: Run npm install if package.json exists
+  command: npm install --production
+  args:
+    chdir: /opt/devops_node
+  ignore_errors: yes
 
 - name: Configure Systemd Service for Node.js
   template:

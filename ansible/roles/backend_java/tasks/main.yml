@@ -23,12 +23,32 @@
     group: www-data
     mode: '0644'
 
+- name: Check if custom user-uploaded Spring Boot JAR exists
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/files/app"
+  register: custom_java_dir
+
+- name: Deploy Custom Spring Boot Application JAR/Files
+  copy:
+    src: "app/"
+    dest: /opt/devops_springboot/
+    owner: www-data
+    group: www-data
+    mode: '0755'
+  when: custom_java_dir.stat.exists and custom_java_dir.stat.isdir
+
 - name: Create Spring Boot Runner Script / JAR
   copy:
     content: |
       #!/bin/bash
-      # Standalone Java HTTP Service (Simulating Spring Boot Actuator/Web)
-      exec java -Xmx256m -Dserver.port={{ backend_port | default(8080) }} -cp /opt/devops_springboot App
+      if [ -f /opt/devops_springboot/app.jar ]; then
+        exec java -Xmx256m -Dserver.port={{ backend_port | default(8080) }} -jar /opt/devops_springboot/app.jar
+      elif ls /opt/devops_springboot/*.jar 1> /dev/null 2>&1; then
+        exec java -Xmx256m -Dserver.port={{ backend_port | default(8080) }} -jar /opt/devops_springboot/*.jar
+      else
+        exec java -Xmx256m -Dserver.port={{ backend_port | default(8080) }} -cp /opt/devops_springboot App
+      fi
     dest: /opt/devops_springboot/run.sh
     mode: '0755'
     owner: www-data

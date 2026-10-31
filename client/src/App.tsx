@@ -294,8 +294,10 @@ export function App() {
                   deployment={status.deployment}
                   infra={status.infrastructure}
                   stack={status.stack}
+                  customCode={status.custom_code}
                   onDeploy={handleDeployAnsible}
                   isRunning={isRunning}
+                  onRefreshStatus={() => fetchStatus().then(setStatus)}
                 />
                 <NagiosStep
                   telemetry={status.telemetry}
@@ -357,8 +359,10 @@ export function App() {
                   deployment={status.deployment}
                   infra={status.infrastructure}
                   stack={status.stack}
+                  customCode={status.custom_code}
                   onDeploy={handleDeployAnsible}
                   isRunning={isRunning}
+                  onRefreshStatus={() => fetchStatus().then(setStatus)}
                 />
                 <Terminal logs={logs.filter(l => l.stage === 'ANSIBLE' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
               </div>

@@ -40,6 +40,12 @@ class PlatformState:
             }
         }
         
+        # Custom Uploaded Code Packages (Polyglot: Node, Spring Boot, Python, React, etc.)
+        self.custom_code: Dict[str, Any] = {
+            "frontend": None,
+            "backend": None
+        }
+        
         # Step 1: Terraform Infrastructure
         self.infrastructure = {
             "status": "not_provisioned", # not_provisioned, provisioning, ready, destroyed, error

@@ -1,21 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Play, ExternalLink, Code2, Save, Eye, Check, Database, Server, Layout, Sparkles, Layers } from 'lucide-react';
-import { DeploymentState, InfrastructureState, StackConfig } from '../types';
-import { fetchWebappContent, saveWebappContent } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Package,
+  Play,
+  ExternalLink,
+  Code2,
+  Save,
+  Eye,
+  Check,
+  Database,
+  Server,
+  Layout,
+  Sparkles,
+  Layers,
+  UploadCloud,
+  FolderArchive,
+  FileArchive,
+  Trash2,
+  AlertCircle,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  FolderUp,
+  X
+} from 'lucide-react';
+import { DeploymentState, InfrastructureState, StackConfig, CustomCodeState } from '../types';
+import { fetchWebappContent, saveWebappContent, uploadCustomCode, clearUploadedCode } from '../services/api';
 
 interface AnsibleStepProps {
   deployment: DeploymentState;
   infra: InfrastructureState;
   stack?: StackConfig;
+  customCode?: CustomCodeState;
   onDeploy: (webServer: 'nginx' | 'apache', frontend: string, backend: string, database: string) => void;
   isRunning: boolean;
+  onRefreshStatus?: () => void;
 }
 
 export const AnsibleStep: React.FC<AnsibleStepProps> = ({
   deployment,
   infra,
+  customCode,
   onDeploy,
   isRunning,
+  onRefreshStatus,
 }) => {
   const [selectedServer] = useState<'nginx' | 'apache'>('nginx');
   
@@ -24,7 +52,23 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
   const [backendType, setBackendType] = useState<string>('python');
   const [databaseType, setDatabaseType] = useState<string>('postgresql');
   
+  // Panes toggle: 'upload' | 'editor' | null
+  const [showUpload, setShowUpload] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+
+  // Upload Management State
+  const [uploadTier, setUploadTier] = useState<'backend' | 'frontend'>('backend');
+  const [uploadFramework, setUploadFramework] = useState<'nodejs' | 'springboot' | 'python' | 'react'>('nodejs');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [showFileList, setShowFileList] = useState(false);
+
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // HTML Editor State
   const [htmlCode, setHtmlCode] = useState('');
   const [isSaved, setIsSaved] = useState(false);
 
@@ -73,6 +117,97 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
 
   const previewUrl = isDeployed && infra.app_url ? infra.app_url : 'http://127.0.0.1:8000/api/webapp/preview';
 
+  // Handle uploading files list
+  const uploadFileList = async (files: File[]) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('target_tier', uploadTier);
+      formData.append('framework', uploadFramework);
+
+      const paths: string[] = [];
+      files.forEach((f) => {
+        formData.append('files', f);
+        // webkitRelativePath contains e.g. "my-project/src/index.js"
+        const p = (f as any).webkitRelativePath || f.name;
+        paths.push(p);
+      });
+      formData.append('paths', JSON.stringify(paths));
+
+      const res = await uploadCustomCode(formData);
+      setUploadSuccess(`Successfully uploaded ${res.file_count} files for ${uploadFramework.toUpperCase()}!`);
+      if (onRefreshStatus) onRefreshStatus();
+      setTimeout(() => setUploadSuccess(null), 4000);
+    } catch (err: any) {
+      setUploadError(err.message || 'Failed to upload code package');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadFileList(Array.from(files));
+    e.target.value = '';
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadFileList(Array.from(files));
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await uploadFileList(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleClearCode = async (tier: 'frontend' | 'backend') => {
+    try {
+      await clearUploadedCode(tier);
+      if (onRefreshStatus) onRefreshStatus();
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  // Sync framework buttons with tier
+  const handleSelectFramework = (fw: 'nodejs' | 'springboot' | 'python' | 'react') => {
+    setUploadFramework(fw);
+    if (fw === 'react') {
+      setUploadTier('frontend');
+      setFrontendType('react');
+    } else {
+      setUploadTier('backend');
+      if (fw === 'nodejs') setBackendType('nodejs');
+      if (fw === 'springboot') setBackendType('java_springboot');
+      if (fw === 'python') setBackendType('python');
+    }
+  };
+
+  const hasBackendCustom = !!customCode?.backend;
+  const hasFrontendCustom = !!customCode?.frontend;
+  const hasCustomCode = hasBackendCustom || hasFrontendCustom;
+
   return (
     <div className="panel-card" style={{ gridColumn: 'span 2' }}>
       <div>
@@ -95,18 +230,25 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
             </div>
             <span>Step 2: Ansible Deployment</span>
           </h3>
-          <span style={{
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            padding: '0.15rem 0.55rem',
-            borderRadius: '4px',
-            background: isDeployed ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
-            color: isDeployed ? 'var(--status-success)' : 'var(--aws-orange)',
-            border: `1px solid ${isDeployed ? 'var(--status-success)' : 'var(--status-warning)'}`,
-            letterSpacing: '0.04em'
-          }}>
-            {deployment.status.toUpperCase()}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            {hasCustomCode && (
+              <span className="upload-badge-indicator" title="Custom User Code Ready">
+                ✓ Custom Code
+              </span>
+            )}
+            <span style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              padding: '0.15rem 0.55rem',
+              borderRadius: '4px',
+              background: isDeployed ? 'var(--status-success-bg)' : 'var(--status-warning-bg)',
+              color: isDeployed ? 'var(--status-success)' : 'var(--aws-orange)',
+              border: `1px solid ${isDeployed ? 'var(--status-success)' : 'var(--status-warning)'}`,
+              letterSpacing: '0.04em'
+            }}>
+              {deployment.status.toUpperCase()}
+            </span>
+          </div>
         </div>
 
         {/* Minimal Subtitle */}
@@ -136,8 +278,8 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
             >
               <span>☕</span>
               <div>
-                <div style={{ fontWeight: 700 }}>Java Stack</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Spring Boot + MySQL</div>
+                <div style={{ fontWeight: 700 }}>Spring Boot</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Java 17 + MySQL</div>
               </div>
             </button>
 
@@ -148,7 +290,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
             >
               <span>🟢</span>
               <div>
-                <div style={{ fontWeight: 700 }}>Node.js Stack</div>
+                <div style={{ fontWeight: 700 }}>Node.js Express</div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Express + Mongo</div>
               </div>
             </button>
@@ -161,7 +303,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
               <span>🌐</span>
               <div>
                 <div style={{ fontWeight: 700 }}>Static Web</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>HTML5 + Nginx</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>HTML5 / Nginx</div>
               </div>
             </button>
           </div>
@@ -175,6 +317,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
               <div className="tier-badge frontend">
                 <Layout size={14} />
                 <span>1. Frontend UI</span>
+                {hasFrontendCustom && <span className="upload-badge-indicator" style={{ marginLeft: 'auto' }}>Custom</span>}
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <select
@@ -195,6 +338,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
               <div className="tier-badge backend">
                 <Server size={14} />
                 <span>2. Backend API</span>
+                {hasBackendCustom && <span className="upload-badge-indicator" style={{ marginLeft: 'auto' }}>Custom</span>}
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <select
@@ -235,24 +379,274 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
           </div>
         </div>
 
-        {/* Live Topology Banner */}
+        {/* Live Topology Banner with Action Buttons */}
         <div className="topology-flow-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
             <Layers size={14} color="var(--aws-blue)" style={{ flexShrink: 0 }} />
-            <span>
+            <span style={{ fontSize: '0.8rem' }}>
               <strong>Topology:</strong> Nginx (80) ➔ /api/ ➔ <span style={{ color: 'var(--aws-orange)', fontWeight: 700 }}>{backendType.toUpperCase()} ({getBackendPort()})</span> ➔ <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>{databaseType.toUpperCase()}</span>
             </span>
           </div>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => setShowEditor(!showEditor)}
-            style={{ fontSize: '0.76rem', padding: '0 0.65rem', height: '30px' }}
-          >
-            <Code2 size={13} />
-            <span>{showEditor ? 'Hide Code' : 'Edit HTML'}</span>
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            {/* Custom Code Upload Button */}
+            <button
+              type="button"
+              className={`btn-secondary ${showUpload ? 'active-upload-btn' : ''}`}
+              onClick={() => {
+                setShowUpload(!showUpload);
+                if (!showUpload) setShowEditor(false);
+              }}
+              style={{ fontSize: '0.76rem', padding: '0 0.65rem', height: '30px' }}
+              title="Upload project folder, .zip, or .jar"
+            >
+              <UploadCloud size={13} color="var(--aws-orange)" />
+              <span>{showUpload ? 'Hide Uploader' : 'Upload Project (Folder / Zip)'}</span>
+              {hasCustomCode && <span className="upload-badge-indicator">Active</span>}
+            </button>
+
+            {/* Quick HTML Editor Button */}
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setShowEditor(!showEditor);
+                if (!showEditor) setShowUpload(false);
+              }}
+              style={{ fontSize: '0.76rem', padding: '0 0.65rem', height: '30px' }}
+            >
+              <Code2 size={13} />
+              <span>{showEditor ? 'Hide Code' : 'Edit HTML'}</span>
+            </button>
+          </div>
         </div>
+
+        {/* ===================================================================
+            POLYGLOT CODE UPLOAD MANAGER (Node, Spring Boot, Python, React)
+            =================================================================== */}
+        {showUpload && (
+          <div className="upload-container-box">
+            {/* Hidden Input Triggers */}
+            <input
+              ref={folderInputRef}
+              type="file"
+              // @ts-ignore
+              webkitdirectory=""
+              directory=""
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleFolderUpload}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".zip,.jar,.tar,.gz,.js,.ts,.py,.java,.json,.xml,.html,.css"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+
+            <div className="upload-header-row">
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                  Upload Project Code (Node.js, Spring Boot, Python, React)
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
+                  Select your target language and upload an entire project folder, <code>.zip</code> archive, or compiled <code>.jar</code> file.
+                </div>
+              </div>
+            </div>
+
+            {/* Target Language / Framework Selector */}
+            <div className="upload-framework-selector">
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', marginRight: '0.2rem' }}>
+                Target:
+              </span>
+              <button
+                type="button"
+                className={`upload-framework-btn ${uploadFramework === 'nodejs' ? 'active' : ''}`}
+                onClick={() => handleSelectFramework('nodejs')}
+              >
+                <span>🟢</span>
+                <span>Node.js Express</span>
+              </button>
+
+              <button
+                type="button"
+                className={`upload-framework-btn ${uploadFramework === 'springboot' ? 'active' : ''}`}
+                onClick={() => handleSelectFramework('springboot')}
+              >
+                <span>☕</span>
+                <span>Spring Boot (.jar)</span>
+              </button>
+
+              <button
+                type="button"
+                className={`upload-framework-btn ${uploadFramework === 'python' ? 'active' : ''}`}
+                onClick={() => handleSelectFramework('python')}
+              >
+                <span>🐍</span>
+                <span>Python FastAPI</span>
+              </button>
+
+              <button
+                type="button"
+                className={`upload-framework-btn ${uploadFramework === 'react' ? 'active' : ''}`}
+                onClick={() => handleSelectFramework('react')}
+              >
+                <span>⚛️</span>
+                <span>Frontend UI (React/Static)</span>
+              </button>
+            </div>
+
+            {/* Upload Action Zone & Drag-and-Drop */}
+            <div
+              className={`upload-dropzone ${isDragging ? 'dragging' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="upload-actions-grid">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => folderInputRef.current?.click()}
+                  disabled={isUploading}
+                  style={{ background: 'var(--aws-blue)', border: '1px solid var(--aws-blue)' }}
+                >
+                  <FolderArchive size={14} />
+                  <span>Upload Entire Folder</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <FileArchive size={14} />
+                  <span>Upload Files / .zip / .jar</span>
+                </button>
+              </div>
+
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
+                or drag and drop your project folder, <code>.zip</code>, or Spring Boot <code>.jar</code> here
+              </div>
+
+              {isUploading && (
+                <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', color: 'var(--aws-orange)', fontSize: '0.78rem', fontWeight: 600 }}>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Uploading and extracting {uploadFramework.toUpperCase()} code package...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Success / Error Messages */}
+            {uploadSuccess && (
+              <div style={{ marginTop: '0.65rem', padding: '0.55rem 0.75rem', background: 'var(--status-success-bg)', border: '1px solid var(--status-success)', borderRadius: '5px', fontSize: '0.76rem', color: 'var(--status-success)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Check size={14} />
+                <span>{uploadSuccess}</span>
+              </div>
+            )}
+
+            {uploadError && (
+              <div style={{ marginTop: '0.65rem', padding: '0.55rem 0.75rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid var(--status-danger)', borderRadius: '5px', fontSize: '0.76rem', color: '#F87171', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <AlertCircle size={14} />
+                <span>{uploadError}</span>
+              </div>
+            )}
+
+            {/* Currently Active Uploaded Packages */}
+            {customCode?.backend && (
+              <div className="uploaded-package-pill">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  <Server size={16} color="var(--aws-orange)" />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                      Backend Package: {customCode.backend.framework.toUpperCase()}
+                      <span className="upload-badge-indicator">Active</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      {customCode.backend.file_count} files • {Math.round(customCode.backend.total_size_bytes / 1024)} KB • Uploaded: {customCode.backend.uploaded_at}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowFileList(!showFileList)}
+                    style={{ fontSize: '0.72rem', height: '26px', padding: '0 0.5rem' }}
+                  >
+                    <span>{showFileList ? 'Hide Files' : 'View Files'}</span>
+                    {showFileList ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => handleClearCode('backend')}
+                    style={{ fontSize: '0.72rem', height: '26px', padding: '0 0.5rem', color: 'var(--status-danger)' }}
+                    title="Remove custom code and revert to default template"
+                  >
+                    <Trash2 size={12} />
+                    <span>Reset</span>
+                  </button>
+                </div>
+
+                {showFileList && customCode.backend.files && (
+                  <div className="file-tree-preview" style={{ width: '100%' }}>
+                    {customCode.backend.files.map((file, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.1rem 0' }}>
+                        <FileText size={11} color="var(--aws-orange)" />
+                        <span>{file}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {customCode?.frontend && (
+              <div className="uploaded-package-pill">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  <Layout size={16} color="var(--aws-blue)" />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                      Frontend Package: {customCode.frontend.framework.toUpperCase()}
+                      <span className="upload-badge-indicator">Active</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      {customCode.frontend.file_count} files • {Math.round(customCode.frontend.total_size_bytes / 1024)} KB • Uploaded: {customCode.frontend.uploaded_at}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => handleClearCode('frontend')}
+                  style={{ fontSize: '0.72rem', height: '26px', padding: '0 0.5rem', color: 'var(--status-danger)' }}
+                >
+                  <Trash2 size={12} />
+                  <span>Reset</span>
+                </button>
+              </div>
+            )}
+
+            {/* Quick Framework Guidance */}
+            <div style={{ marginTop: '0.75rem', padding: '0.65rem 0.85rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '5px', fontSize: '0.73rem', color: 'var(--text-dim)', lineHeight: 1.45 }}>
+              <strong>Deployment Instructions:</strong>
+              <ul style={{ paddingLeft: '1.15rem', marginTop: '0.25rem' }}>
+                <li><strong>Node.js:</strong> Upload folder or <code>.zip</code> containing <code>package.json</code> & <code>server.js</code>. Ansible installs dependencies via <code>npm install</code>.</li>
+                <li><strong>Spring Boot:</strong> Upload compiled <code>app.jar</code> (or zip with executable jar). Ansible runs it under OpenJDK 17.</li>
+                <li><strong>Python:</strong> Upload folder with <code>app.py</code> and optional <code>requirements.txt</code>.</li>
+                <li><strong>Frontend:</strong> Upload your React production <code>dist</code> folder or static HTML/CSS/JS.</li>
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* Expandable Code Editor */}
         {showEditor && (
@@ -308,14 +702,14 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
         </button>
 
         <a
-          href={previewUrl}
+          href={infra.app_url || '#'}
           target="_blank"
           rel="noreferrer"
           className="btn-secondary"
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--aws-blue)', fontWeight: 700, flex: '0 0 auto' }}
+          style={{ flex: '0 0 auto', opacity: isDeployed && infra.app_url ? 1 : 0.4, pointerEvents: isDeployed && infra.app_url ? 'auto' : 'none' }}
         >
-          <span>{isDeployed ? 'Open App' : 'Preview Site'}</span>
-          <ExternalLink size={13} />
+          <ExternalLink size={14} />
+          <span>Open Live Site</span>
         </a>
       </div>
     </div>
