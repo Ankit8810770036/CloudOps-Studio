@@ -47,6 +47,10 @@
   --topbar-height: 56px;
   --radius-base: 6px;
   --radius-lg: 8px;
+  --font-sans: 'Inter', 'Roboto', 'Poppins', 'Open Sans', sans-serif;
+  --font-heading: 'Poppins', 'Inter', 'Roboto', sans-serif;
+  --font-body: 'Open Sans', 'Roboto', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', Consolas, monospace;
 }
 
 /* 5. Light Theme Override (Crisp, High-Contrast Clean Dev Studio) */
@@ -73,14 +77,31 @@
   padding: 0;
 }
 
+body, button, input, select, textarea {
+  font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-global);
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.45;
   overflow-x: hidden;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6,
+.brand-app-name,
+.section-banner-title,
+.stat-card-value,
+.modal-header h3 {
+  font-family: 'Poppins', 'Inter', 'Roboto', sans-serif;
+}
+
+p, .section-banner-sub, .form-label, .spec-label {
+  font-family: 'Open Sans', 'Roboto', 'Inter', sans-serif;
 }
 
 /* ==========================================================================
