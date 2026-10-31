@@ -10,7 +10,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} onWheel={(e) => e.stopPropagation()}>
       <div className="modal-content" style={{ maxWidth: '820px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>

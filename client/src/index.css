@@ -356,7 +356,7 @@ body {
   border: 1px solid var(--border-color);
   padding: 0 0.65rem;
   border-radius: 6px;
-  width: 320px;
+  width: 340px;
   max-width: 100%;
   height: 34px;
   box-sizing: border-box;
@@ -389,31 +389,46 @@ body {
   pointer-events: none;
 }
 
-/* In-Place Search Dropdown (Anchored to Search Bar, No Center Modal Drag) */
+/* In-Place Search Dropdown (Anchored to Search Bar, Width STRICTLY Matches Search Bar Exactly) */
 .navbar-search-dropdown {
   position: absolute;
-  top: calc(100% + 5px);
+  top: calc(100% + 4px);
   left: 0;
-  width: 380px;
-  max-width: 90vw;
+  right: 0;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--bg-card);
   border: 1px solid var(--border-bright);
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  max-height: 380px;
+  max-height: 360px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 1000;
-  padding: 0.4rem;
+  padding: 0.35rem;
+}
+
+.navbar-search-dropdown::-webkit-scrollbar {
+  width: 5px;
+}
+
+.navbar-search-dropdown::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border-radius: 3px;
 }
 
 .search-result-item {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.55rem 0.75rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 5px;
   cursor: pointer;
   transition: background 0.12s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .search-result-item:hover {
@@ -1263,6 +1278,7 @@ select option {
   padding: 0.85rem 1rem;
   height: 300px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   font-family: 'JetBrains Mono', Consolas, monospace;
   font-size: 0.8rem;
   line-height: 1.55;
@@ -1310,8 +1326,13 @@ select option {
 }
 
 /* ==========================================================================
-   MODALS
+   MODALS (Background Scroll Freeze & Container Isolation)
    ========================================================================== */
+
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+}
 
 .modal-overlay {
   position: fixed;
@@ -1319,13 +1340,16 @@ select option {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 1.25rem;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .modal-content {
@@ -1336,9 +1360,12 @@ select option {
   max-width: 680px;
   max-height: 85vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1.35rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   color: var(--text-primary);
+  box-sizing: border-box;
+  touch-action: auto;
 }
 
 .modal-header {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopNavbar } from './components/TopNavbar';
 import { TopStats } from './components/TopStats';
@@ -44,6 +44,56 @@ export function App() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isArchOpen, setIsArchOpen] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
+
+  const mainContentRef = useRef<HTMLElement>(null);
+
+  // Tab switching with instant scroll-to-top
+  const handleSelectTab = (tab: string) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+  };
+
+  // Scroll to top immediately whenever activeTab changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
+
+  // Lock background scroll whenever any dialog card or form modal is open
+  useEffect(() => {
+    const isAnyModalOpen = isConfigOpen || isArchOpen || isVivaOpen;
+    if (isAnyModalOpen) {
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+
+      // Prevent layout shift from scrollbar disappearing
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.classList.add('modal-open');
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+        document.body.classList.remove('modal-open');
+      };
+    }
+  }, [isConfigOpen, isArchOpen, isVivaOpen]);
 
   // Apply theme to document element
   useEffect(() => {
@@ -170,7 +220,7 @@ export function App() {
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
         onOpenConfig={() => setIsConfigOpen(true)}
         onOpenArch={() => setIsArchOpen(true)}
         onOpenViva={() => setIsVivaOpen(true)}
@@ -188,14 +238,14 @@ export function App() {
           status={status}
           selectedRegion={selectedRegion}
           onSelectRegion={setSelectedRegion}
-          onNavigate={setActiveTab}
+          onNavigate={handleSelectTab}
           onOpenConfig={() => setIsConfigOpen(true)}
           onOpenArch={() => setIsArchOpen(true)}
           onOpenViva={() => setIsVivaOpen(true)}
         />
 
         {/* Main Content Area */}
-        <main className="content-container">
+        <main className="content-container" ref={mainContentRef}>
           {/* SECTION 1: CONSOLE OVERVIEW (ALL) */}
           {activeTab === 'all' && (
             <div>
