@@ -95,6 +95,7 @@ export interface UploadedCodePackage {
   total_size_bytes: number;
   files: string[];
   uploaded_at: string;
+  has_dockerfile?: boolean;
 }
 
 export interface CustomCodeState {

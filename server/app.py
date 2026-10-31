@@ -223,8 +223,10 @@ async def upload_code(
         target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_java" / "files" / "app"
     elif framework == "python":
         target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_python" / "files" / "app"
+    elif framework in ["docker", "custom", "polyglot"]:
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_docker" / "files" / "app"
     else:
-        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
+        target_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_docker" / "files" / "app"
 
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -297,8 +299,38 @@ async def upload_code(
             saved_files.append(str(clean_rel_path))
 
     file_count = len(saved_files)
+    
+    # Check for Dockerfile presence (Auto-detection for polyglot apps: Go, Rust, Ruby, PHP, .NET, Python, etc.)
+    has_dockerfile = any(
+        Path(f).name.lower() in ["dockerfile", "dockerfile.prod", "dockerfile.dev"]
+        for f in saved_files
+    )
+
+    effective_framework = framework
+    if has_dockerfile:
+        effective_framework = "docker"
+        docker_role_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "backend_docker" / "files" / "app"
+        docker_role_dir.mkdir(parents=True, exist_ok=True)
+        # If extracted in a different dir, ensure files are synced to backend_docker
+        if target_dir != docker_role_dir and target_dir.exists():
+            for item in target_dir.rglob("*"):
+                if item.is_file():
+                    rel = item.relative_to(target_dir)
+                    d_dest = docker_role_dir / rel
+                    d_dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(item, d_dest)
+        
+        state.stack["backend"]["type"] = "docker"
+        state.stack["backend"]["port"] = 8000
+        state.add_log(
+            "[Auto-Detection] 🐳 Dockerfile detected in uploaded package! Universal containerization enabled. "
+            "App will be built and supervised via Docker with Restart=always on port 8000.",
+            stage="ANSIBLE"
+        )
+
     state.custom_code[target_tier] = {
-        "framework": framework,
+        "framework": effective_framework,
+        "has_dockerfile": has_dockerfile,
         "file_count": file_count,
         "total_size_bytes": total_size,
         "files": saved_files[:50],
@@ -306,14 +338,15 @@ async def upload_code(
     }
 
     state.add_log(
-        f"[Code Upload] Uploaded {file_count} file(s) for {framework.upper()} ({round(total_size / 1024, 1)} KB). Target Tier: {target_tier.upper()}",
+        f"[Code Upload] Uploaded {file_count} file(s) for {effective_framework.upper()} ({round(total_size / 1024, 1)} KB). Target Tier: {target_tier.upper()}",
         stage="ANSIBLE"
     )
 
     return {
         "status": "success",
         "target_tier": target_tier,
-        "framework": framework,
+        "framework": effective_framework,
+        "has_dockerfile": has_dockerfile,
         "file_count": file_count,
         "total_size_bytes": total_size,
         "files": saved_files[:50]
@@ -338,7 +371,7 @@ async def clear_uploaded_code(tier: str):
                     else:
                         item.unlink(missing_ok=True)
     else:
-        for r in ["backend_nodejs", "backend_java", "backend_python"]:
+        for r in ["backend_nodejs", "backend_java", "backend_python", "backend_docker"]:
             d = BASE_PROJECT_DIR / "ansible" / "roles" / r / "files" / "app"
             if d.exists():
                 shutil.rmtree(d, ignore_errors=True)

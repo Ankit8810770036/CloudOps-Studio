@@ -1,0 +1,65 @@
+---
+- name: Install Docker container engine and dependencies
+  apt:
+    name:
+      - docker.io
+      - containerd
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker daemon is started and enabled
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Ensure ubuntu user belongs to docker group
+  user:
+    name: ubuntu
+    groups: docker
+    append: yes
+
+- name: Create Universal Container Application Directory
+  file:
+    path: /opt/cloudops_custom_app
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: Check if custom uploaded Docker project files exist
+  delegate_to: localhost
+  stat:
+    path: "{{ role_path }}/files/app"
+  register: custom_docker_dir
+
+- name: Copy project files and Dockerfile to target host
+  copy:
+    src: "app/"
+    dest: /opt/cloudops_custom_app/
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+  when: custom_docker_dir.stat.exists and custom_docker_dir.stat.isdir
+
+- name: Stop and remove existing container if running
+  shell: |
+    docker stop cloudops-custom-app 2>/dev/null || true
+    docker rm -f cloudops-custom-app 2>/dev/null || true
+  become: yes
+
+- name: Build custom application Docker image
+  shell: docker build -t cloudops-custom-app .
+  args:
+    chdir: /opt/cloudops_custom_app
+  become: yes
+
+- name: Run container with restart policy and port forward
+  shell: docker run -d --restart always --name cloudops-custom-app -p 8000:8000 cloudops-custom-app
+  become: yes
+
+- name: Ensure UFW firewall allows backend port 8000
+  ufw:
+    rule: allow
+    port: '8000'
+    proto: tcp

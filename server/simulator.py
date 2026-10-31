@@ -235,6 +235,20 @@ class SimulationEngine:
                 (f"ok: [{target_ip}] => HTTP 200 on http://127.0.0.1:5000/api/health", 0.5),
                 ("", 0.2)
             ])
+        elif backend_type == 'docker' or (has_custom_b and (state.custom_code.get("backend") or {}).get("has_dockerfile")):
+            logs.extend([
+                ("TASK [backend_docker : Auto-Detect Dockerfile & Install Container Runtime] ****", 1.2),
+                (f"changed: [{target_ip}] => packages=(docker.io, containerd, runc)", 0.7),
+                ("TASK [backend_docker : Transfer Project Source & Dockerfile to /opt/cloudops_custom_app] *", 0.9),
+                (f"changed: [{target_ip}] => dest=/opt/cloudops_custom_app (Dockerfile detected)", 0.6),
+                ("TASK [backend_docker : Build Multi-Stage Docker Image (docker build)] *********", 1.4),
+                (f"changed: [{target_ip}] => docker build -t cloudops-custom-app . (Universal Polyglot Container)", 0.8),
+                ("TASK [backend_docker : Launch Supervised Container with Restart=always] ********", 1.1),
+                (f"changed: [{target_ip}] => docker run -d --restart always --name cloudops-custom-app -p 8000:8000 cloudops-custom-app", 0.8),
+                ("TASK [backend_docker : Verify Container Health on Port 8000] ******************", 1.0),
+                (f"ok: [{target_ip}] => Container cloudops-custom-app is RUNNING (Port 0.0.0.0:8000->8000/tcp)", 0.5),
+                ("", 0.2)
+            ])
 
         # 3. Frontend & Reverse Proxy Task Simulation
         logs.extend([

@@ -60,7 +60,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
 
   // Upload Management State
   const [uploadTier, setUploadTier] = useState<'backend' | 'frontend'>('backend');
-  const [uploadFramework, setUploadFramework] = useState<'nodejs' | 'springboot' | 'python' | 'react'>('nodejs');
+  const [uploadFramework, setUploadFramework] = useState<'nodejs' | 'springboot' | 'python' | 'react' | 'docker'>('nodejs');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   };
 
   // Quick Preset Handlers
-  const applyPreset = (preset: 'python' | 'spring' | 'mern' | 'static') => {
+  const applyPreset = (preset: 'python' | 'spring' | 'mern' | 'static' | 'docker') => {
     if (preset === 'python') {
       setFrontendType('react');
       setBackendType('python');
@@ -107,6 +107,10 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       setFrontendType('html');
       setBackendType('none');
       setDatabaseType('none');
+    } else if (preset === 'docker') {
+      setFrontendType('react');
+      setBackendType('docker');
+      setDatabaseType('postgresql');
     }
   };
 
@@ -114,6 +118,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
     if (backendType === 'java_springboot') return 8080;
     if (backendType === 'nodejs') return 5000;
     if (backendType === 'python') return 8000;
+    if (backendType === 'docker') return 8000;
     return 0;
   };
 
@@ -141,7 +146,13 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       formData.append('paths', JSON.stringify(paths));
 
       const res = await uploadCustomCode(formData);
-      setUploadSuccess(`Successfully uploaded ${res.file_count} files for ${uploadFramework.toUpperCase()}!`);
+      if (res.has_dockerfile) {
+        setBackendType('docker');
+        setUploadFramework('docker');
+        setUploadSuccess(`🐳 Dockerfile Auto-Detected! Framework set to Universal Docker Container (Go, Rust, Ruby, PHP, Python, Node, etc.). Uploaded ${res.file_count} files!`);
+      } else {
+        setUploadSuccess(`Successfully uploaded ${res.file_count} files for ${uploadFramework.toUpperCase()}!`);
+      }
       if (onRefreshStatus) onRefreshStatus();
       setTimeout(() => setUploadSuccess(null), 4000);
     } catch (err: any) {
@@ -193,7 +204,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   };
 
   // Sync framework buttons with tier
-  const handleSelectFramework = (fw: 'nodejs' | 'springboot' | 'python' | 'react') => {
+  const handleSelectFramework = (fw: 'nodejs' | 'springboot' | 'python' | 'react' | 'docker') => {
     setUploadFramework(fw);
     if (fw === 'react') {
       setUploadTier('frontend');
@@ -203,6 +214,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       if (fw === 'nodejs') setBackendType('nodejs');
       if (fw === 'springboot') setBackendType('java_springboot');
       if (fw === 'python') setBackendType('python');
+      if (fw === 'docker') setBackendType('docker');
     }
   };
 
@@ -235,7 +247,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
             {hasCustomCode && (
               <span className="upload-badge-indicator" title="Custom User Code Ready">
-                ✓ Custom Code
+                {customCode?.backend?.has_dockerfile ? '🐳 Dockerfile Auto-Detected' : '✓ Custom Code'}
               </span>
             )}
             <span style={{
@@ -312,6 +324,18 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
 
             <button
               type="button"
+              className={`preset-chip ${backendType === 'docker' ? 'active-preset' : ''}`}
+              onClick={() => applyPreset('docker')}
+            >
+              <span>🐳</span>
+              <div>
+                <div style={{ fontWeight: 700 }}>Universal Docker</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Any Lang (Dockerfile)</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
               className={`preset-chip ${backendType === 'none' ? 'active-preset' : ''}`}
               onClick={() => applyPreset('static')}
             >
@@ -353,7 +377,11 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
               <div className="tier-badge backend">
                 <Server size={14} />
                 <span>2. Backend API</span>
-                {hasBackendCustom && <span className="upload-badge-indicator" style={{ marginLeft: 'auto' }}>Custom</span>}
+                {hasBackendCustom && (
+                  <span className="upload-badge-indicator" style={{ marginLeft: 'auto' }}>
+                    {customCode?.backend?.has_dockerfile ? '🐳 Dockerfile' : 'Custom'}
+                  </span>
+                )}
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <select
@@ -365,6 +393,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
                   <option value="python">Python (FastAPI - 8000)</option>
                   <option value="java_springboot">Java (Spring Boot - 8080)</option>
                   <option value="nodejs">Node.js (Express - 5000)</option>
+                  <option value="docker">🐳 Docker Container (Polyglot - 8000)</option>
                   <option value="none">None (Frontend Only)</option>
                 </select>
               </div>
@@ -456,7 +485,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".zip,.jar,.tar,.gz,.js,.ts,.py,.java,.json,.xml,.html,.css"
+              accept=".zip,.jar,.tar,.gz,.js,.ts,.py,.java,.json,.xml,.html,.css,Dockerfile,dockerfile"
               style={{ display: 'none' }}
               onChange={handleFileUpload}
             />
@@ -464,10 +493,10 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
             <div className="upload-header-row">
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                  Upload Project Code (Node.js, Spring Boot, Python, React)
+                  Upload Project Code (Node.js, Spring Boot, Python, Dockerfile / Any Lang, React)
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-                  Select your target language and upload an entire project folder, <code>.zip</code> archive, or compiled <code>.jar</code> file.
+                  Select runtime or upload a project with a <code>Dockerfile</code> to auto-containerize any language (Go, Rust, Ruby, PHP, .NET, etc.).
                 </div>
               </div>
             </div>
@@ -477,6 +506,15 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', marginRight: '0.2rem' }}>
                 Target:
               </span>
+              <button
+                type="button"
+                className={`upload-framework-btn ${uploadFramework === 'docker' ? 'active' : ''}`}
+                onClick={() => handleSelectFramework('docker')}
+              >
+                <span>🐳</span>
+                <span>Dockerfile (Any Lang)</span>
+              </button>
+
               <button
                 type="button"
                 className={`upload-framework-btn ${uploadFramework === 'nodejs' ? 'active' : ''}`}

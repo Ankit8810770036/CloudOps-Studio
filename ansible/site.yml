@@ -41,6 +41,8 @@
       when: backend_type == 'java_springboot'
     - role: backend_nodejs
       when: backend_type == 'nodejs'
+    - role: backend_docker
+      when: backend_type == 'docker'
 
     # 3. Frontend Tier & Reverse Proxy
     - role: nginx

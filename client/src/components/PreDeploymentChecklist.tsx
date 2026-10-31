@@ -68,7 +68,8 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
   });
 
   useEffect(() => {
-    if (backendType === 'python') setActiveTab('python');
+    if (backendType === 'docker') setActiveTab('docker');
+    else if (backendType === 'python') setActiveTab('python');
     else if (backendType === 'nodejs') setActiveTab('nodejs');
     else if (backendType === 'java_springboot') setActiveTab('springboot');
     else if (frontendType === 'react') setActiveTab('react');
@@ -96,6 +97,16 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
   const isAllReady = completedCount === totalSteps;
 
   const sampleManifests: { [key: string]: { title: string; filename: string; code: string } } = {
+    docker: {
+      title: 'Dockerfile',
+      filename: 'Dockerfile',
+      code: `# Multi-stage Universal Dockerfile (Supports Go, Rust, Ruby, PHP, Python, Node, .NET)
+FROM alpine:latest
+WORKDIR /app
+COPY . .
+EXPOSE 8000
+CMD ["./app"]`
+    },
     python: {
       title: 'requirements.txt',
       filename: 'requirements.txt',
@@ -195,6 +206,7 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
           {/* Framework Tabs */}
           <div className="pre-deploy-tabs">
             {[
+              { id: 'docker', label: 'Universal (Dockerfile)', icon: '🐳' },
               { id: 'python', label: 'Python (FastAPI)', icon: '🐍' },
               { id: 'nodejs', label: 'Node.js (Express)', icon: '🟩' },
               { id: 'springboot', label: 'Spring Boot', icon: '☕' },
@@ -218,6 +230,39 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
 
           {/* Concise Rule Cards */}
           <div className="pre-deploy-requirements-grid">
+            {activeTab === 'docker' && (
+              <>
+                <div className="req-card highlight">
+                  <div className="req-card-header">
+                    <FileCode2 size={14} color="var(--aws-orange)" />
+                    <strong>1. Manifest: Dockerfile</strong>
+                  </div>
+                  <p>Root file named <code>Dockerfile</code>. Supports Go, Rust, Ruby, PHP, Python, Node, .NET, or any language.</p>
+                </div>
+                <div className="req-card warning">
+                  <div className="req-card-header">
+                    <Radio size={14} color="var(--aws-blue)" />
+                    <strong>2. Port: EXPOSE 8000</strong>
+                  </div>
+                  <p>Bind service to <code>0.0.0.0:8000</code> inside container for reverse proxy forwarding.</p>
+                </div>
+                <div className="req-card">
+                  <div className="req-card-header">
+                    <FolderX size={14} color="var(--status-success)" />
+                    <strong>3. Supervised Runtime</strong>
+                  </div>
+                  <p>Auto-runs <code>docker run -d --restart always -p 8000:8000</code> on target host.</p>
+                </div>
+                <div className="req-card">
+                  <div className="req-card-header">
+                    <HeartPulse size={14} color="var(--status-success)" />
+                    <strong>4. Health: /api/health</strong>
+                  </div>
+                  <p>Return HTTP 200 on <code>/api/health</code> for Nagios telemetry probes.</p>
+                </div>
+              </>
+            )}
+
             {activeTab === 'python' && (
               <>
                 <div className="req-card highlight">

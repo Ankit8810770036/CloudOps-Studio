@@ -310,6 +310,51 @@ EOF'
             sudo systemctl enable cloudops-app.service
             sudo systemctl restart cloudops-app.service || true
             """
+        elif backend_type == "docker" or (state.custom_code.get("backend") or {}).get("has_dockerfile"):
+            # Locate uploaded docker project files
+            docker_app_dir = ANSIBLE_DIR / "roles" / "backend_docker" / "files" / "app"
+            if not (docker_app_dir / "Dockerfile").exists():
+                for alt in ["backend_python", "backend_nodejs", "backend_java", "webapp"]:
+                    cand = ANSIBLE_DIR / "roles" / alt / "files" / "app"
+                    if (cand / "Dockerfile").exists():
+                        docker_app_dir = cand
+                        break
+
+            backend_dep_cmd = """
+            echo "[Docker Engine] Installing Docker & containerd runtime on target EC2 instance..."
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io containerd
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker ubuntu
+            sudo mkdir -p /opt/cloudops_custom_app
+            """
+            if docker_app_dir.exists():
+                for item in docker_app_dir.rglob("*"):
+                    if item.is_file():
+                        rel = item.relative_to(docker_app_dir)
+                        try:
+                            content = item.read_text(encoding="utf-8")
+                            backend_dep_cmd += f"""
+            sudo mkdir -p /opt/cloudops_custom_app/{rel.parent.as_posix()}
+            sudo bash -c 'cat << "EOF" > /opt/cloudops_custom_app/{rel.as_posix()}
+{content}
+EOF'
+                            """
+                        except Exception:
+                            pass
+            backend_dep_cmd += """
+            echo "[Docker Engine] Building Docker image 'cloudops-custom-app' from Dockerfile..."
+            cd /opt/cloudops_custom_app
+            sudo docker stop cloudops-custom-app 2>/dev/null || true
+            sudo docker rm -f cloudops-custom-app 2>/dev/null || true
+            sudo docker build -t cloudops-custom-app .
+            echo "[Docker Engine] Running container on port 8000 with Restart=always..."
+            sudo docker run -d --restart always --name cloudops-custom-app -p 8000:8000 cloudops-custom-app
+            sudo ufw allow 8000/tcp
+            echo "[Docker Engine] Verifying container status:"
+            sudo docker ps --filter name=cloudops-custom-app
+            """
 
         # Execute deployment on target node
         deploy_cmd = f"""
