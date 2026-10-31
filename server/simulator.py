@@ -431,7 +431,10 @@ class SimulationEngine:
         elif fault_type == "backend_down":
             b_type = state.stack["backend"]["type"].upper()
             port = state.stack["backend"]["port"]
-            state.chaos["description"] = f"Backend Microservice Crash (systemctl stop devops-{state.stack['backend']['type']})"
+            if state.stack["backend"]["type"] == "docker":
+                state.chaos["description"] = "Backend Container Outage (docker stop cloudops-custom-app)"
+            else:
+                state.chaos["description"] = f"Backend Microservice Crash (systemctl stop devops-{state.stack['backend']['type']})"
             state.telemetry["checks"]["backend_api"]["status"] = "CRITICAL"
             state.telemetry["overall_health"] = "CRITICAL"
             state.add_alert("CRITICAL", f"Backend Down: {b_type} API Unreachable", f"Port {port} connection refused on backend service.", "backend")
@@ -478,10 +481,13 @@ class SimulationEngine:
             
         elif fault == "backend_down":
             b_type = state.stack["backend"]["type"]
-            state.add_log(f"Puppet Supervisor: Reviving {b_type.upper()} backend service...", stage="PUPPET")
+            if b_type == "docker":
+                state.add_log("Docker Supervisor: Restarting container (docker start cloudops-custom-app)...", stage="SYSTEM")
+            else:
+                state.add_log(f"Puppet Supervisor: Reviving {b_type.upper()} backend service...", stage="PUPPET")
             await asyncio.sleep(1.0)
             state.clear_alerts_for_service("backend")
-            state.add_alert("INFO", "Backend Restored", f"{b_type.upper()} microservice restarted and responsive on port {state.stack['backend']['port']}.", "backend")
+            state.add_alert("INFO", "Backend Restored", f"{b_type.upper()} service restarted and responsive on port {state.stack['backend']['port']}.", "backend")
 
         elif fault == "db_down":
             d_type = state.stack["database"]["type"]
@@ -502,5 +508,6 @@ class SimulationEngine:
         state.chaos["active_fault"] = None
         state.chaos["description"] = None
         state.telemetry["overall_health"] = "HEALTHY"
+        await self.run_nagios_probe()
 
 simulator = SimulationEngine()
