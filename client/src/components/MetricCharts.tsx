@@ -6,7 +6,7 @@ interface MetricChartsProps {
   telemetry: TelemetryState;
 }
 
-export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
+export const MetricCharts: React.FC<MetricChartsProps> = React.memo(({ telemetry }) => {
   // Rolling historical buffers (last 16 data points)
   const [cpuHistory, setCpuHistory] = useState<number[]>([18, 22, 19, 25, 21, 23, 20, 24, 19, 22, 21, 25, 20, 22, 24, 21]);
   const [memHistory, setMemHistory] = useState<number[]>([36, 37, 36, 38, 37, 39, 38, 37, 38, 39, 38, 37, 39, 38, 37, 38]);
@@ -211,4 +211,4 @@ export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
       </div>
     </div>
   );
-};
+});

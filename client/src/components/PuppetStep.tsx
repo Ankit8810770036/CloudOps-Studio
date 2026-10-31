@@ -9,7 +9,7 @@ interface PuppetStepProps {
   isRunning: boolean;
 }
 
-export const PuppetStep: React.FC<PuppetStepProps> = ({
+export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
   compliance,
   infra,
   onEnforce,
@@ -134,4 +134,4 @@ export const PuppetStep: React.FC<PuppetStepProps> = ({
       </div>
     </div>
   );
-};
+});

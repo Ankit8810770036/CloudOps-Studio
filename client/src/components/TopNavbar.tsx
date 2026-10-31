@@ -43,7 +43,7 @@ const AWS_REGIONS = [
   { id: 'ap-south-1', code: 'ap-south-1', name: 'Mumbai' },
 ];
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({
+export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
   mode,
   onToggleMode,
   theme,
@@ -320,4 +320,4 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       </div>
     </header>
   );
-};
+});

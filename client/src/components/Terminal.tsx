@@ -8,7 +8,7 @@ interface TerminalProps {
   fullHeight?: boolean;
 }
 
-export const Terminal: React.FC<TerminalProps> = ({ logs, onClear, fullHeight = false }) => {
+export const Terminal: React.FC<TerminalProps> = React.memo(({ logs, onClear, fullHeight = false }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -79,4 +79,4 @@ export const Terminal: React.FC<TerminalProps> = ({ logs, onClear, fullHeight = 
       </div>
     </div>
   );
-};
+});

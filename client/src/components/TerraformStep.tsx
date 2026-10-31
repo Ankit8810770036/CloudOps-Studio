@@ -9,7 +9,7 @@ interface TerraformStepProps {
   isRunning: boolean;
 }
 
-export const TerraformStep: React.FC<TerraformStepProps> = ({
+export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
   infra,
   onApply,
   onDestroy,
@@ -168,4 +168,4 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
       </div>
     </div>
   );
-};
+});

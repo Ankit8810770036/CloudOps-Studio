@@ -9,7 +9,7 @@ interface NagiosStepProps {
   isRunning: boolean;
 }
 
-export const NagiosStep: React.FC<NagiosStepProps> = ({
+export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
   telemetry,
   infra,
   onProbe,
@@ -324,4 +324,4 @@ export const NagiosStep: React.FC<NagiosStepProps> = ({
       </div>
     </div>
   );
-};
+});

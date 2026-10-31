@@ -28,7 +28,7 @@ interface SidebarProps {
   status: FullStatus;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar: React.FC<SidebarProps> = React.memo(({
   collapsed,
   onToggleCollapse,
   activeTab,
@@ -218,4 +218,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </button>
     </aside>
   );
-};
+});

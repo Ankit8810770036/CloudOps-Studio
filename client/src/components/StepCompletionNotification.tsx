@@ -18,7 +18,7 @@ interface StepCompletionNotificationProps {
   onProceed: (tab: string) => void;
 }
 
-export const StepCompletionNotification: React.FC<StepCompletionNotificationProps> = ({
+export const StepCompletionNotification: React.FC<StepCompletionNotificationProps> = React.memo(({
   data,
   onClose,
   onProceed,
@@ -117,4 +117,5 @@ export const StepCompletionNotification: React.FC<StepCompletionNotificationProp
       </div>
     </aside>
   );
-};
+});
+

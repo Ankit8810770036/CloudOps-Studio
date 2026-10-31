@@ -6,7 +6,7 @@ interface TopStatsProps {
   status: FullStatus;
 }
 
-export const TopStats: React.FC<TopStatsProps> = ({ status }) => {
+export const TopStats: React.FC<TopStatsProps> = React.memo(({ status }) => {
   const [copied, setCopied] = useState(false);
   const ip = status.infrastructure.public_ip || 'Not Provisioned';
   const isReady = status.infrastructure.status === 'ready';
@@ -144,4 +144,4 @@ export const TopStats: React.FC<TopStatsProps> = ({ status }) => {
       </div>
     </div>
   );
-};
+});

@@ -8,7 +8,7 @@ interface PipelineStepperProps {
   onNavigate: (tabId: string) => void;
 }
 
-export const PipelineStepper: React.FC<PipelineStepperProps> = ({
+export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
   status,
   activeTab,
   onNavigate,
@@ -135,4 +135,5 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = ({
       </div>
     </div>
   );
-};
+});
+

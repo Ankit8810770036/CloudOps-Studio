@@ -38,7 +38,7 @@ interface AnsibleStepProps {
   onRefreshStatus?: () => void;
 }
 
-export const AnsibleStep: React.FC<AnsibleStepProps> = ({
+export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   deployment,
   infra,
   customCode,
@@ -751,4 +751,4 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
       </div>
     </div>
   );
-};
+});

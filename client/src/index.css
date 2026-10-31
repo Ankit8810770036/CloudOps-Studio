@@ -77,6 +77,13 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--topbar-height) + 14px);
+  overflow-x: clip;
+  height: 100%;
+}
+
 body, button, input, select, textarea {
   font-family: 'Inter', 'Roboto', 'Open Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -86,10 +93,36 @@ body, button, input, select, textarea {
 body {
   background-color: var(--bg-global);
   color: var(--text-primary);
-  min-height: 100vh;
+  min-height: 100%;
   line-height: 1.45;
-  overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  overflow-x: clip;
+  -webkit-overflow-scrolling: touch;
+  text-rendering: optimizeSpeed;
+}
+
+/* --- High-Performance GPU-Accelerated Custom Scrollbars --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--aws-orange);
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -129,6 +162,11 @@ p, .section-banner-sub, .form-label, .spec-label {
   transition: width 0.2s ease;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  will-change: width;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   box-shadow: 1px 0 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -382,6 +420,9 @@ p, .section-banner-sub, .form-label, .spec-label {
   top: 0;
   z-index: 50;
   gap: 1rem;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .navbar-search-wrapper {
@@ -923,6 +964,17 @@ select option {
 /* ==========================================================================
    TOP STATS & METRICS GRID (Exact Equal Heights & Alignment)
    ========================================================================== */
+
+/* --- GPU-Accelerated Layer Promotion for 60fps Smooth Scroll --- */
+.stat-card,
+.telemetry-chart-card,
+.panel-card,
+.chaos-lab-container,
+.terminal-card,
+.pipeline-stepper-box {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
 
 .top-stats-grid {
   display: grid;

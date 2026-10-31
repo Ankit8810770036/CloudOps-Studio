@@ -10,7 +10,7 @@ interface ChaosPanelProps {
   isRunning: boolean;
 }
 
-export const ChaosPanel: React.FC<ChaosPanelProps> = ({
+export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
   chaos,
   infra,
   onInject,
@@ -127,4 +127,4 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
       </div>
     </div>
   );
-};
+});

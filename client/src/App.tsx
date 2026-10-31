@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopNavbar } from './components/TopNavbar';
 import { TopStats } from './components/TopStats';
@@ -57,8 +57,8 @@ export function App() {
 
   const mainContentRef = useRef<HTMLElement>(null);
 
-  // Tab switching with instant scroll-to-top
-  const handleSelectTab = (tab: string) => {
+  // Tab switching with instant scroll-to-top (Memoized to prevent unnecessary re-renders)
+  const handleSelectTab = useCallback((tab: string) => {
     setActiveTab(tab);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
@@ -66,7 +66,7 @@ export function App() {
     if (mainContentRef.current) {
       mainContentRef.current.scrollTop = 0;
     }
-  };
+  }, []);
 
   // Scroll to top immediately whenever activeTab changes
   useEffect(() => {
@@ -123,12 +123,32 @@ export function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Connect WebSocket for streaming terminal logs
+  // Connect WebSocket for streaming logs with requestAnimationFrame batching (60fps smooth scroll protection)
   useEffect(() => {
+    let frameId: number | null = null;
+    let pendingBatch: LogEntry[] = [];
+
     const ws = connectLogWebSocket((entry) => {
-      setLogs(prev => [...prev, entry]);
+      pendingBatch.push(entry);
+
+      if (frameId === null) {
+        frameId = requestAnimationFrame(() => {
+          if (pendingBatch.length > 0) {
+            const incoming = pendingBatch;
+            pendingBatch = [];
+            setLogs(prev => {
+              const merged = [...prev, ...incoming];
+              // Cap at 200 lines to prevent DOM bloat and scroll stutter
+              return merged.length > 200 ? merged.slice(merged.length - 200) : merged;
+            });
+          }
+          frameId = null;
+        });
+      }
     });
+
     return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
       ws.close();
     };
   }, []);
@@ -232,64 +252,64 @@ export function App() {
     prevTelemetryHealth.current = curHealth;
   }, [status]);
 
-  const handleToggleTheme = () => {
+  const handleToggleTheme = useCallback(() => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  const handleToggleMode = async () => {
+  const handleToggleMode = useCallback(async () => {
     if (!status) return;
     const newMode = status.mode === 'simulation' ? 'live' : 'simulation';
     await setExecutionMode(newMode);
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, [status]);
 
-  const handleApplyTerraform = async (region: string, instanceType: string) => {
+  const handleApplyTerraform = useCallback(async (region: string, instanceType: string) => {
     await applyTerraform(region, instanceType);
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleDestroyTerraform = async () => {
+  const handleDestroyTerraform = useCallback(async () => {
     await destroyTerraform();
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleDeployAnsible = async (webServer: 'nginx' | 'apache', frontend: string, backend: string, database: string) => {
+  const handleDeployAnsible = useCallback(async (webServer: 'nginx' | 'apache', frontend: string, backend: string, database: string) => {
     await deployAnsible(webServer, frontend, backend, database);
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleEnforcePuppet = async () => {
+  const handleEnforcePuppet = useCallback(async () => {
     await enforcePuppet();
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleProbeNagios = async () => {
+  const handleProbeNagios = useCallback(async () => {
     await probeNagios();
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleInjectChaos = async (faultType: string) => {
+  const handleInjectChaos = useCallback(async (faultType: string) => {
     await injectChaos(faultType);
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleHealChaos = async () => {
+  const handleHealChaos = useCallback(async () => {
     await healChaos();
     const updated = await fetchStatus();
     setStatus(updated);
-  };
+  }, []);
 
-  const handleClearLogs = async () => {
+  const handleClearLogs = useCallback(async () => {
     await clearLogs();
     setLogs([]);
-  };
+  }, []);
 
   if (!status) {
     return (
