@@ -34,6 +34,7 @@ export function App() {
   const [status, setStatus] = useState<FullStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1');
 
   // Theme: 'dark' (Enterprise NOC) or 'light' (Clean Dev Studio)
@@ -340,9 +341,11 @@ export function App() {
   const isRunning = status.is_running_pipeline;
 
   return (
-    <div className="app-shell">
-      {/* 1. Left-Hand Fixed Sidebar */}
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* 1. Left-Hand Collapsible Sidebar */}
       <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenConfig={() => setIsConfigOpen(true)}
