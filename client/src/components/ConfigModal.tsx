@@ -44,15 +44,15 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose }) => 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Key size={20} color="#38bdf8" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>AWS Cloud Credentials & Settings</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <Key size={22} color="var(--aws-orange)" />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>AWS Cloud Credentials & Settings</h3>
           </div>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
+          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
             Configure your AWS credentials for <strong>Live AWS Execution Mode</strong>. If you are running in <strong>Simulation / Demo Mode</strong>, no AWS credentials are required!
           </p>
 
@@ -89,18 +89,18 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose }) => 
           </div>
 
           <div style={{
-            background: 'rgba(56, 189, 248, 0.08)',
-            border: '1px solid rgba(56, 189, 248, 0.2)',
+            background: 'var(--bg-card-subtle)',
+            border: '1px solid var(--border-color)',
             borderRadius: '8px',
-            padding: '0.75rem 1rem',
+            padding: '0.85rem 1.1rem',
             marginBottom: '1.5rem',
-            fontSize: '0.8rem',
-            color: '#cbd5e1',
+            fontSize: '0.82rem',
+            color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.6rem'
+            gap: '0.65rem'
           }}>
-            <Shield size={16} color="#38bdf8" />
+            <Shield size={18} color="var(--aws-blue-bright)" />
             <span>Keys are securely stored in the local FastAPI orchestrator environment memory only.</span>
           </div>
 

@@ -33,3 +33,4 @@
   register: mysql_ready
   changed_when: false
   ignore_errors: yes
+

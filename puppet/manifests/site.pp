@@ -99,3 +99,4 @@ node default {
     require => Package['ufw'],
   }
 }
+

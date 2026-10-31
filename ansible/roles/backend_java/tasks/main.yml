@@ -92,3 +92,4 @@
   retries: 6
   delay: 3
   until: jvm_check.status == 200
+

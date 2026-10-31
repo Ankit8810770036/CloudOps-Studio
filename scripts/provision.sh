@@ -37,3 +37,4 @@ terraform output -json > outputs.json
 INSTANCE_IP=$(terraform output -raw public_ip 2>/dev/null || echo "127.0.0.1")
 echo -e "${GREEN}✔ AWS EC2 Instance provisioned successfully!${NC}"
 echo -e "${GREEN}✔ Public IP Address: ${INSTANCE_IP}${NC}"
+

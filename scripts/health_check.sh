@@ -32,3 +32,4 @@ else
 fi
 
 echo -e "${GREEN}✔ Nagios telemetry cycle completed.${NC}"
+

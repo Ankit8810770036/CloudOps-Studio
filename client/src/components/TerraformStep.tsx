@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Play, Trash2, CheckCircle2, Shield, HardDrive, Cpu, Terminal as TerminalIcon } from 'lucide-react';
+import { Layers, Play, Trash2, Shield, HardDrive, Cpu, Key } from 'lucide-react';
 import { InfrastructureState } from '../types';
 
 interface TerraformStepProps {
@@ -24,23 +24,37 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
     <div className="panel-card">
       <div className="panel-header">
         <h3>
-          <Layers size={18} color="#c084fc" />
+          <div style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background: 'rgba(168, 85, 247, 0.18)',
+            border: '1px solid rgba(168, 85, 247, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#D8B4FE'
+          }}>
+            <Layers size={16} />
+          </div>
           <span>Step 1: Terraform Infrastructure as Code</span>
         </h3>
         <span style={{
           fontSize: '0.75rem',
-          fontWeight: 700,
-          padding: '0.2rem 0.6rem',
+          fontWeight: 800,
+          padding: '0.25rem 0.65rem',
           borderRadius: '6px',
-          background: isProvisioned ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-          color: isProvisioned ? '#34d399' : '#94a3b8'
+          background: isProvisioned ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 153, 0, 0.15)',
+          color: isProvisioned ? '#34D399' : '#FFA726',
+          border: isProvisioned ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(255, 153, 0, 0.35)',
+          letterSpacing: '0.04em'
         }}>
           {infra.status.toUpperCase()}
         </span>
       </div>
 
-      <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
-        Declaratively provisions AWS VPC, Security Group with restricted ingress (ports 22, 80, 443, 5666), and EC2 instance running Ubuntu 22.04 LTS.
+      <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.6' }}>
+        Declaratively provisions AWS VPC, Security Group with restricted ingress (ports 22, 80, 443, 5000-8080, 5666), and EC2 instance running Ubuntu 22.04 LTS.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -74,41 +88,48 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
         </div>
       </div>
 
-      {/* Resource Spec Cards */}
-      <div style={{
-        background: 'rgba(0, 0, 0, 0.25)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
-        borderRadius: '10px',
-        padding: '0.85rem 1rem',
-        marginBottom: '1.5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        fontSize: '0.83rem'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: '#94a3b8' }}>Security Group Ingress:</span>
-          <span style={{ color: '#e2e8f0', fontFamily: 'monospace' }}>22 (SSH), 80 (HTTP), 443, 5666 (NRPE)</span>
+      {/* Resource Spec Box */}
+      <div className="spec-box">
+        <div className="spec-row">
+          <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Shield size={14} color="#A855F7" />
+            <span>Security Ingress:</span>
+          </span>
+          <span className="spec-value" style={{ color: '#D8B4FE' }}>
+            22, 80, 443, 5000, 8000, 8080, 5666
+          </span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: '#94a3b8' }}>Storage:</span>
-          <span style={{ color: '#e2e8f0', fontFamily: 'monospace' }}>20 GB gp3 Root Volume</span>
+        <div className="spec-row">
+          <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <HardDrive size={14} color="#38BDF8" />
+            <span>Storage Volume:</span>
+          </span>
+          <span className="spec-value">20 GB gp3 High-IOPS SSD</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: '#94a3b8' }}>SSH Keypair:</span>
-          <span style={{ color: '#e2e8f0', fontFamily: 'monospace' }}>devops-key.pem (RSA 4096-bit)</span>
+        <div className="spec-row">
+          <span className="spec-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Key size={14} color="#FF9900" />
+            <span>SSH Keypair:</span>
+          </span>
+          <span className="spec-value">devops-key.pem (RSA 4096-bit)</span>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: '0.85rem', marginTop: 'auto' }}>
         <button
           className="btn-primary"
-          style={{ flex: 1, background: 'linear-gradient(135deg, #844fba 0%, #6366f1 100%)' }}
+          style={{
+            flex: 1,
+            background: isProvisioned ? 'var(--bg-card-subtle)' : 'var(--accent-terraform-gradient)',
+            color: '#FFFFFF',
+            border: isProvisioned ? '1px solid var(--border-color)' : 'none',
+            boxShadow: isProvisioned ? 'none' : '0 4px 14px rgba(168, 85, 247, 0.4)'
+          }}
           onClick={() => onApply(region, instanceType)}
           disabled={isRunning || isProvisioned}
         >
           <Play size={16} />
-          <span>Provision Infrastructure (Terraform Apply)</span>
+          <span>{isProvisioned ? 'Infrastructure Provisioned (Ready)' : 'Provision Infrastructure (Terraform Apply)'}</span>
         </button>
 
         {isProvisioned && (
@@ -126,4 +147,3 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
     </div>
   );
 };
-

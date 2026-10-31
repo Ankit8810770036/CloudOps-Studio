@@ -236,3 +236,4 @@ export const MetricCharts: React.FC<MetricChartsProps> = ({ telemetry }) => {
     </div>
   );
 };
+

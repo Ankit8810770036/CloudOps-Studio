@@ -32,3 +32,4 @@
   command: pg_isready -h 127.0.0.1 -p 5432
   register: pg_ready
   changed_when: false
+

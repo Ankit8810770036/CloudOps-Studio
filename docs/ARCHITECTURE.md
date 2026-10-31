@@ -94,3 +94,4 @@ graph TD
   * **CPU Stress (`cpu_spike`)**: Spikes compute utilization past 90%, triggering Nagios `check_load` alerts.
   * **Configuration Drift (`config_tamper`)**: Alters system banners and security settings, triggering Puppet drift alerts.
   * **Auto-Heal Action**: Automatically invokes Puppet/Ansible remediation scripts to restore the system to full operational status.
+

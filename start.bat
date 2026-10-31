@@ -12,3 +12,4 @@ echo.
 echo [3/3] Platform is running! Press Ctrl+C in this terminal to stop.
 python server\app.py
 pause
+

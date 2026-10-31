@@ -52,3 +52,4 @@ This guide provides a structured 5-minute live demonstration script to present t
    * Nagios re-probes port 80.
    * Status recovers to **HEALTHY (200 OK)**!
 7. Conclude: *"This demonstrates a closed-loop automated DevOps lifecycle: Provision, Deploy, Enforce, Observe, and Auto-Heal."*
+

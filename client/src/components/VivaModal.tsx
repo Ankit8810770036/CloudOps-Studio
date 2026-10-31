@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, HelpCircle, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 
 interface VivaModalProps {
   isOpen: boolean;
@@ -42,14 +42,14 @@ export const VivaModal: React.FC<VivaModalProps> = ({ isOpen, onClose }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: '820px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <BookOpen size={20} color="#fbbf24" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>DevOps Class Viva & Evaluation Guide</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <BookOpen size={22} color="var(--aws-orange)" />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>DevOps Class Viva & Evaluation Guide</h3>
           </div>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
 
-        <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
           Key technical questions and model answers prepared for your university professor review, project viva, and portfolio evaluation:
         </p>
 
@@ -60,10 +60,11 @@ export const VivaModal: React.FC<VivaModalProps> = ({ isOpen, onClose }) => {
               <div
                 key={idx}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  background: 'var(--bg-card-subtle)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '10px',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  transition: 'border-color 0.2s'
                 }}
               >
                 <button
@@ -71,27 +72,34 @@ export const VivaModal: React.FC<VivaModalProps> = ({ isOpen, onClose }) => {
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
                   style={{
                     width: '100%',
-                    padding: '0.85rem 1rem',
+                    padding: '0.95rem 1.15rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     background: 'transparent',
                     border: 'none',
-                    color: '#f8fafc',
-                    fontWeight: 600,
-                    fontSize: '0.88rem',
+                    color: 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#38bdf8' }}>Q{idx + 1}:</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ color: 'var(--aws-orange)', fontWeight: 800 }}>Q{idx + 1}:</span>
                     <span>{item.q}</span>
                   </span>
-                  {isOpen ? <ChevronDown size={16} color="#94a3b8" /> : <ChevronRight size={16} color="#94a3b8" />}
+                  {isOpen ? <ChevronDown size={18} color="var(--text-dim)" /> : <ChevronRight size={18} color="var(--text-dim)" />}
                 </button>
                 {isOpen && (
-                  <div style={{ padding: '0.85rem 1rem', background: 'rgba(0, 0, 0, 0.25)', borderTop: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '0.83rem', color: '#cbd5e1', lineHeight: '1.6' }}>
+                  <div style={{
+                    padding: '1rem 1.15rem',
+                    background: 'var(--bg-card)',
+                    borderTop: '1px solid var(--border-color)',
+                    fontSize: '0.85rem',
+                    color: 'var(--text-muted)',
+                    lineHeight: '1.65'
+                  }}>
                     {item.a}
                   </div>
                 )}
@@ -107,4 +115,3 @@ export const VivaModal: React.FC<VivaModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
-

@@ -95,3 +95,4 @@ In the Chaos Lab:
 2. The background Nagios health poller detects the service failure on port 80 within seconds and updates the telemetry status to **CRITICAL**.
 3. The UI sounds a critical alert and highlights the active outage banner.
 4. Clicking **"Auto-Remediate"** triggers the self-healing routine (via Puppet/Ansible), which restarts the service and restores Nagios health status back to **HEALTHY (200 OK)**.
+

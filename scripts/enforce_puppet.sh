@@ -38,3 +38,4 @@ else
 fi
 
 echo -e "${GREEN}✔ Puppet compliance check completed: 0 drift violations remain.${NC}"
+

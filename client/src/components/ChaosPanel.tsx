@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, ShieldAlert, Zap, Wrench, AlertOctagon } from 'lucide-react';
+import { Flame, ShieldAlert, Zap, Wrench, AlertOctagon, Cpu, Database, Server, RefreshCw } from 'lucide-react';
 import { ChaosState, InfrastructureState } from '../types';
 
 interface ChaosPanelProps {
@@ -21,33 +21,28 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
   const hasFault = Boolean(chaos.active_fault);
 
   return (
-    <div style={{
-      background: hasFault ? 'rgba(239, 68, 68, 0.08)' : 'rgba(17, 24, 39, 0.6)',
-      border: hasFault ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
-      borderRadius: '16px',
-      padding: '1.25rem 1.5rem',
-      marginBottom: '1.5rem',
-      transition: 'all 0.3s ease'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+    <div className={`chaos-lab-container ${hasFault ? 'fault-active' : ''}`}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.15rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: '8px',
-            background: hasFault ? 'rgba(239, 68, 68, 0.2)' : 'rgba(244, 63, 94, 0.15)',
+            width: 38,
+            height: 38,
+            borderRadius: '10px',
+            background: hasFault ? 'var(--status-danger-bg)' : 'rgba(244, 63, 94, 0.16)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#f43f5e'
+            color: '#F43F5E',
+            boxShadow: '0 2px 10px rgba(244, 63, 94, 0.25)'
           }}>
-            <Flame size={18} />
+            <Flame size={20} />
           </div>
           <div>
-            <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               Chaos Engineering & Failure Simulation Lab
             </h4>
-            <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Inject real or simulated outages to demonstrate Nagios incident detection and Puppet/Ansible automated self-healing.
             </p>
           </div>
@@ -60,16 +55,17 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: 'white',
+              gap: '0.55rem',
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: '#FFFFFF',
               border: 'none',
-              padding: '0.6rem 1.25rem',
+              padding: '0.65rem 1.35rem',
               borderRadius: '8px',
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: '0.88rem',
               cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+              boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+              transition: 'all 0.2s'
             }}
           >
             <Wrench size={16} />
@@ -78,92 +74,60 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
         )}
       </div>
 
+      {/* Outage Alert Banner */}
       {hasFault && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.12)',
-          borderLeft: '4px solid #ef4444',
-          padding: '0.65rem 0.85rem',
-          borderRadius: '6px',
-          fontSize: '0.82rem',
-          color: '#fecaca',
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <AlertOctagon size={16} color="#ef4444" />
-          <span><strong>ACTIVE OUTAGE:</strong> {chaos.description} &mdash; Nagios has triggered critical alerts!</span>
+        <div className="chaos-banner">
+          <AlertOctagon size={18} color="#EF4444" />
+          <span>
+            <strong>ACTIVE OUTAGE:</strong> {chaos.description} &mdash; Nagios has triggered critical alerts! Click &quot;Auto-Remediate&quot; to restore baseline.
+          </span>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
+      {/* Fault Injection Buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
         <button
           onClick={() => onInject('http_down')}
           disabled={isRunning || !isInfraReady || hasFault}
-          className="btn-secondary"
-          style={{
-            justifyContent: 'center',
-            borderColor: 'rgba(244, 63, 94, 0.3)',
-            color: '#fb7185'
-          }}
+          className="chaos-btn web"
         >
-          <Zap size={14} />
-          <span>Simulate Frontend Web Crash</span>
+          <Zap size={15} color="#F43F5E" />
+          <span>Crash Frontend (Nginx 80)</span>
         </button>
 
         <button
           onClick={() => onInject('backend_down')}
           disabled={isRunning || !isInfraReady || hasFault}
-          className="btn-secondary"
-          style={{
-            justifyContent: 'center',
-            borderColor: 'rgba(245, 158, 11, 0.3)',
-            color: '#fbbf24'
-          }}
+          className="chaos-btn api"
         >
-          <ShieldAlert size={14} />
-          <span>Crash Backend API Service</span>
+          <Server size={15} color="#F59E0B" />
+          <span>Crash Backend API Tier</span>
         </button>
 
         <button
           onClick={() => onInject('db_down')}
           disabled={isRunning || !isInfraReady || hasFault}
-          className="btn-secondary"
-          style={{
-            justifyContent: 'center',
-            borderColor: 'rgba(16, 185, 129, 0.3)',
-            color: '#34d399'
-          }}
+          className="chaos-btn db"
         >
-          <Flame size={14} />
+          <Database size={15} color="#10B981" />
           <span>Crash Database Daemon</span>
         </button>
 
         <button
           onClick={() => onInject('cpu_spike')}
           disabled={isRunning || !isInfraReady || hasFault}
-          className="btn-secondary"
-          style={{
-            justifyContent: 'center',
-            borderColor: 'rgba(238, 0, 0, 0.3)',
-            color: '#f87171'
-          }}
+          className="chaos-btn cpu"
         >
-          <ShieldAlert size={14} />
+          <Cpu size={15} color="#A855F7" />
           <span>Simulate CPU Spike (&gt;90%)</span>
         </button>
 
         <button
           onClick={() => onInject('config_tamper')}
           disabled={isRunning || !isInfraReady || hasFault}
-          className="btn-secondary"
-          style={{
-            justifyContent: 'center',
-            borderColor: 'rgba(192, 132, 252, 0.3)',
-            color: '#c084fc'
-          }}
+          className="chaos-btn drift"
         >
-          <Flame size={14} />
+          <RefreshCw size={15} color="#0EA5E9" />
           <span>Simulate Config Drift (/etc/motd)</span>
         </button>
       </div>

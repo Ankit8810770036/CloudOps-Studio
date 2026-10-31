@@ -43,3 +43,4 @@ ansible-playbook -i inventory.ini site.yml -e "web_server_type=${WEB_SERVER}"
 
 echo -e "${GREEN}✔ Ansible deployment finished successfully!${NC}"
 echo -e "${GREEN}✔ Application accessible at: http://${TARGET_IP}${NC}"
+
