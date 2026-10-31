@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
+import { TopNavbar } from './components/TopNavbar';
 import { TopStats } from './components/TopStats';
+import { MetricCharts } from './components/MetricCharts';
 import { TerraformStep } from './components/TerraformStep';
 import { AnsibleStep } from './components/AnsibleStep';
 import { PuppetStep } from './components/PuppetStep';
@@ -10,6 +12,7 @@ import { Terminal } from './components/Terminal';
 import { ConfigModal } from './components/ConfigModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { VivaModal } from './components/VivaModal';
+import { SearchModal } from './components/SearchModal';
 
 import {
   fetchStatus,
@@ -29,33 +32,63 @@ import { FullStatus, LogEntry } from './types';
 export function App() {
   const [status, setStatus] = useState<FullStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [activeStepTab, setActiveStepTab] = useState<'all' | 'tf' | 'ans' | 'pup' | 'nag'>('all');
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1');
+
+  // Theme: 'dark' (High-Performance NOC Console) or 'light' (Clean Dev Studio)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('cloudops_theme') as 'dark' | 'light') || 'dark';
+  });
 
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isArchOpen, setIsArchOpen] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Apply theme to document element
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('cloudops_theme', theme);
+  }, [theme]);
+
+  // Keyboard shortcut Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Poll status periodically
   useEffect(() => {
     const update = () => {
       fetchStatus()
         .then(setStatus)
-        .catch((err) => console.error('Status fetch error', err));
+        .catch(err => console.error('Status fetch error', err));
     };
     update();
     const interval = setInterval(update, 2500);
     return () => clearInterval(interval);
   }, []);
 
-  // Connect WebSocket for real-time streaming terminal logs
+  // Connect WebSocket for streaming terminal logs
   useEffect(() => {
     const ws = connectLogWebSocket((entry) => {
-      setLogs((prev) => [...prev, entry]);
+      setLogs(prev => [...prev, entry]);
     });
     return () => {
       ws.close();
     };
   }, []);
+
+  const handleToggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleToggleMode = async () => {
     if (!status) return;
@@ -121,13 +154,22 @@ export function App() {
         justifyContent: 'center',
         flexDirection: 'column',
         gap: '1rem',
-        background: '#0a0e17',
-        color: '#f8fafc'
+        background: '#0B0F19',
+        color: '#F8FAFC'
       }}>
-        <div className="brand-icon" style={{ animation: 'spin 3s linear infinite' }}>
-          <div style={{ width: 24, height: 24, border: '3px solid #38bdf8', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+        <div style={{
+          width: 48,
+          height: 48,
+          borderRadius: 12,
+          background: '#232F3E',
+          border: '1px solid #FF9900',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{ width: 22, height: 22, border: '3px solid #FF9900', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
         </div>
-        <p style={{ fontSize: '0.95rem', color: '#94a3b8' }}>Connecting to CloudOps Orchestrator (Port 8000)...</p>
+        <p style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: 600 }}>Connecting to CloudOps Orchestrator...</p>
       </div>
     );
   }
@@ -135,128 +177,112 @@ export function App() {
   const isRunning = status.is_running_pipeline;
 
   return (
-    <>
-      <div className="glow-orb-1"></div>
-      <div className="glow-orb-2"></div>
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} data-theme={theme}>
+      {/* 1. Left-Hand Collapsible Sidebar */}
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenConfig={() => setIsConfigOpen(true)}
+        onOpenArch={() => setIsArchOpen(true)}
+        onOpenViva={() => setIsVivaOpen(true)}
+        status={status}
+      />
 
-      <div className="layout-wrapper">
-        <Header
+      {/* 2. Main Wrapper */}
+      <div className="main-wrapper">
+        {/* Top Navbar */}
+        <TopNavbar
           mode={status.mode}
           onToggleMode={handleToggleMode}
-          onOpenConfig={() => setIsConfigOpen(true)}
-          onOpenArch={() => setIsArchOpen(true)}
-          onOpenViva={() => setIsVivaOpen(true)}
-          isRunning={isRunning}
-          currentAction={status.current_action}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          status={status}
+          selectedRegion={selectedRegion}
+          onSelectRegion={setSelectedRegion}
+          onSearchFocus={() => setIsSearchOpen(true)}
         />
 
-        <TopStats status={status} />
+        {/* Main Content Area */}
+        <main className="content-container">
+          {/* Executive Metric Cards */}
+          <TopStats status={status} />
 
-        {/* Stepper Navigation Filter */}
-        <div className="stepper-nav">
-          <button
-            className={`step-tab ${activeStepTab === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveStepTab('all')}
-          >
-            <div className="step-num" style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>★</div>
-            <div className="step-info">
-              <h4>All 4 Stages</h4>
-              <p>Full Pipeline Overview</p>
-            </div>
-          </button>
+          {/* Real-time Glowing SVG Telemetry Charts */}
+          <MetricCharts telemetry={status.telemetry} />
 
-          <button
-            className={`step-tab ${activeStepTab === 'tf' ? 'active' : ''}`}
-            onClick={() => setActiveStepTab('tf')}
-          >
-            <div className="step-num" style={{ background: 'rgba(132, 79, 186, 0.2)', color: '#c084fc' }}>1</div>
-            <div className="step-info">
-              <h4>Terraform IaC</h4>
-              <p>Cloud Server Provisioning</p>
-            </div>
-          </button>
-
-          <button
-            className={`step-tab ${activeStepTab === 'ans' ? 'active' : ''}`}
-            onClick={() => setActiveStepTab('ans')}
-          >
-            <div className="step-num" style={{ background: 'rgba(238, 0, 0, 0.2)', color: '#f87171' }}>2</div>
-            <div className="step-info">
-              <h4>Ansible Deploy</h4>
-              <p>Web Server & Application</p>
-            </div>
-          </button>
-
-          <button
-            className={`step-tab ${activeStepTab === 'pup' ? 'active' : ''}`}
-            onClick={() => setActiveStepTab('pup')}
-          >
-            <div className="step-num" style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24' }}>3</div>
-            <div className="step-info">
-              <h4>Puppet & Nagios</h4>
-              <p>Compliance & Health Monitoring</p>
-            </div>
-          </button>
-        </div>
-
-        {/* Chaos Engineering Failure Simulator Banner */}
-        <ChaosPanel
-          chaos={status.chaos}
-          infra={status.infrastructure}
-          onInject={handleInjectChaos}
-          onHeal={handleHealChaos}
-          isRunning={isRunning}
-        />
-
-        {/* 4 Pipeline Stages in Grid or Filtered View */}
-        <div className="main-grid">
-          {(activeStepTab === 'all' || activeStepTab === 'tf') && (
-            <TerraformStep
+          {/* Chaos Engineering Failure Simulator Panel */}
+          {(activeTab === 'all' || activeTab === 'chaos') && (
+            <ChaosPanel
+              chaos={status.chaos}
               infra={status.infrastructure}
-              onApply={handleApplyTerraform}
-              onDestroy={handleDestroyTerraform}
+              onInject={handleInjectChaos}
+              onHeal={handleHealChaos}
               isRunning={isRunning}
             />
           )}
 
-          {(activeStepTab === 'all' || activeStepTab === 'ans') && (
-            <AnsibleStep
-              deployment={status.deployment}
-              infra={status.infrastructure}
-              stack={status.stack}
-              onDeploy={handleDeployAnsible}
-              isRunning={isRunning}
-            />
-          )}
+          {/* Pipeline Workflow Grid */}
+          <div className="main-grid">
+            {(activeTab === 'all' || activeTab === 'tf') && (
+              <TerraformStep
+                infra={status.infrastructure}
+                onApply={handleApplyTerraform}
+                onDestroy={handleDestroyTerraform}
+                isRunning={isRunning}
+              />
+            )}
 
-          {(activeStepTab === 'all' || activeStepTab === 'pup') && (
-            <PuppetStep
-              compliance={status.compliance}
-              infra={status.infrastructure}
-              onEnforce={handleEnforcePuppet}
-              isRunning={isRunning}
-            />
-          )}
+            {(activeTab === 'all' || activeTab === 'ans') && (
+              <AnsibleStep
+                deployment={status.deployment}
+                infra={status.infrastructure}
+                stack={status.stack}
+                onDeploy={handleDeployAnsible}
+                isRunning={isRunning}
+              />
+            )}
 
-          {(activeStepTab === 'all' || activeStepTab === 'pup' || activeStepTab === 'nag') && (
-            <NagiosStep
-              telemetry={status.telemetry}
-              infra={status.infrastructure}
-              onProbe={handleProbeNagios}
-              isRunning={isRunning}
-            />
-          )}
-        </div>
+            {(activeTab === 'all' || activeTab === 'pup') && (
+              <PuppetStep
+                compliance={status.compliance}
+                infra={status.infrastructure}
+                onEnforce={handleEnforcePuppet}
+                isRunning={isRunning}
+              />
+            )}
 
-        {/* Real-time Streaming Terminal */}
-        <Terminal logs={logs} onClear={handleClearLogs} />
+            {(activeTab === 'all' || activeTab === 'nag') && (
+              <NagiosStep
+                telemetry={status.telemetry}
+                infra={status.infrastructure}
+                onProbe={handleProbeNagios}
+                isRunning={isRunning}
+              />
+            )}
+          </div>
+
+          {/* Real-time Streaming Terminal */}
+          {(activeTab === 'all' || activeTab === 'term') && (
+            <Terminal logs={logs} onClear={handleClearLogs} />
+          )}
+        </main>
       </div>
 
-      {/* Modals */}
+      {/* Dialog Modals */}
       <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
       <ArchitectureModal isOpen={isArchOpen} onClose={() => setIsArchOpen(false)} />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
-    </>
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigate={setActiveTab}
+        onOpenConfig={() => setIsConfigOpen(true)}
+        onOpenArch={() => setIsArchOpen(true)}
+        onOpenViva={() => setIsVivaOpen(true)}
+      />
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Server, Globe, ShieldCheck, Activity, ExternalLink, Copy, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Server, Layers, ShieldCheck, Activity, ExternalLink, Copy, Check, Database, Globe } from 'lucide-react';
 import { FullStatus } from '../types';
 
 interface TopStatsProps {
@@ -7,12 +7,15 @@ interface TopStatsProps {
 }
 
 export const TopStats: React.FC<TopStatsProps> = ({ status }) => {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
   const ip = status.infrastructure.public_ip || 'Not Provisioned';
   const isReady = status.infrastructure.status === 'ready';
   const isDeployed = status.deployment.status === 'deployed';
   const isHealthy = status.telemetry.overall_health === 'HEALTHY';
   const isCritical = status.telemetry.overall_health === 'CRITICAL';
+
+  const backendName = status.stack?.backend?.type?.toUpperCase() || 'PYTHON';
+  const dbName = status.stack?.database?.type?.toUpperCase() || 'POSTGRESQL';
 
   const handleCopyIp = () => {
     if (status.infrastructure.public_ip) {
@@ -24,81 +27,88 @@ export const TopStats: React.FC<TopStatsProps> = ({ status }) => {
 
   return (
     <div className="top-stats-grid">
-      {/* 1. Target Server IP */}
+      {/* 1. Target Compute Host (EC2) */}
       <div className="stat-card">
         <div className="stat-head">
-          <span className="stat-title">Target Cloud Host</span>
-          <div className="stat-icon" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+          <span className="stat-title">Cloud Compute Node</span>
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(255, 153, 0, 0.12)', color: '#FF9900' }}>
             <Server size={16} />
           </div>
         </div>
-        <div className="stat-main" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.15rem' }}>
-          <span>{ip}</span>
+        <div className="stat-main">
+          <span style={{ fontFamily: 'monospace' }}>{ip}</span>
           {isReady && (
             <button
               onClick={handleCopyIp}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-              title="Copy IP"
+              className="stat-copy-btn"
+              title="Copy IP Address"
             >
-              {copied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+              {copied ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
             </button>
           )}
         </div>
         <div className="stat-desc">
           {isReady ? (
             <>
-              <span className="pulse-green"></span>
-              <span style={{ color: '#34d399' }}>EC2 Active ({status.infrastructure.instance_id || 'i-094b81c2'})</span>
+              <span className="pulse-dot-green"></span>
+              <span style={{ color: '#10B981', fontWeight: 600 }}>
+                AWS EC2 ({status.infrastructure.instance_id || 'i-094b81c2'})
+              </span>
             </>
           ) : (
-            <span style={{ color: '#94a3b8' }}>Awaiting Terraform Provision</span>
+            <span style={{ color: 'var(--text-muted)' }}>Pending Terraform IaC Provision</span>
           )}
         </div>
       </div>
 
-      {/* 2. Web Application Status */}
+      {/* 2. Full-Stack Polyglot Topology */}
       <div className="stat-card">
         <div className="stat-head">
-          <span className="stat-title">Web Application</span>
-          <div className="stat-icon" style={{ background: 'rgba(238, 0, 0, 0.15)', color: '#f87171' }}>
-            <Globe size={16} />
+          <span className="stat-title">Full-Stack Topology</span>
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(0, 115, 187, 0.12)', color: '#0073BB' }}>
+            <Layers size={16} />
           </div>
         </div>
-        <div className="stat-main" style={{ fontSize: '1.15rem' }}>
-          {isDeployed ? `${status.deployment.web_server.toUpperCase()} Active` : 'Not Deployed'}
+        <div className="stat-main">
+          {isDeployed ? (
+            <span style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+              {status.deployment.web_server.toUpperCase()} + {backendName}
+            </span>
+          ) : (
+            <span style={{ fontSize: '1.05rem', color: 'var(--text-muted)' }}>Awaiting Ansible</span>
+          )}
         </div>
         <div className="stat-desc">
-          {isDeployed && status.infrastructure.app_url ? (
-            <a
-              href={status.infrastructure.app_url}
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none' }}
-            >
-              <span>Open Web App</span>
-              <ExternalLink size={12} />
-            </a>
+          {isDeployed ? (
+            <span style={{ color: '#0073BB', fontWeight: 600 }}>
+              DB: {dbName} &bull; Reverse Proxy Port 80
+            </span>
           ) : (
-            <span style={{ color: '#94a3b8' }}>Trigger via Ansible Playbook</span>
+            <span style={{ color: 'var(--text-muted)' }}>Configured in Step 2</span>
           )}
         </div>
       </div>
 
-      {/* 3. Puppet Compliance Status */}
+      {/* 3. Puppet Compliance & Drift */}
       <div className="stat-card">
         <div className="stat-head">
-          <span className="stat-title">Config Compliance</span>
-          <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
+          <span className="stat-title">Security & Compliance</span>
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#F59E0B' }}>
             <ShieldCheck size={16} />
           </div>
         </div>
-        <div className="stat-main" style={{ fontSize: '1.15rem' }}>
-          {status.compliance.status === 'compliant' ? '100% Compliant' :
-           status.compliance.status === 'drift_detected' ? 'Drift Detected!' : 'Pending Enforce'}
+        <div className="stat-main">
+          {status.compliance.status === 'compliant' ? (
+            <span style={{ color: '#10B981' }}>100% Compliant</span>
+          ) : status.compliance.status === 'drift_detected' ? (
+            <span style={{ color: '#EF4444' }}>Drift Detected!</span>
+          ) : (
+            <span>Pending Baseline</span>
+          )}
         </div>
         <div className="stat-desc">
-          <span style={{ color: status.compliance.drift_count === 0 ? '#34d399' : '#f87171' }}>
-            {status.compliance.drift_count} Configuration Drifts
+          <span style={{ color: status.compliance.drift_count === 0 ? '#10B981' : '#EF4444', fontWeight: 600 }}>
+            {status.compliance.drift_count} Security Violations &bull; Puppet
           </span>
         </div>
       </div>
@@ -106,32 +116,35 @@ export const TopStats: React.FC<TopStatsProps> = ({ status }) => {
       {/* 4. Nagios Health Monitor */}
       <div className="stat-card">
         <div className="stat-head">
-          <span className="stat-title">Nagios Health State</span>
-          <div className="stat-icon" style={{
-            background: isCritical ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-            color: isCritical ? '#f87171' : '#34d399'
+          <span className="stat-title">Observability State</span>
+          <div className="stat-icon-wrapper" style={{
+            background: isCritical ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+            color: isCritical ? '#EF4444' : '#10B981'
           }}>
             <Activity size={16} />
           </div>
         </div>
-        <div className="stat-main" style={{ fontSize: '1.15rem', color: isCritical ? '#f87171' : isHealthy ? '#34d399' : '#fbbf24' }}>
+        <div className="stat-main" style={{ color: isCritical ? '#EF4444' : isHealthy ? '#10B981' : '#F59E0B' }}>
           {status.telemetry.overall_health}
         </div>
         <div className="stat-desc">
           {isCritical ? (
             <>
-              <span className="pulse-red"></span>
-              <span style={{ color: '#f87171' }}>{status.telemetry.alerts.length} Alert(s) Firing!</span>
+              <span className="pulse-dot-red"></span>
+              <span style={{ color: '#EF4444', fontWeight: 600 }}>
+                {status.telemetry.alerts.length} Incident Alert(s) Active!
+              </span>
+            </>
+          ) : isHealthy ? (
+            <>
+              <span className="pulse-dot-green"></span>
+              <span style={{ color: '#10B981', fontWeight: 600 }}>All 6 Multi-Tier Probes Passing</span>
             </>
           ) : (
-            <>
-              <span className="pulse-green"></span>
-              <span style={{ color: '#34d399' }}>All Service Probes Normal</span>
-            </>
+            <span style={{ color: 'var(--text-muted)' }}>Probes Awaiting Server Boot</span>
           )}
         </div>
       </div>
     </div>
   );
 };
-
