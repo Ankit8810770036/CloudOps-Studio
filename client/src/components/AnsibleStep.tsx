@@ -258,6 +258,19 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
           Configures Frontend, Backend runtime, Database, and Nginx reverse proxy.
         </p>
 
+        {/* Pre-Deployment Readiness Check (Before Starting Step 2) */}
+        <div style={{ marginBottom: '1rem' }}>
+          <PreDeploymentChecklist
+            backendType={backendType}
+            frontendType={frontendType}
+            isInfraReady={isInfraReady}
+            hasCustomCode={hasCustomCode}
+            customCode={customCode}
+            titlePrefix="Step 2 Prerequisite:"
+            defaultOpen={!isDeployed}
+          />
+        </div>
+
         {/* Quick Architecture Presets */}
         <div style={{ marginBottom: '0.85rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.55rem' }}>
@@ -689,15 +702,6 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
             />
           </div>
         )}
-
-        {/* Pre-Deployment Readiness & Required Files Section */}
-        <PreDeploymentChecklist
-          backendType={backendType}
-          frontendType={frontendType}
-          isInfraReady={isInfraReady}
-          hasCustomCode={hasCustomCode}
-          customCode={customCode}
-        />
 
         {/* Step 2 Completion Confirmation Banner */}
         {isDeployed && (

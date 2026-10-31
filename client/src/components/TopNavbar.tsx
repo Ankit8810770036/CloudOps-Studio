@@ -114,7 +114,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
     { id: 'nag', label: '4. Nagios Telemetry', sub: 'Live service & hardware probes', icon: Activity, action: () => onNavigate('nag') },
     { id: 'chaos', label: 'Chaos Engineering', sub: 'Simulate crashes & test healing', icon: Flame, action: () => onNavigate('chaos') },
     { id: 'term', label: 'Live Terminal', sub: 'Streaming WebSocket logs', icon: Terminal, action: () => onNavigate('term') },
-    { id: 'preflight', label: 'Pre-Deployment Checklist', sub: 'Required manifest files, ports & rules', icon: ShieldCheck, action: () => onNavigate('ans') },
+    { id: 'preflight', label: '0. Pre-Flight Checklist', sub: 'Required manifest files, ports & rules', icon: ShieldCheck, action: () => onNavigate('preflight') },
     { id: 'viva', label: 'Viva Q&A Guide', sub: 'Class presentation & defense', icon: HelpCircle, action: onOpenViva },
     { id: 'config', label: 'AWS Settings', sub: 'Credentials & Region config', icon: Settings, action: onOpenConfig },
   ];

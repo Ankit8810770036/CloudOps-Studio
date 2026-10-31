@@ -45,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
 
   const navItems = [
     { id: 'all', label: 'Console Overview', icon: LayoutDashboard },
+    { id: 'preflight', label: '0. Pre-Flight Check', icon: ShieldCheck },
     { id: 'tf', label: '1. Terraform IaC', icon: Layers, isComplete: isTfDone },
     { id: 'ans', label: '2. Full-Stack Deploy', icon: Package, isComplete: isAnsDone },
     { id: 'pup', label: '3. Puppet Baseline', icon: ShieldCheck, isComplete: isPupDone },

@@ -13,6 +13,7 @@ import { ConfigModal } from './components/ConfigModal';
 import { VivaModal } from './components/VivaModal';
 import { PipelineStepper } from './components/PipelineStepper';
 import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
+import { PreDeploymentChecklist } from './components/PreDeploymentChecklist';
 
 import {
   fetchStatus,
@@ -408,6 +409,21 @@ export function App() {
                 isRunning={isRunning}
               />
 
+              {/* Separate Section: Pre-Deployment Project Readiness Check (Before Starting Pipeline Steps) */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <PreDeploymentChecklist
+                  backendType={status.stack?.backend?.type || 'python'}
+                  frontendType={status.stack?.frontend?.type || 'react'}
+                  isInfraReady={status.infrastructure.status === 'ready'}
+                  hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
+                  customCode={status.custom_code}
+                  onProceed={() => handleSelectTab('tf')}
+                  proceedLabel="Proceed to Step 1: Terraform IaC"
+                  defaultOpen={true}
+                  titlePrefix="Pre-Flight Readiness:"
+                />
+              </div>
+
               {/* 4 Pipeline Steps Grid (Equal Stretch Alignment) */}
               <div className="main-grid">
                 <TerraformStep
@@ -444,6 +460,38 @@ export function App() {
             </div>
           )}
 
+          {/* SECTION 0: PRE-DEPLOYMENT PROJECT READINESS DEDICATED VIEW */}
+          {activeTab === 'preflight' && (
+            <div>
+              <div className="section-banner-header">
+                <div>
+                  <div className="section-banner-title">
+                    <ShieldCheck size={18} color="var(--aws-orange)" />
+                    <span>0. Pre-Deployment Project Readiness & Manifest Verification</span>
+                  </div>
+                  <div className="section-banner-sub">
+                    Verify that your project includes required dependency manifests, network bindings, and health checks before deploying your website.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <PreDeploymentChecklist
+                  backendType={status.stack?.backend?.type || 'python'}
+                  frontendType={status.stack?.frontend?.type || 'react'}
+                  isInfraReady={status.infrastructure.status === 'ready'}
+                  hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
+                  customCode={status.custom_code}
+                  onProceed={() => handleSelectTab('tf')}
+                  proceedLabel="Proceed to Step 1: Terraform IaC"
+                  defaultOpen={true}
+                  titlePrefix="Project Readiness:"
+                />
+                <Terminal logs={logs} onClear={handleClearLogs} />
+              </div>
+            </div>
+          )}
+
           {/* SECTION 2: TERRAFORM IAC FOCUSED VIEW */}
           {activeTab === 'tf' && (
             <div>
@@ -460,6 +508,17 @@ export function App() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Pre-Deployment Readiness Check (Before Starting Step 1) */}
+                <PreDeploymentChecklist
+                  backendType={status.stack?.backend?.type || 'python'}
+                  frontendType={status.stack?.frontend?.type || 'react'}
+                  isInfraReady={status.infrastructure.status === 'ready'}
+                  hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
+                  customCode={status.custom_code}
+                  titlePrefix="Step 1 Prerequisite:"
+                  defaultOpen={status.infrastructure.status !== 'ready'}
+                />
+
                 <TerraformStep
                   infra={status.infrastructure}
                   onApply={handleApplyTerraform}

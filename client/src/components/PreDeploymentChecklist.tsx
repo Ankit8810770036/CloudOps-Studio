@@ -16,36 +16,60 @@ import {
   Info,
   ShieldCheck,
   Terminal,
-  FileText
+  FileText,
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 import { CustomCodeState } from '../types';
 
 interface PreDeploymentChecklistProps {
-  backendType: string;
-  frontendType: string;
+  backendType?: string;
+  frontendType?: string;
   isInfraReady: boolean;
-  hasCustomCode: boolean;
+  hasCustomCode?: boolean;
   customCode?: CustomCodeState;
+  onProceed?: () => void;
+  proceedLabel?: string;
+  defaultOpen?: boolean;
+  titlePrefix?: string;
 }
 
+const STORAGE_KEY = 'cloudops_preflight_checks_v2';
+
 export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = React.memo(({
-  backendType,
-  frontendType,
+  backendType = 'python',
+  frontendType = 'react',
   isInfraReady,
   hasCustomCode,
   customCode,
+  onProceed,
+  proceedLabel,
+  defaultOpen = true,
+  titlePrefix,
 }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [activeTab, setActiveTab] = useState<string>('python');
   const [copiedSample, setCopiedSample] = useState(false);
   const [showSampleSnippet, setShowSampleSnippet] = useState(false);
 
-  // Manual checklist states saved in session
-  const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>({
-    manifest: false,
-    cleanPackage: false,
-    hostBinding: false,
-    healthRoute: false,
+  // Manual checklist states saved in localStorage so verification persists across views and steps
+  const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {
+        manifest: false,
+        cleanPackage: false,
+        hostBinding: false,
+        healthRoute: false,
+      };
+    } catch {
+      return {
+        manifest: false,
+        cleanPackage: false,
+        hostBinding: false,
+        healthRoute: false,
+      };
+    }
   });
 
   // Sync active framework tab with user selections
@@ -58,7 +82,13 @@ export const PreDeploymentChecklist: React.FC<PreDeploymentChecklistProps> = Rea
   }, [backendType, frontendType]);
 
   const toggleCheck = (key: string) => {
-    setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
+    setCheckedItems(prev => {
+      const updated = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const completedCount =
@@ -153,10 +183,10 @@ export default defineConfig({
           </div>
           <div>
             <div className="pre-deploy-title">
-              <span>Pre-Deployment Readiness Checklist & Required Files</span>
+              <span>{titlePrefix ? `${titlePrefix} ` : ''}Pre-Deployment Readiness Checklist & Required Files</span>
             </div>
             <div className="pre-deploy-sub">
-              Required manifest files, port bindings, and exclude rules to verify before deploying code.
+              Ask yourself / your project to verify manifest files, port bindings, and exclude rules before deploying your website.
             </div>
           </div>
         </div>
@@ -187,6 +217,28 @@ export default defineConfig({
 
       {isOpen && (
         <div className="pre-deploy-body">
+          {/* Action Required Callout Banner */}
+          <div style={{
+            background: 'rgba(255, 153, 0, 0.08)',
+            border: '1px solid rgba(255, 153, 0, 0.25)',
+            borderRadius: '6px',
+            padding: '0.75rem 0.95rem',
+            marginBottom: '0.85rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.65rem'
+          }}>
+            <AlertCircle size={18} color="var(--aws-orange)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Action Required: Complete this Project Readiness Check before deployment
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem', lineHeight: 1.45 }}>
+                Before deploying your website to AWS, ensure your project codebase contains the required dependency manifest (<code>requirements.txt</code>, <code>package.json</code>, or executable <code>.jar</code>), binds to <code>0.0.0.0</code>, excludes heavy local folders (<code>.venv/</code>, <code>node_modules/</code>), and provides a <code>/api/health</code> endpoint.
+              </div>
+            </div>
+          </div>
+
           {/* 2. Interactive Framework Instruction Tabs */}
           <div className="pre-deploy-tabs">
             {[
@@ -501,6 +553,28 @@ export default defineConfig({
                 <pre className="sample-snippet-code">
                   <code>{currentSample.code}</code>
                 </pre>
+              </div>
+            )}
+
+            {/* Optional Proceed to Next Step Button */}
+            {onProceed && (
+              <div style={{ marginTop: '0.95rem', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={onProceed}
+                  style={{
+                    fontSize: '0.82rem',
+                    padding: '0.5rem 1.15rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <span>{proceedLabel || 'Proceed to Step 1: Terraform IaC'}</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
             )}
           </div>

@@ -26,9 +26,19 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
 
   const steps = [
     {
+      id: 'preflight',
+      num: 0,
+      title: '0. Pre-Flight Check',
+      sub: 'Project Readiness & Files',
+      isComplete: true,
+      isRunning: false,
+      icon: ShieldCheck,
+      accent: 'var(--aws-orange)',
+    },
+    {
       id: 'tf',
       num: 1,
-      title: 'Terraform IaC',
+      title: '1. Terraform IaC',
       sub: isTfReady ? (status.infrastructure.public_ip || 'Provisioned') : (isTfRunning ? 'Provisioning...' : 'Pending VPC & EC2'),
       isComplete: isTfReady,
       isRunning: isTfRunning,
@@ -38,7 +48,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
     {
       id: 'ans',
       num: 2,
-      title: 'Ansible Deploy',
+      title: '2. Ansible Deploy',
       sub: isAnsDeployed ? `${status.deployment.web_server.toUpperCase()} Stack Live` : (isAnsRunning ? 'Deploying...' : 'Pending Stack'),
       isComplete: isAnsDeployed,
       isRunning: isAnsRunning,
@@ -48,7 +58,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
     {
       id: 'pup',
       num: 3,
-      title: 'Puppet Baseline',
+      title: '3. Puppet Baseline',
       sub: isPupCompliant ? '0 Drift • Hardened' : (isPupRunning ? 'Enforcing...' : 'Pending Baseline'),
       isComplete: isPupCompliant,
       isRunning: isPupRunning,
@@ -58,7 +68,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
     {
       id: 'nag',
       num: 4,
-      title: 'Nagios Telemetry',
+      title: '4. Nagios Telemetry',
       sub: isNagHealthy ? 'Health: 100% OK' : (status.telemetry.overall_health === 'CRITICAL' ? 'Alerts Active' : 'Active Probes'),
       isComplete: isNagHealthy,
       isRunning: false,
@@ -67,8 +77,8 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
     },
   ];
 
-  const completedCount = steps.filter(s => s.isComplete).length;
-  const progressPercent = Math.round((completedCount / steps.length) * 100);
+  const deploymentStepsCompleted = steps.filter(s => s.id !== 'preflight' && s.isComplete).length;
+  const progressPercent = Math.round((deploymentStepsCompleted / 4) * 100);
 
   return (
     <div className="pipeline-stepper-box">
@@ -77,8 +87,8 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
           <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Pipeline Workflow:
           </span>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: completedCount === 4 ? 'var(--status-success)' : 'var(--aws-orange)' }}>
-            {completedCount} of 4 Steps Complete ({progressPercent}%)
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: deploymentStepsCompleted === 4 ? 'var(--status-success)' : 'var(--aws-orange)' }}>
+            {deploymentStepsCompleted} of 4 Deployment Steps Complete ({progressPercent}%)
           </span>
         </div>
 
@@ -87,7 +97,7 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
             className="stepper-progress-fill"
             style={{
               width: `${progressPercent}%`,
-              background: completedCount === 4 ? 'var(--status-success)' : 'var(--aws-orange)'
+              background: deploymentStepsCompleted === 4 ? 'var(--status-success)' : 'var(--aws-orange)'
             }}
           />
         </div>
@@ -107,7 +117,9 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
                 title={`Click to view ${step.title}`}
               >
                 <div className={`stepper-node-circle ${step.isComplete ? 'complete' : ''} ${step.isRunning ? 'running' : ''}`}>
-                  {step.isComplete ? (
+                  {step.id === 'preflight' ? (
+                    <ShieldCheck size={13} color="var(--aws-orange)" />
+                  ) : step.isComplete ? (
                     <Check size={13} color="#FFFFFF" strokeWidth={3} />
                   ) : step.isRunning ? (
                     <RefreshCw size={13} color="var(--aws-orange)" className="animate-spin" />
@@ -136,4 +148,3 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
     </div>
   );
 });
-
