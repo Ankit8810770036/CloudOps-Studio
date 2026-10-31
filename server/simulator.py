@@ -396,6 +396,12 @@ class SimulationEngine:
             state.telemetry["checks"]["disk"]["status"] = "OK"
             state.telemetry["overall_health"] = "HEALTHY"
 
+        # Record real historical rolling time-series point
+        cur_cpu = state.telemetry["checks"]["cpu"].get("value", 20.0)
+        cur_mem = state.telemetry["checks"]["memory"].get("value", 40.0)
+        cur_lat = state.telemetry["checks"]["http"].get("response_time_ms", 30.0)
+        state.record_telemetry_point(cpu=cur_cpu, memory=cur_mem, latency=cur_lat)
+
     async def inject_chaos(self, fault_type: str):
         state.chaos["active_fault"] = fault_type
         state.chaos["injected_at"] = time.strftime("%H:%M:%S")

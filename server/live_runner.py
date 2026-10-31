@@ -218,6 +218,31 @@ EOF'
                 echo "Installing custom Python libraries from requirements.txt..."
                 sudo /opt/devops_backend/venv/bin/pip install -r /opt/devops_backend/requirements.txt
                 """
+            # Auto-generate Systemd service unit with Restart=always
+            backend_dep_cmd += """
+            sudo bash -c 'cat << "EOF" > /etc/systemd/system/cloudops-app.service
+[Unit]
+Description=CloudOps Python FastAPI Application
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/devops_backend
+ExecStart=/opt/devops_backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+Environment=PORT=8000
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+            sudo systemctl daemon-reload
+            sudo systemctl enable cloudops-app.service
+            sudo systemctl restart cloudops-app.service || true
+            """
         elif backend_type == "nodejs":
             backend_dep_cmd = """
             sudo apt-get install -y nodejs npm
@@ -232,10 +257,58 @@ EOF'
                 echo "Installing custom Node.js libraries from package.json..."
                 cd /opt/devops_node && sudo npm install --production
                 """
+            # Auto-generate Systemd service unit with Restart=always
+            backend_dep_cmd += """
+            sudo bash -c 'cat << "EOF" > /etc/systemd/system/cloudops-app.service
+[Unit]
+Description=CloudOps Node.js Express Application
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/devops_node
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+Environment=PORT=5000
+Environment=NODE_ENV=production
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+            sudo systemctl daemon-reload
+            sudo systemctl enable cloudops-app.service
+            sudo systemctl restart cloudops-app.service || true
+            """
         elif backend_type == "java_springboot":
             backend_dep_cmd = """
             sudo apt-get install -y openjdk-17-jdk-headless
             sudo mkdir -p /opt/devops_springboot
+            sudo bash -c 'cat << "EOF" > /etc/systemd/system/cloudops-app.service
+[Unit]
+Description=CloudOps Spring Boot Application
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/devops_springboot
+ExecStart=/usr/bin/java -jar /opt/devops_springboot/app.jar
+Restart=always
+RestartSec=3
+Environment=PORT=8080
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF'
+            sudo systemctl daemon-reload
+            sudo systemctl enable cloudops-app.service
+            sudo systemctl restart cloudops-app.service || true
             """
 
         # Execute deployment on target node
@@ -409,6 +482,12 @@ EOF'
         else:
             state.telemetry["overall_health"] = "HEALTHY"
 
+        # Record real historical rolling time-series point
+        cur_cpu = state.telemetry["checks"]["cpu"].get("value", 20.0)
+        cur_mem = state.telemetry["checks"]["memory"].get("value", 40.0)
+        cur_lat = state.telemetry["checks"]["http"].get("response_time_ms", 30.0)
+        state.record_telemetry_point(cpu=cur_cpu, memory=cur_mem, latency=cur_lat)
+
     async def inject_chaos(self, fault_type: str):
         target_ip = state.infrastructure.get("public_ip")
         if not target_ip:
@@ -431,12 +510,37 @@ EOF'
             state.telemetry["overall_health"] = "CRITICAL"
             state.add_alert("CRITICAL", "High CPU Load Spike", "CPU utilization exceeded 90% threshold.", "cpu_utilization")
 
+        elif fault_type == "config_tamper":
+            state.add_log("[Chaos] Simulating unauthorized configuration drift on EC2 (/etc/motd & firewall)...", stream="stderr", stage="CHAOS")
+            tamper_cmd = """
+            sudo bash -c 'echo "UNAUTHORIZED CONFIGURATION DRIFT - SYSTEM TAMPERED" > /etc/motd'
+            sudo ufw disable || true
+            """
+            self.execute_ssh_command(target_ip, tamper_cmd)
+            state.compliance["status"] = "drift_detected"
+            state.compliance["drift_count"] = 2
+            if len(state.compliance["rules_enforced"]) >= 2:
+                state.compliance["rules_enforced"][0]["status"] = "drift_detected"
+                state.compliance["rules_enforced"][1]["status"] = "drift_detected"
+            state.telemetry["overall_health"] = "WARNING"
+            state.add_alert("WARNING", "Configuration Drift Detected", "Security baseline tampered: /etc/motd modified and firewall disabled.", "puppet_drift")
+
     async def heal_chaos(self):
         target_ip = state.infrastructure.get("public_ip")
         if not target_ip:
             return
             
+        fault = state.chaos["active_fault"]
         server = state.deployment.get("web_server", "nginx")
+
+        if fault == "config_tamper":
+            state.add_log("[Heal] Invoking Puppet desired-state engine to reconcile drift...", stage="PUPPET")
+            await self.run_puppet_enforce()
+            state.chaos["active_fault"] = None
+            state.clear_alerts_for_service("puppet_drift")
+            state.add_alert("INFO", "Compliance Restored", "Puppet healed configuration drift and locked security policies.", "puppet_drift")
+            return
+
         state.add_log(f"[Heal] Restarting {server} and restoring baseline...", stage="SYSTEM")
         self.execute_ssh_command(target_ip, f"sudo systemctl restart {server} && sudo pkill -f 'python3 -c'")
         await asyncio.sleep(2)

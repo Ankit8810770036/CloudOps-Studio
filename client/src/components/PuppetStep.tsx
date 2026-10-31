@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Play, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Play, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { ComplianceState, InfrastructureState } from '../types';
 
 interface PuppetStepProps {
@@ -62,25 +62,38 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
           Desired-state security baseline and drift self-healing.
         </p>
 
+        {/* Drift Alert Banner */}
+        {isDrift && (
+          <div className="chaos-banner" style={{ marginBottom: '0.85rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid var(--status-danger)', color: 'var(--text-primary)' }}>
+            <AlertTriangle size={15} color="var(--status-danger)" style={{ flexShrink: 0 }} />
+            <span>
+              <strong>Configuration Drift Detected:</strong> {compliance.drift_count} security policies tampered. Click &quot;Reconcile Drift&quot; to heal.
+            </span>
+          </div>
+        )}
+
         {/* Compliance Rule Checklist */}
         <div className="spec-box" style={{ gap: '0.55rem', marginBottom: '0.85rem' }}>
-          {compliance.rules_enforced.map((rule, idx) => (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-              {isCompliant ? (
-                <CheckCircle2 size={14} color="var(--status-success)" style={{ flexShrink: 0 }} />
-              ) : isDrift && idx === 1 ? (
-                <AlertTriangle size={14} color="var(--status-danger)" style={{ flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid var(--border-bright)', flexShrink: 0 }} />
-              )}
-              <span style={{
-                color: isDrift && idx === 1 ? 'var(--status-danger)' : 'var(--text-primary)',
-                fontWeight: isDrift && idx === 1 ? 700 : 500
-              }}>
-                {rule.name}
-              </span>
-            </div>
-          ))}
+          {compliance.rules_enforced.map((rule, idx) => {
+            const isRuleDrifted = isDrift && (rule.status === 'drift_detected' || idx < 2);
+            return (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                {isCompliant ? (
+                  <CheckCircle2 size={14} color="var(--status-success)" style={{ flexShrink: 0 }} />
+                ) : isRuleDrifted ? (
+                  <AlertTriangle size={14} color="var(--status-danger)" style={{ flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid var(--border-bright)', flexShrink: 0 }} />
+                )}
+                <span style={{
+                  color: isRuleDrifted ? 'var(--status-danger)' : 'var(--text-primary)',
+                  fontWeight: isRuleDrifted ? 700 : 500
+                }}>
+                  {rule.name}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <div style={{
@@ -107,7 +120,7 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
                   Step 3 Completed: Security Baseline Enforced
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  Zero drift detected • SSH hardened & Nginx configuration verified
+                  Zero drift detected • Systemd, SSH hardening & firewall locked
                 </div>
               </div>
             </div>
@@ -120,16 +133,17 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
         <button
           className="btn-primary"
           style={{
-            width: '100%',
-            background: 'var(--accent-puppet)',
-            border: '1px solid var(--accent-puppet)',
-            color: '#FFFFFF'
+            flex: '1 1 200px',
+            background: isCompliant ? 'var(--bg-card-subtle)' : isDrift ? 'var(--status-danger)' : 'var(--accent-puppet)',
+            color: isCompliant ? 'var(--text-muted)' : '#FFFFFF',
+            border: isCompliant ? '1px solid var(--border-color)' : isDrift ? '1px solid var(--status-danger)' : '1px solid var(--accent-puppet)'
           }}
           onClick={onEnforce}
           disabled={isRunning || !isInfraReady}
+          title={isDrift ? "Reconcile drift back to baseline" : "Enforce Puppet security baseline"}
         >
-          <Play size={14} />
-          <span>Enforce Baseline (Puppet)</span>
+          {isDrift ? <RefreshCw size={14} /> : <Play size={14} />}
+          <span>{isCompliant ? 'Compliant (Zero Drift)' : isDrift ? 'Reconcile Drift (Puppet)' : 'Enforce (Puppet)'}</span>
         </button>
       </div>
     </div>

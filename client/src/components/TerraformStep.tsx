@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Play, Trash2, Shield, HardDrive, Key, CheckCircle2 } from 'lucide-react';
+import { Layers, Play, Trash2, Shield, HardDrive, Key, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { InfrastructureState } from '../types';
 
 interface TerraformStepProps {
@@ -17,6 +17,8 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
 }) => {
   const [region, setRegion] = useState('us-east-1');
   const [instanceType, setInstanceType] = useState('t2.micro');
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmInput, setConfirmInput] = useState('');
 
   const isProvisioned = infra.status === 'ready';
 
@@ -156,9 +158,12 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
         {isProvisioned && (
           <button
             className="btn-danger"
-            onClick={onDestroy}
+            onClick={() => {
+              setIsConfirmOpen(true);
+              setConfirmInput('');
+            }}
             disabled={isRunning}
-            title="Tear down all AWS resources"
+            title="Tear down all AWS resources with confirmation guardrail"
             style={{ flex: '0 0 auto' }}
           >
             <Trash2 size={14} />
@@ -166,6 +171,84 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
           </button>
         )}
       </div>
+
+      {/* Safety Guardrail Confirmation Modal */}
+      {isConfirmOpen && (
+        <div className="modal-overlay" onClick={() => setIsConfirmOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '440px', padding: '1.25rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 5, background: 'var(--status-danger-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-danger)' }}>
+                  <AlertTriangle size={16} />
+                </div>
+                <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Confirm Infrastructure Teardown
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsConfirmOpen(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45, marginBottom: '0.85rem' }}>
+              This will permanently terminate the EC2 compute instance and tear down all VPC network resources. This action cannot be undone.
+            </p>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                To confirm, type <strong style={{ color: 'var(--status-danger)' }}>destroy</strong> below:
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="type destroy"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                autoFocus
+                style={{ width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setIsConfirmOpen(false)}
+                style={{ height: '34px', fontSize: '0.8rem', padding: '0 0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                disabled={confirmInput.trim().toLowerCase() !== 'destroy' || isRunning}
+                onClick={() => {
+                  setIsConfirmOpen(false);
+                  onDestroy();
+                }}
+                style={{
+                  height: '34px',
+                  fontSize: '0.8rem',
+                  padding: '0 1rem',
+                  opacity: confirmInput.trim().toLowerCase() === 'destroy' ? 1 : 0.5,
+                  cursor: confirmInput.trim().toLowerCase() === 'destroy' ? 'pointer' : 'not-allowed'
+                }}
+              >
+                <Trash2 size={13} />
+                <span>Confirm Teardown</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

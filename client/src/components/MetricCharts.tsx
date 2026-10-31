@@ -13,6 +13,13 @@ export const MetricCharts: React.FC<MetricChartsProps> = React.memo(({ telemetry
   const [latHistory, setLatHistory] = useState<number[]>([34, 38, 32, 41, 35, 36, 33, 40, 36, 34, 37, 35, 38, 34, 36, 33]);
 
   useEffect(() => {
+    if (telemetry.history && telemetry.history.length >= 2) {
+      setCpuHistory(telemetry.history.map(pt => pt.cpu));
+      setMemHistory(telemetry.history.map(pt => pt.memory));
+      setLatHistory(telemetry.history.map(pt => pt.latency));
+      return;
+    }
+
     const curCpu = telemetry.checks.cpu?.value || 20;
     const curMem = telemetry.checks.memory?.value || 38;
     const curLat = telemetry.checks.http?.response_time_ms || 35;

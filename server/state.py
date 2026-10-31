@@ -97,8 +97,19 @@ class PlatformState:
                 "memory": {"name": "RAM Utilization", "status": "UNKNOWN", "value": 0, "unit": "%"},
                 "disk": {"name": "Disk Usage (/)", "status": "UNKNOWN", "value": 0, "unit": "%"}
             },
-            "alerts": []
+            "alerts": [],
+            "history": []
         }
+        
+        # Populate initial rolling baseline points
+        init_t = int(time.time()) - 36
+        for i in range(12):
+            self.telemetry["history"].append({
+                "time": time.strftime("%H:%M:%S", time.localtime(init_t + i * 3)),
+                "cpu": 18.0 + (i % 4) * 2.1,
+                "memory": 36.5 + (i % 3) * 1.2,
+                "latency": 32.0 + (i % 5) * 2.3
+            })
         
         # Chaos Failure Injection State
         self.chaos = {
@@ -150,6 +161,17 @@ class PlatformState:
 
     def clear_alerts_for_service(self, service: str):
         self.telemetry["alerts"] = [a for a in self.telemetry["alerts"] if a["service"] != service]
+
+    def record_telemetry_point(self, cpu: float, memory: float, latency: float):
+        point = {
+            "time": time.strftime("%H:%M:%S"),
+            "cpu": round(max(0.0, float(cpu)), 1),
+            "memory": round(max(0.0, float(memory)), 1),
+            "latency": round(max(0.0, float(latency)), 1)
+        }
+        self.telemetry["history"].append(point)
+        if len(self.telemetry["history"]) > 20:
+            self.telemetry["history"].pop(0)
 
 # Global singleton
 state = PlatformState()

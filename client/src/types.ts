@@ -59,6 +59,13 @@ export interface AlertItem {
   service: string;
 }
 
+export interface TelemetryPoint {
+  time: string;
+  cpu: number;
+  memory: number;
+  latency: number;
+}
+
 export interface TelemetryState {
   overall_health: 'HEALTHY' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
   last_check: string | null;
@@ -73,6 +80,7 @@ export interface TelemetryState {
     disk: CheckMetric;
   };
   alerts: AlertItem[];
+  history?: TelemetryPoint[];
 }
 
 export interface ChaosState {

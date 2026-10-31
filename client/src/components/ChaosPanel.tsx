@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, RefreshCw } from 'lucide-react';
+import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, RefreshCw, ShieldCheck } from 'lucide-react';
 import { ChaosState, InfrastructureState } from '../types';
 
 interface ChaosPanelProps {
@@ -19,6 +19,7 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
 }) => {
   const isInfraReady = infra.status === 'ready';
   const hasFault = Boolean(chaos.active_fault);
+  const isDriftFault = chaos.active_fault === 'config_tamper';
 
   return (
     <div className={`chaos-lab-container ${hasFault ? 'fault-active' : ''}`}>
@@ -44,7 +45,7 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
               Chaos Engineering Lab
             </h4>
             <p style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-              Inject outages to test automated detection and self-healing.
+              Inject outages and configuration drift to test automated detection and Puppet self-healing.
             </p>
           </div>
         </div>
@@ -55,25 +56,40 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
             disabled={isRunning}
             className="btn-primary"
             style={{
-              background: 'var(--status-success)',
-              border: '1px solid var(--status-success)',
+              background: isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)',
+              border: `1px solid ${isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)'}`,
               color: '#FFFFFF',
               height: '32px',
-              fontSize: '0.78rem'
+              fontSize: '0.78rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem'
             }}
+            title={isDriftFault ? "Invoke Puppet desired-state engine to heal drift" : "Restart failed service and restore baseline"}
           >
-            <Wrench size={13} />
-            <span>Auto-Remediate</span>
+            {isDriftFault ? <ShieldCheck size={14} /> : <Wrench size={13} />}
+            <span>{isDriftFault ? 'Puppet Reconcile & Heal' : 'Auto-Remediate'}</span>
           </button>
         )}
       </div>
 
-      {/* Outage Alert Banner */}
+      {/* Outage / Drift Alert Banner */}
       {hasFault && (
-        <div className="chaos-banner">
-          <AlertOctagon size={15} color="var(--status-danger)" style={{ flexShrink: 0 }} />
+        <div
+          className="chaos-banner"
+          style={{
+            background: isDriftFault ? 'rgba(217, 119, 6, 0.12)' : undefined,
+            border: isDriftFault ? '1px solid var(--accent-puppet)' : undefined,
+            color: isDriftFault ? 'var(--text-primary)' : undefined
+          }}
+        >
+          {isDriftFault ? (
+            <ShieldCheck size={15} color="var(--accent-puppet)" style={{ flexShrink: 0 }} />
+          ) : (
+            <AlertOctagon size={15} color="var(--status-danger)" style={{ flexShrink: 0 }} />
+          )}
           <span>
-            <strong>ACTIVE OUTAGE:</strong> {chaos.description} &mdash; Click &quot;Auto-Remediate&quot; to restore baseline.
+            <strong>{isDriftFault ? 'SECURITY DRIFT INJECTED:' : 'ACTIVE OUTAGE:'}</strong> {chaos.description || 'System state deviated from baseline'} &mdash; Click {isDriftFault ? '"Puppet Reconcile & Heal"' : '"Auto-Remediate"'} to restore compliance.
           </span>
         </div>
       )}
@@ -120,9 +136,10 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
           onClick={() => onInject('config_tamper')}
           disabled={isRunning || !isInfraReady || hasFault}
           className="chaos-btn"
+          title="Inject unauthorized drift into /etc/motd and security baseline to trigger Puppet reconciliation"
         >
-          <RefreshCw size={13} color="var(--aws-blue)" style={{ flexShrink: 0 }} />
-          <span>Drift (/etc/motd)</span>
+          <ShieldCheck size={13} color="var(--accent-puppet)" style={{ flexShrink: 0 }} />
+          <span>Tamper Config (Puppet Drift)</span>
         </button>
       </div>
     </div>
