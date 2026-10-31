@@ -12,6 +12,8 @@ import { Terminal } from './components/Terminal';
 import { ConfigModal } from './components/ConfigModal';
 import { ArchitectureModal } from './components/ArchitectureModal';
 import { VivaModal } from './components/VivaModal';
+import { PipelineStepper } from './components/PipelineStepper';
+import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
 
 import {
   fetchStatus,
@@ -44,6 +46,14 @@ export function App() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isArchOpen, setIsArchOpen] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
+
+  // Real-time confirmation message for completed steps
+  const [completionNotice, setCompletionNotice] = useState<StepCompletionData | null>(null);
+  const prevInfraStatus = useRef<string | undefined>(undefined);
+  const prevDeployStatus = useRef<string | undefined>(undefined);
+  const prevComplianceStatus = useRef<string | undefined>(undefined);
+  const prevTelemetryHealth = useRef<string | undefined>(undefined);
+  const initialMount = useRef<boolean>(true);
 
   const mainContentRef = useRef<HTMLElement>(null);
 
@@ -122,6 +132,105 @@ export function App() {
       ws.close();
     };
   }, []);
+
+  // Monitor deployment pipeline state transitions and show on-screen confirmation notifications
+  useEffect(() => {
+    if (!status) return;
+
+    const curInfra = status.infrastructure.status;
+    const curDeploy = status.deployment.status;
+    const curCompliance = status.compliance.status;
+    const curHealth = status.telemetry.overall_health;
+
+    // On first load, record existing states without triggering notification popups
+    if (initialMount.current) {
+      prevInfraStatus.current = curInfra;
+      prevDeployStatus.current = curDeploy;
+      prevComplianceStatus.current = curCompliance;
+      prevTelemetryHealth.current = curHealth;
+      initialMount.current = false;
+      return;
+    }
+
+    // Step 1: Terraform IaC completed
+    if (curInfra === 'ready' && prevInfraStatus.current !== 'ready') {
+      setCompletionNotice({
+        stepNumber: 1,
+        stepName: 'Terraform IaC',
+        title: 'Step 1 Complete: AWS Infrastructure Provisioned!',
+        description: 'VPC, subnets, and EC2 compute instance are ready for software deployment.',
+        details: [
+          { label: 'Public IP', value: status.infrastructure.public_ip || 'Assigned' },
+          { label: 'Instance ID', value: status.infrastructure.instance_id || 'i-ec2-node' },
+          { label: 'Network', value: 'VPC 10.0.0.0/16 (Port 22, 80)' },
+          { label: 'Status', value: 'Ready for Ansible' }
+        ],
+        nextStepTab: 'ans',
+        nextStepLabel: 'Proceed to Step 2: Ansible Deploy ➔'
+      });
+    }
+
+    // Step 2: Ansible Full-Stack Deployment completed
+    if (curDeploy === 'deployed' && prevDeployStatus.current !== 'deployed') {
+      setCompletionNotice({
+        stepNumber: 2,
+        stepName: 'Ansible Deployment',
+        title: 'Step 2 Complete: Application Stack Deployed!',
+        description: `Full-stack application stack configured and running smoothly behind ${status.deployment.web_server.toUpperCase()} reverse proxy.`,
+        details: [
+          { label: 'Web Server', value: status.deployment.web_server.toUpperCase() },
+          { label: 'Application', value: status.deployment.deployed_app || 'Polyglot Stack' },
+          { label: 'HTTP Port', value: 'Port 80 (Active Proxy)' },
+          { label: 'Live URL', value: status.infrastructure.app_url || `http://${status.infrastructure.public_ip}` }
+        ],
+        nextStepTab: 'pup',
+        nextStepLabel: 'Proceed to Step 3: Puppet Baseline ➔',
+        appUrl: status.infrastructure.app_url || (status.infrastructure.public_ip ? `http://${status.infrastructure.public_ip}` : undefined)
+      });
+    }
+
+    // Step 3: Puppet Security & Configuration Baseline completed
+    if (curCompliance === 'compliant' && prevComplianceStatus.current !== 'compliant') {
+      setCompletionNotice({
+        stepNumber: 3,
+        stepName: 'Puppet Compliance',
+        title: 'Step 3 Complete: Security Baseline Enforced!',
+        description: 'Zero drift detected. SSH hardening, sysctl policies, and service locks verified.',
+        details: [
+          { label: 'Drift Violations', value: '0 (Zero Drift)' },
+          { label: 'SSH Security', value: 'Root Login Disabled' },
+          { label: 'Baseline', value: 'Nginx Conf Locked' },
+          { label: 'Compliance', value: '100% Enforced' }
+        ],
+        nextStepTab: 'nag',
+        nextStepLabel: 'Proceed to Step 4: Nagios Telemetry ➔'
+      });
+    }
+
+    // Step 4: Nagios Observability completed (Healthy)
+    if (curHealth === 'HEALTHY' && prevTelemetryHealth.current !== 'HEALTHY' && curDeploy === 'deployed') {
+      setCompletionNotice({
+        stepNumber: 4,
+        stepName: 'Nagios Telemetry',
+        title: 'Step 4 Complete: Telemetry & Monitoring Active!',
+        description: 'All system health probes passing. End-to-end 4-stage DevOps pipeline is 100% operational!',
+        details: [
+          { label: 'Overall Health', value: 'HEALTHY (100% UP)' },
+          { label: 'Port 80 (HTTP)', value: 'OK (200 Status)' },
+          { label: 'Port 22 (SSH)', value: 'OK (Reachable)' },
+          { label: 'Telemetry', value: 'All Probes Passing' }
+        ],
+        nextStepTab: 'all',
+        nextStepLabel: 'View Full Console Overview ➔',
+        appUrl: status.infrastructure.app_url || (status.infrastructure.public_ip ? `http://${status.infrastructure.public_ip}` : undefined)
+      });
+    }
+
+    prevInfraStatus.current = curInfra;
+    prevDeployStatus.current = curDeploy;
+    prevComplianceStatus.current = curCompliance;
+    prevTelemetryHealth.current = curHealth;
+  }, [status]);
 
   const handleToggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
@@ -246,6 +355,13 @@ export function App() {
 
         {/* Main Content Area */}
         <main className="content-container" ref={mainContentRef}>
+          {/* Global Pipeline Stepper Progress */}
+          <PipelineStepper
+            status={status}
+            activeTab={activeTab}
+            onNavigate={handleSelectTab}
+          />
+
           {/* SECTION 1: CONSOLE OVERVIEW (ALL) */}
           {activeTab === 'all' && (
             <div>
@@ -485,6 +601,13 @@ export function App() {
       <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
       <ArchitectureModal isOpen={isArchOpen} onClose={() => setIsArchOpen(false)} />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
+
+      {/* Floating On-Screen Step Completion Notification */}
+      <StepCompletionNotification
+        data={completionNotice}
+        onClose={() => setCompletionNotice(null)}
+        onProceed={handleSelectTab}
+      />
     </div>
   );
 }

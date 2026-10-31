@@ -22,7 +22,8 @@ import {
   ChevronUp,
   RefreshCw,
   FolderUp,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { DeploymentState, InfrastructureState, StackConfig, CustomCodeState } from '../types';
 import { fetchWebappContent, saveWebappContent, uploadCustomCode, clearUploadedCode } from '../services/api';
@@ -685,6 +686,42 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = ({
                 boxSizing: 'border-box'
               }}
             />
+          </div>
+        )}
+
+        {/* Step 2 Completion Confirmation Banner */}
+        {isDeployed && (
+          <div className="step-success-banner">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10B981' }}>
+                  Step 2 Completed: Application Stack Deployed
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Server: <strong style={{ color: 'var(--text-primary)' }}>{deployment.web_server.toUpperCase()}</strong> • App: <strong style={{ color: 'var(--text-primary)' }}>{deployment.deployed_app || 'Polyglot'}</strong> (Port 80)
+                </div>
+              </div>
+            </div>
+            {infra.app_url && (
+              <a
+                href={infra.app_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: 'var(--aws-orange)',
+                  textDecoration: 'none'
+                }}
+              >
+                <span>Live View</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
           </div>
         )}
       </div>

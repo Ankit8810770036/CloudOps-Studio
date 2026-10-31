@@ -1649,3 +1649,309 @@ html.modal-open {
 .close-btn:hover {
   color: var(--text-primary);
 }
+
+/* ==========================================================================
+   PIPELINE STEPPER BAR & WORKFLOW PROGRESS TRACKER
+   ========================================================================== */
+.pipeline-stepper-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+}
+
+.stepper-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.stepper-progress-track {
+  flex: 1;
+  max-width: 280px;
+  height: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stepper-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+}
+
+.stepper-nodes-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.2rem 0;
+}
+
+.stepper-node-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.stepper-node-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-color);
+}
+
+.stepper-node-btn.active-tab {
+  background: var(--bg-card-subtle);
+  border-color: var(--aws-orange);
+}
+
+.stepper-node-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-card-subtle);
+  border: 1.5px solid var(--border-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.stepper-node-circle.running {
+  border-color: var(--aws-orange);
+  background: rgba(236, 114, 17, 0.12);
+}
+
+.stepper-node-circle.complete {
+  background: #10B981;
+  border-color: #10B981;
+  color: #FFFFFF;
+}
+
+.stepper-node-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stepper-node-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.stepper-node-btn.complete .stepper-node-title {
+  color: var(--text-primary);
+}
+
+.stepper-node-sub {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.stepper-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+  min-width: 16px;
+  border-radius: 2px;
+  transition: background 0.3s ease;
+}
+
+.stepper-connector.complete {
+  background: #10B981;
+}
+
+/* ==========================================================================
+   STEP COMPLETION CONFIRMATION TOAST / NOTIFICATION CARD
+   ========================================================================== */
+.step-completion-card {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  background: var(--bg-card);
+  border: 1.5px solid #10B981;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(16, 185, 129, 0.2);
+  padding: 1.15rem;
+  z-index: 9999;
+  box-sizing: border-box;
+  animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.step-completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.step-completion-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #10B981;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.step-completion-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.step-completion-close:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.step-completion-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+  line-height: 1.3;
+}
+
+.step-completion-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+  line-height: 1.45;
+}
+
+.step-completion-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.95rem;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.55rem;
+}
+
+.step-completion-spec-pill {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.spec-pill-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.spec-pill-val {
+  font-size: 0.76rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+.step-completion-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.step-completion-proceed-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  height: 32px;
+  padding: 0 0.85rem;
+}
+
+/* ==========================================================================
+   INLINE STEP SUCCESS BANNER (Within Panel Cards)
+   ========================================================================== */
+.step-success-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  margin-top: 0.85rem;
+  box-sizing: border-box;
+}
+
+/* Sidebar step completion check badge */
+.sidebar-step-check {
+  margin-left: auto;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #10B981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  flex-shrink: 0;
+}

@@ -13,6 +13,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from 'lucide-react';
 import { FullStatus } from '../types';
 
@@ -40,12 +41,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isHealthy = status.telemetry.overall_health === 'HEALTHY';
   const isCritical = status.telemetry.overall_health === 'CRITICAL';
 
+  const isTfDone = status.infrastructure.status === 'ready';
+  const isAnsDone = status.deployment.status === 'deployed';
+  const isPupDone = status.compliance.status === 'compliant';
+  const isNagDone = isHealthy && isAnsDone;
+
   const navItems = [
     { id: 'all', label: 'Console Overview', icon: LayoutDashboard },
-    { id: 'tf', label: '1. Terraform IaC', icon: Layers },
-    { id: 'ans', label: '2. Full-Stack Deploy', icon: Package },
-    { id: 'pup', label: '3. Puppet Baseline', icon: ShieldCheck },
-    { id: 'nag', label: '4. Nagios Telemetry', icon: Activity },
+    { id: 'tf', label: '1. Terraform IaC', icon: Layers, isComplete: isTfDone },
+    { id: 'ans', label: '2. Full-Stack Deploy', icon: Package, isComplete: isAnsDone },
+    { id: 'pup', label: '3. Puppet Baseline', icon: ShieldCheck, isComplete: isPupDone },
+    { id: 'nag', label: '4. Nagios Telemetry', icon: Activity, isComplete: isNagDone },
     { id: 'chaos', label: 'Chaos Lab', icon: Flame },
     { id: 'term', label: 'Live Terminal', icon: Terminal },
   ];
@@ -106,11 +112,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
               key={item.id}
               className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
               onClick={() => onSelectTab(item.id)}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? `${item.label} ${item.isComplete ? '(Complete)' : ''}` : undefined}
             >
-              <Icon size={17} className="sidebar-nav-icon" />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Icon size={17} className="sidebar-nav-icon" />
+                {collapsed && item.isComplete && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#10B981',
+                      border: '1px solid var(--bg-sidebar)'
+                    }}
+                  />
+                )}
+              </div>
               {!collapsed && <span>{item.label}</span>}
-              {!collapsed && item.id === 'nag' && (
+              {!collapsed && item.isComplete && (
+                <span className="sidebar-step-check" title="Completed">
+                  <Check size={10} strokeWidth={3} />
+                </span>
+              )}
+              {!collapsed && !item.isComplete && item.id === 'nag' && (
                 <span className={`sidebar-pill ${isCritical ? 'critical' : isHealthy ? 'healthy' : 'pending'}`}>
                   {status.telemetry.overall_health}
                 </span>

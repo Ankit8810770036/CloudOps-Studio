@@ -304,6 +304,23 @@ export const NagiosStep: React.FC<NagiosStepProps> = ({
             )}
           </div>
         </div>
+
+        {/* Step 4 Completion Confirmation Banner */}
+        {telemetry.overall_health === 'HEALTHY' && isInfraReady && (
+          <div className="step-success-banner" style={{ marginTop: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <CheckCircle size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10B981' }}>
+                  Step 4 Completed: Observability & Health Active
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Overall Status: <strong style={{ color: '#10B981' }}>HEALTHY (100% UP)</strong> • All active service probes passing
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

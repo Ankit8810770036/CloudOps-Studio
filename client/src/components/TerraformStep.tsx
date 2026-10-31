@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Play, Trash2, Shield, HardDrive, Key } from 'lucide-react';
+import { Layers, Play, Trash2, Shield, HardDrive, Key, CheckCircle2 } from 'lucide-react';
 import { InfrastructureState } from '../types';
 
 interface TerraformStepProps {
@@ -117,6 +117,23 @@ export const TerraformStep: React.FC<TerraformStepProps> = ({
             <span className="spec-value">devops-key.pem (RSA 4096)</span>
           </div>
         </div>
+
+        {/* Step 1 Completion Confirmation Banner */}
+        {isProvisioned && (
+          <div className="step-success-banner">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10B981' }}>
+                  Step 1 Completed: Infrastructure Provisioned
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Public IP: <strong style={{ color: 'var(--text-primary)' }}>{infra.public_ip || 'Assigned'}</strong> • VPC Subnets & Security Groups Configured
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Aligned Action Footer */}

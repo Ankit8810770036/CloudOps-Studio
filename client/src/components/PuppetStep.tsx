@@ -96,6 +96,23 @@ export const PuppetStep: React.FC<PuppetStepProps> = ({
             {compliance.drift_count} Violations
           </span>
         </div>
+
+        {/* Step 3 Completion Confirmation Banner */}
+        {isCompliant && (
+          <div className="step-success-banner">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#10B981' }}>
+                  Step 3 Completed: Security Baseline Enforced
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Zero drift detected • SSH hardened & Nginx configuration verified
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Aligned Action Footer */}
