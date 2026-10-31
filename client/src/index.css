@@ -250,27 +250,6 @@ p, .section-banner-sub, .form-label, .spec-label {
   white-space: nowrap;
 }
 
-.sidebar-collapse-btn {
-  width: 28px;
-  height: 28px;
-  background: var(--bg-card-subtle);
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-
-.sidebar-collapse-btn:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-  border-color: var(--border-bright);
-}
 
 .sidebar-nav {
   padding: 0.65rem 0.45rem;
@@ -342,33 +321,6 @@ p, .section-banner-sub, .form-label, .spec-label {
 .sidebar-pill.critical { background: var(--status-danger-bg); color: var(--status-danger); }
 .sidebar-pill.pending { background: var(--status-warning-bg); color: var(--status-warning); }
 
-/* Bottom Collapse/Expand Toggle Bar (Never Lost!) */
-.sidebar-bottom-toggle {
-  width: 100%;
-  padding: 0.65rem 0.85rem;
-  border: none;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-sidebar);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-}
-
-.sidebar-container.collapsed .sidebar-bottom-toggle {
-  justify-content: center;
-  padding: 0.65rem 0;
-}
-
-.sidebar-bottom-toggle:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-}
 
 .sidebar-footer-card {
   margin: 0.5rem;

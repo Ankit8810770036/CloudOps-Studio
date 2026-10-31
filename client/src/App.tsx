@@ -10,7 +10,6 @@ import { NagiosStep } from './components/NagiosStep';
 import { ChaosPanel } from './components/ChaosPanel';
 import { Terminal } from './components/Terminal';
 import { ConfigModal } from './components/ConfigModal';
-import { ArchitectureModal } from './components/ArchitectureModal';
 import { VivaModal } from './components/VivaModal';
 import { PipelineStepper } from './components/PipelineStepper';
 import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
@@ -35,7 +34,6 @@ export function App() {
   const [status, setStatus] = useState<FullStatus | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1');
 
   // Theme: 'dark' (Enterprise NOC) or 'light' (Clean Dev Studio)
@@ -44,7 +42,6 @@ export function App() {
   });
 
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [isArchOpen, setIsArchOpen] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
 
   // Real-time confirmation message for completed steps
@@ -80,7 +77,7 @@ export function App() {
 
   // Lock background scroll whenever any dialog card or form modal is open
   useEffect(() => {
-    const isAnyModalOpen = isConfigOpen || isArchOpen || isVivaOpen;
+    const isAnyModalOpen = isConfigOpen || isVivaOpen;
     if (isAnyModalOpen) {
       const originalBodyOverflow = document.body.style.overflow;
       const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -103,7 +100,7 @@ export function App() {
         document.body.classList.remove('modal-open');
       };
     }
-  }, [isConfigOpen, isArchOpen, isVivaOpen]);
+  }, [isConfigOpen, isVivaOpen]);
 
   // Apply theme to document element
   useEffect(() => {
@@ -343,15 +340,12 @@ export function App() {
   const isRunning = status.is_running_pipeline;
 
   return (
-    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {/* 1. Left-Hand Collapsible Sidebar */}
+    <div className="app-shell">
+      {/* 1. Left-Hand Fixed Sidebar */}
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenConfig={() => setIsConfigOpen(true)}
-        onOpenArch={() => setIsArchOpen(true)}
         onOpenViva={() => setIsVivaOpen(true)}
         status={status}
       />
@@ -369,7 +363,6 @@ export function App() {
           onSelectRegion={setSelectedRegion}
           onNavigate={handleSelectTab}
           onOpenConfig={() => setIsConfigOpen(true)}
-          onOpenArch={() => setIsArchOpen(true)}
           onOpenViva={() => setIsVivaOpen(true)}
         />
 
@@ -619,7 +612,6 @@ export function App() {
 
       {/* Dialog Modals */}
       <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
-      <ArchitectureModal isOpen={isArchOpen} onClose={() => setIsArchOpen(false)} />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
 
       {/* Floating On-Screen Step Completion Notification */}
