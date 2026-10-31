@@ -1,7 +1,9 @@
 import asyncio
 import json
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -64,6 +66,9 @@ class ProvisionRequest(BaseModel):
 
 class DeployRequest(BaseModel):
     web_server: Optional[str] = "nginx" # 'nginx' or 'apache'
+
+class WebAppContentRequest(BaseModel):
+    html: str
 
 class ChaosRequest(BaseModel):
     fault_type: str # 'http_down', 'cpu_spike', 'config_tamper'
@@ -147,6 +152,28 @@ async def deploy_ansible(req: DeployRequest):
     engine = simulator if state.mode == "simulation" else live_engine
     asyncio.create_task(engine.run_ansible_deploy(web_server=req.web_server))
     return {"status": "started", "action": "ansible_deploy", "web_server": req.web_server}
+
+# Custom Website Management Endpoints
+WEBAPP_INDEX = Path(__file__).resolve().parent.parent / "ansible" / "roles" / "webapp" / "files" / "app" / "index.html"
+
+@app.get("/api/webapp/content")
+async def get_webapp_content():
+    if WEBAPP_INDEX.exists():
+        return {"html": WEBAPP_INDEX.read_text(encoding="utf-8")}
+    return {"html": "<h1>Hello World!</h1>"}
+
+@app.post("/api/webapp/content")
+async def set_webapp_content(req: WebAppContentRequest):
+    WEBAPP_INDEX.parent.mkdir(parents=True, exist_ok=True)
+    WEBAPP_INDEX.write_text(req.html, encoding="utf-8")
+    state.add_log("Custom HTML website updated in ansible/roles/webapp/files/app/index.html", stage="ANSIBLE")
+    return {"status": "saved"}
+
+@app.get("/api/webapp/preview", response_class=HTMLResponse)
+async def preview_webapp():
+    if WEBAPP_INDEX.exists():
+        return WEBAPP_INDEX.read_text(encoding="utf-8")
+    return "<h1>Hello World!</h1>"
 
 # 6. Puppet Compliance Endpoint
 @app.post("/api/puppet/enforce")

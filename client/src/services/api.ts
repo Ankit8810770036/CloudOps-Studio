@@ -57,6 +57,20 @@ export async function deployAnsible(webServer: 'nginx' | 'apache') {
   return res.json();
 }
 
+export async function fetchWebappContent(): Promise<{ html: string }> {
+  const res = await fetch(`${API_BASE}/api/webapp/content`);
+  return res.json();
+}
+
+export async function saveWebappContent(html: string): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/webapp/content`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html }),
+  });
+  return res.json();
+}
+
 export async function enforcePuppet() {
   const res = await fetch(`${API_BASE}/api/puppet/enforce`, {
     method: 'POST',
@@ -106,3 +120,4 @@ export function connectLogWebSocket(onLog: (entry: LogEntry) => void): WebSocket
   };
   return ws;
 }
+
