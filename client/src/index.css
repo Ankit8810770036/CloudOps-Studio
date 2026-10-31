@@ -2007,3 +2007,309 @@ html.modal-open {
   color: #FFFFFF;
   flex-shrink: 0;
 }
+
+/* ==========================================================================
+   PRE-DEPLOYMENT READINESS CHECKLIST & REQUIRED FILES SECTION
+   ========================================================================== */
+.pre-deploy-box {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin: 0.95rem 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.pre-deploy-box:hover {
+  border-color: var(--border-bright);
+}
+
+.pre-deploy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  gap: 0.75rem;
+}
+
+.pre-deploy-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(236, 114, 17, 0.12);
+  border: 1px solid rgba(236, 114, 17, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--aws-orange);
+  flex-shrink: 0;
+}
+
+.pre-deploy-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.pre-deploy-sub {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.pre-deploy-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.pre-deploy-badge.ready {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pre-deploy-badge.pending {
+  background: rgba(217, 119, 6, 0.12);
+  color: var(--aws-orange);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.pre-deploy-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.pre-deploy-body {
+  padding: 0.85rem 1rem;
+}
+
+.pre-deploy-tabs {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.25rem;
+}
+
+.pre-deploy-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.pre-deploy-tab-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.pre-deploy-tab-btn.active {
+  background: var(--bg-card-hover);
+  border-color: var(--aws-orange);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.pre-deploy-requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
+}
+
+.req-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.65rem 0.85rem;
+}
+
+.req-card.highlight {
+  border-left: 3px solid var(--aws-orange);
+}
+
+.req-card.warning {
+  border-left: 3px solid var(--status-danger);
+  background: rgba(220, 38, 38, 0.04);
+}
+
+.req-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.req-card p {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.req-card code {
+  background: var(--code-bg);
+  color: #38BDF8;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+}
+
+.checklist-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem 0.85rem;
+}
+
+.checklist-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 0.55rem;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 5px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.checklist-item.clickable {
+  cursor: pointer;
+}
+
+.checklist-item.clickable:hover {
+  border-color: var(--aws-orange);
+  background: var(--bg-card-hover);
+}
+
+.checklist-item.done {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.checklist-item.fail {
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.checklist-check-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.checklist-item.done .checklist-check-icon {
+  background: #10B981;
+  color: #FFFFFF;
+}
+
+.checklist-item.fail .checklist-check-icon {
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+.empty-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-bright);
+}
+
+.checklist-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.checklist-item-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.checklist-item-desc {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+.sample-snippet-box {
+  margin-top: 0.75rem;
+  background: var(--terminal-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sample-snippet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  background: #090D16;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sample-snippet-code {
+  padding: 0.65rem 0.85rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: #38BDF8;
+  line-height: 1.45;
+  overflow-x: auto;
+}

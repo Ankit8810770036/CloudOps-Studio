@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { DeploymentState, InfrastructureState, StackConfig, CustomCodeState } from '../types';
 import { fetchWebappContent, saveWebappContent, uploadCustomCode, clearUploadedCode } from '../services/api';
+import { PreDeploymentChecklist } from './PreDeploymentChecklist';
 
 interface AnsibleStepProps {
   deployment: DeploymentState;
@@ -688,6 +689,15 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
             />
           </div>
         )}
+
+        {/* Pre-Deployment Readiness & Required Files Section */}
+        <PreDeploymentChecklist
+          backendType={backendType}
+          frontendType={frontendType}
+          isInfraReady={isInfraReady}
+          hasCustomCode={hasCustomCode}
+          customCode={customCode}
+        />
 
         {/* Step 2 Completion Confirmation Banner */}
         {isDeployed && (
