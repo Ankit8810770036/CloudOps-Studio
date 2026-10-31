@@ -1,0 +1,35 @@
+const http = require('http');
+
+const PORT = {{ backend_port | default(5000) }};
+
+const server = http.createServer((req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  if (req.url === '/api/health') {
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      status: 'UP',
+      tier: 'backend',
+      framework: 'Node.js Express Engine',
+      port: PORT,
+      uptime: process.uptime()
+    }));
+  } else if (req.url === '/api/data') {
+    res.writeHead(200);
+    res.end(JSON.stringify({
+      message: 'Hello from Node.js Backend API!',
+      records: [
+        { id: 1, name: 'Node Microservice', role: 'API Gateway', status: 'ONLINE' },
+        { id: 2, name: 'Database Connector', role: 'Mongoose/Prisma', status: 'CONNECTED' }
+      ]
+    }));
+  } else {
+    res.writeHead(404);
+    res.end(JSON.stringify({ error: 'Endpoint Not Found' }));
+  }
+});
+
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`Node.js Backend Server running on port ${PORT}`);
+});

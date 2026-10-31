@@ -48,11 +48,21 @@ export async function destroyTerraform() {
   return res.json();
 }
 
-export async function deployAnsible(webServer: 'nginx' | 'apache') {
+export async function deployAnsible(
+  webServer: 'nginx' | 'apache',
+  frontendType: string = 'react',
+  backendType: string = 'python',
+  databaseType: string = 'postgresql'
+) {
   const res = await fetch(`${API_BASE}/api/ansible/deploy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ web_server: webServer }),
+    body: JSON.stringify({
+      web_server: webServer,
+      frontend_type: frontendType,
+      backend_type: backendType,
+      database_type: databaseType,
+    }),
   });
   return res.json();
 }

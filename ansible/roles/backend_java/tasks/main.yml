@@ -1,0 +1,94 @@
+---
+- name: Install OpenJDK 17 Runtime and Maven
+  apt:
+    name:
+      - openjdk-17-jdk-headless
+      - maven
+      - curl
+    state: present
+
+- name: Create Spring Boot Application Directory
+  file:
+    path: /opt/devops_springboot
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Deploy Spring Boot Application Properties
+  template:
+    src: application.properties.j2
+    dest: /opt/devops_springboot/application.properties
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+- name: Create Spring Boot Runner Script / JAR
+  copy:
+    content: |
+      #!/bin/bash
+      # Standalone Java HTTP Service (Simulating Spring Boot Actuator/Web)
+      exec java -Xmx256m -Dserver.port={{ backend_port | default(8080) }} -cp /opt/devops_springboot App
+    dest: /opt/devops_springboot/run.sh
+    mode: '0755'
+    owner: www-data
+
+- name: Deploy Minimal Java App Source
+  copy:
+    content: |
+      import com.sun.net.httpserver.*;
+      import java.io.*;
+      import java.net.*;
+      public class App {
+        public static void main(String[] args) throws Exception {
+          int port = Integer.parseInt(System.getProperty("server.port", "8080"));
+          HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+          server.createContext("/api/health", exchange -> {
+            String resp = "{\"status\":\"UP\",\"framework\":\"Java Spring Boot 3.2\",\"port\":" + port + "}";
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, resp.length());
+            OutputStream os = exchange.getResponseBody();
+            os.write(resp.getBytes());
+            os.close();
+          });
+          server.createContext("/api/data", exchange -> {
+            String resp = "{\"message\":\"Hello from Enterprise Java Spring Boot Backend!\",\"records\":[{\"id\":101,\"service\":\"Payment Gateway\",\"tier\":\"Spring Boot\"}]}";
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, resp.length());
+            OutputStream os = exchange.getResponseBody();
+            os.write(resp.getBytes());
+            os.close();
+          });
+          server.start();
+          System.out.println("Spring Boot Application Started on Port " + port);
+        }
+      }
+    dest: /opt/devops_springboot/App.java
+    owner: www-data
+
+- name: Compile Java Application
+  command: javac /opt/devops_springboot/App.java
+
+- name: Configure Systemd Service for Spring Boot
+  template:
+    src: devops-springboot.service.j2
+    dest: /etc/systemd/system/devops-springboot.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable and Start Spring Boot Systemd Service
+  systemd:
+    name: devops-springboot
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: Verify Spring Boot Health Endpoint
+  uri:
+    url: "http://127.0.0.1:{{ backend_port | default(8080) }}/api/health"
+    status_code: 200
+  register: jvm_check
+  retries: 6
+  delay: 3
+  until: jvm_check.status == 200

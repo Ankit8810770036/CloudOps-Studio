@@ -1,0 +1,24 @@
+---
+- name: Deploy Full-Stack Nginx Configuration with Reverse Proxy
+  template:
+    src: fullstack.conf.j2
+    dest: /etc/nginx/sites-available/devops_app
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable Full-Stack Nginx Configuration
+  file:
+    src: /etc/nginx/sites-available/devops_app
+    dest: /etc/nginx/sites-enabled/devops_app
+    state: link
+
+- name: Remove default Nginx site if present
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Reload Nginx service
+  service:
+    name: nginx
+    state: reloaded

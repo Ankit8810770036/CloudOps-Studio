@@ -1,0 +1,35 @@
+---
+- name: Install MySQL / MariaDB Server and client
+  apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+      - python3-pymysql
+    state: present
+
+- name: Ensure MariaDB/MySQL service is started and enabled
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Create MySQL Application Database
+  mysql_db:
+    name: "{{ db_name | default('devops_db') }}"
+    state: present
+  ignore_errors: yes
+
+- name: Create MySQL Database User
+  mysql_user:
+    name: "{{ db_user | default('app_user') }}"
+    password: "{{ db_password | default('secure_devops_pass') }}"
+    priv: "{{ db_name | default('devops_db') }}.*:ALL"
+    host: 'localhost'
+    state: present
+  ignore_errors: yes
+
+- name: Verify MySQL ping
+  command: mysqladmin ping -h 127.0.0.1
+  register: mysql_ready
+  changed_when: false
+  ignore_errors: yes

@@ -95,3 +95,4 @@ export const PuppetStep: React.FC<PuppetStepProps> = ({
     </div>
   );
 };
+

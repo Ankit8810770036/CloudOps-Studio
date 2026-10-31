@@ -122,3 +122,4 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose }) => 
     </div>
   );
 };
+

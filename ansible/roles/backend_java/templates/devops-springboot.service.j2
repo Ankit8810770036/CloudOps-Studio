@@ -1,0 +1,15 @@
+[Unit]
+Description=DevOps Java Spring Boot Application Daemon
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/devops_springboot
+ExecStart=/opt/devops_springboot/run.sh
+Restart=always
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

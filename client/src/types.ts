@@ -12,6 +12,18 @@ export interface InfrastructureState {
   provisioned_at: string | null;
 }
 
+export interface StackTier {
+  type: string;
+  [key: string]: any;
+}
+
+export interface StackConfig {
+  preset: string;
+  frontend: StackTier;
+  backend: StackTier;
+  database: StackTier;
+}
+
 export interface DeploymentState {
   status: 'not_deployed' | 'deploying' | 'deployed' | 'failed';
   web_server: 'nginx' | 'apache';
@@ -34,7 +46,7 @@ export interface ComplianceState {
 
 export interface CheckMetric {
   name: string;
-  status: 'OK' | 'WARNING' | 'CRITICAL' | 'UNKNOWN';
+  status: 'OK' | 'WARNING' | 'CRITICAL' | 'UNKNOWN' | 'DISABLED';
   [key: string]: any;
 }
 
@@ -53,6 +65,8 @@ export interface TelemetryState {
   checks: {
     ping: CheckMetric;
     http: CheckMetric;
+    backend_api?: CheckMetric;
+    database?: CheckMetric;
     ssh: CheckMetric;
     cpu: CheckMetric;
     memory: CheckMetric;
@@ -62,7 +76,7 @@ export interface TelemetryState {
 }
 
 export interface ChaosState {
-  active_fault: 'http_down' | 'cpu_spike' | 'config_tamper' | null;
+  active_fault: 'http_down' | 'backend_down' | 'db_down' | 'cpu_spike' | 'config_tamper' | null;
   description: string | null;
   injected_at: string | null;
 }
@@ -72,6 +86,7 @@ export interface FullStatus {
   is_running_pipeline: boolean;
   current_action: string | null;
   infrastructure: InfrastructureState;
+  stack?: StackConfig;
   deployment: DeploymentState;
   compliance: ComplianceState;
   telemetry: TelemetryState;

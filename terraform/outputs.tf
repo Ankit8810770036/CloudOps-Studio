@@ -27,3 +27,4 @@ output "ssh_command" {
   description = "Command to connect via SSH"
   value       = "ssh -i ${path.module}/devops-key.pem ubuntu@${aws_instance.web_server.public_ip}"
 }
+

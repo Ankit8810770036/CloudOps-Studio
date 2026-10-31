@@ -173,9 +173,9 @@ class LiveEngine:
         except Exception as e:
             return False, "", str(e)
 
-    async def run_ansible_deploy(self, web_server: str = "nginx"):
+    async def run_ansible_deploy(self, web_server: str = "nginx", frontend_type: str = "react", backend_type: str = "python", database_type: str = "postgresql"):
         state.is_running_pipeline = True
-        state.current_action = f"Ansible Live Deploy ({web_server.upper()})"
+        state.current_action = f"Ansible Live Deploy [{frontend_type.upper()} + {backend_type.upper()} + {database_type.upper()}]"
         state.deployment["status"] = "deploying"
         state.deployment["web_server"] = web_server
         
@@ -395,3 +395,4 @@ EOF'
         state.clear_alerts_for_service("cpu_utilization")
 
 live_engine = LiveEngine()
+

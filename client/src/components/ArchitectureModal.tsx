@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Network, Layers, Package, ShieldCheck, Activity, ArrowRight } from 'lucide-react';
+import { X, Network, Layers, Package, ShieldCheck, Activity, Database, Server, Layout } from 'lucide-react';
 
 interface ArchitectureModalProps {
   isOpen: boolean;
@@ -11,97 +11,86 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '780px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '840px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <Network size={20} color="#38bdf8" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>System Architecture & Toolchain Synergy</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>System Architecture & 3-Tier Polyglot Design</h3>
           </div>
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
 
         <div>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.5rem' }}>
-            This platform illustrates industry-standard separation of concerns across the 4 foundational pillars of modern DevOps infrastructure:
+          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
+            This platform enables deployment of any application stack (Python, Java Spring Boot, Node.js, React, PostgreSQL, MySQL) across 4 industry-standard DevOps automation layers:
           </p>
 
-          {/* Flow Diagram Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.75rem' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '0.85rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(132, 79, 186, 0.1)',
-              border: '1px solid rgba(132, 79, 186, 0.3)'
-            }}>
-              <div style={{ width: 36, height: 36, borderRadius: '8px', background: '#844fba', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Layers size={18} color="white" />
+          {/* 3-Tier Application Model */}
+          <div style={{
+            background: 'rgba(56, 189, 248, 0.06)',
+            border: '1px solid rgba(56, 189, 248, 0.2)',
+            borderRadius: '12px',
+            padding: '1rem',
+            marginBottom: '1.5rem'
+          }}>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#38bdf8', marginBottom: '0.6rem' }}>
+              Full-Stack 3-Tier Topology (Managed by Ansible & Nginx)
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', textAlign: 'center' }}>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Layout size={20} color="#60a5fa" style={{ margin: '0 auto 0.4rem' }} />
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#e2e8f0' }}>Tier 1: Frontend</div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>React SPA / HTML5</div>
+                <div style={{ fontSize: '0.7rem', color: '#38bdf8', marginTop: '0.2rem' }}>Port 80 (Nginx Proxy)</div>
               </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#e9d5ff' }}>1. Terraform (Infrastructure as Code)</h4>
-                <p style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Provisions AWS VPC, Subnet, Security Groups (Ports 22, 80, 443, 5666), and Ubuntu 22.04 LTS EC2 Instance.</p>
+
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Server size={20} color="#f59e0b" style={{ margin: '0 auto 0.4rem' }} />
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#e2e8f0' }}>Tier 2: Backend API</div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Python / Java / Node.js</div>
+                <div style={{ fontSize: '0.7rem', color: '#f59e0b', marginTop: '0.2rem' }}>Port 8000 / 8080 / 5000</div>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Database size={20} color="#34d399" style={{ margin: '0 auto 0.4rem' }} />
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#e2e8f0' }}>Tier 3: Database</div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>PostgreSQL / MySQL / Mongo</div>
+                <div style={{ fontSize: '0.7rem', color: '#34d399', marginTop: '0.2rem' }}>Port 5432 / 3306 / 27017</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Toolchain Pillars */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(132, 79, 186, 0.1)', border: '1px solid rgba(132, 79, 186, 0.25)' }}>
+              <Layers size={18} color="#c084fc" />
+              <div>
+                <strong style={{ color: '#e9d5ff', fontSize: '0.88rem' }}>1. Terraform (IaC)</strong>
+                <span style={{ color: '#cbd5e1', fontSize: '0.8rem', marginLeft: '0.5rem' }}>Provisions VPC, Subnet, Security Groups (Ports 22, 80, 443, 5000, 8000, 8080, 5432, 5666), and EC2 Instance.</span>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', color: '#64748b' }}>↓ Provisions compute & networking</div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '0.85rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(238, 0, 0, 0.1)',
-              border: '1px solid rgba(238, 0, 0, 0.3)'
-            }}>
-              <div style={{ width: 36, height: 36, borderRadius: '8px', background: '#ee0000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Package size={18} color="white" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fca5a5' }}>2. Ansible (Configuration & Deployment)</h4>
-                <p style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Installs Nginx or Apache, configures virtual hosts, and deploys the responsive web application onto the cloud instance.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(238, 0, 0, 0.1)', border: '1px solid rgba(238, 0, 0, 0.25)' }}>
+              <Package size={18} color="#f87171" />
+              <div>
+                <strong style={{ color: '#fca5a5', fontSize: '0.88rem' }}>2. Ansible Automation</strong>
+                <span style={{ color: '#cbd5e1', fontSize: '0.8rem', marginLeft: '0.5rem' }}>Deploys Database tier, compiles/runs Backend runtime (OpenJDK/FastAPI/Node), and configures Nginx reverse proxy.</span>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', color: '#64748b' }}>↓ Configures application stack</div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '0.85rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.3)'
-            }}>
-              <div style={{ width: 36, height: 36, borderRadius: '8px', background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={18} color="#1e1e1e" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fde68a' }}>3. Puppet (Compliance & Drift Self-Healing)</h4>
-                <p style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Hardens SSH daemon, enforces security compliance banners, installs fail2ban, and automatically heals configuration drift.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+              <ShieldCheck size={18} color="#fbbf24" />
+              <div>
+                <strong style={{ color: '#fde68a', fontSize: '0.88rem' }}>3. Puppet Compliance</strong>
+                <span style={{ color: '#cbd5e1', fontSize: '0.8rem', marginLeft: '0.5rem' }}>Enforces database isolation (127.0.0.1 bind), supervises backend systemd daemons, hardens SSH, and prevents configuration drift.</span>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', color: '#64748b' }}>↓ Hardens baseline & prepares telemetry sensors</div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '0.85rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '1px solid rgba(16, 185, 129, 0.3)'
-            }}>
-              <div style={{ width: 36, height: 36, borderRadius: '8px', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Activity size={18} color="white" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#a7f3d0' }}>4. Nagios (Continuous Probing & Alerting)</h4>
-                <p style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Active health checks over NRPE, HTTP port 80, SSH port 22, CPU load, and disk space with Warning/Critical alert rules.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem 1rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+              <Activity size={18} color="#34d399" />
+              <div>
+                <strong style={{ color: '#a7f3d0', fontSize: '0.88rem' }}>4. Nagios Core & NRPE</strong>
+                <span style={{ color: '#cbd5e1', fontSize: '0.8rem', marginLeft: '0.5rem' }}>Probes Frontend HTTP (80), Backend API health (/api/health), Database socket (5432/3306), and host hardware load.</span>
               </div>
             </div>
           </div>

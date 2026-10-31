@@ -2,162 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CloudOps - Automated Infrastructure Platform</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>My DevOps Cloud Website</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #1e293b;
+      padding: 3rem;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      text-align: center;
+      border: 1px solid #334155;
+      max-width: 500px;
+    }
+    h1 { color: #38bdf8; margin-bottom: 0.5rem; }
+    p { color: #94a3b8; line-height: 1.6; }
+    .tag {
+      background: #0284c7;
+      color: white;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      display: inline-block;
+      margin-top: 1.25rem;
+    }
+  </style>
 </head>
 <body>
-  <div class="bg-glow"></div>
-  <div class="container">
-    <header class="header">
-      <div class="brand">
-        <div class="logo-box">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="logo-text">CloudOps Node</h1>
-          <span class="badge live-badge">● LIVE AWS NODE</span>
-        </div>
-      </div>
-      <div class="header-tags">
-        <span class="pill">Terraform Provisioned</span>
-        <span class="pill">Ansible Deployed</span>
-        <span class="pill">Puppet Hardened</span>
-        <span class="pill pill-nagios">Nagios Monitored</span>
-      </div>
-    </header>
-
-    <main>
-      <section class="hero-card">
-        <div class="hero-content">
-          <span class="status-indicator-tag"><span class="pulse"></span> System Operational</span>
-          <h2 class="hero-title">Automated Cloud Infrastructure & Web Application</h2>
-          <p class="hero-desc">
-            This cloud instance was dynamically provisioned via Terraform IaC, configured and deployed via Ansible, hardened with Puppet configuration compliance, and is continuously watched by Nagios health probes.
-          </p>
-          <div class="quick-stats">
-            <div class="stat-item">
-              <span class="stat-label">Web Server</span>
-              <span class="stat-value" id="val-webserver">Nginx</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Security State</span>
-              <span class="stat-value text-emerald">Puppet Enforced</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Health Check</span>
-              <span class="stat-value text-cyan" id="val-health">HTTP 200 OK</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Telemetry</span>
-              <span class="stat-value" id="val-uptime">Live</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="grid-2">
-        <!-- Node Metadata Card -->
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title-group">
-              <span class="icon">🖥️</span>
-              <h3>Server Telemetry</h3>
-            </div>
-            <span class="chip" id="node-hostname">ubuntu-ec2</span>
-          </div>
-          <div class="telemetry-list">
-            <div class="telemetry-row">
-              <span class="telemetry-label">Host OS</span>
-              <span class="telemetry-val" id="node-os">Ubuntu 22.04 LTS</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">Virtualization</span>
-              <span class="telemetry-val">AWS HVM Nitro</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">HTTP Endpoint</span>
-              <span class="telemetry-val code-font" id="node-ip">Port 80 (TCP)</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">Config Drift Check</span>
-              <span class="telemetry-val text-emerald">Compliant (0 Drifts)</span>
-            </div>
-            <div class="telemetry-row">
-              <span class="telemetry-label">Timestamp</span>
-              <span class="telemetry-val" id="node-timestamp">Just now</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Toolchain Pipeline Card -->
-        <div class="card">
-          <div class="card-head">
-            <div class="card-title-group">
-              <span class="icon">⚙️</span>
-              <h3>DevOps Toolchain Status</h3>
-            </div>
-            <span class="chip-active">All Active</span>
-          </div>
-          <div class="pipeline-stack">
-            <div class="pipeline-row">
-              <div class="pipeline-info">
-                <span class="pipeline-icon tf">TF</span>
-                <div>
-                  <h4>Terraform</h4>
-                  <p>VPC, Subnet, Security Group & EC2</p>
-                </div>
-              </div>
-              <span class="status-badge ok">PROVISIONED</span>
-            </div>
-
-            <div class="pipeline-row">
-              <div class="pipeline-info">
-                <span class="pipeline-icon ans">AN</span>
-                <div>
-                  <h4>Ansible</h4>
-                  <p>Web Server Stack & Dynamic Content</p>
-                </div>
-              </div>
-              <span class="status-badge ok">DEPLOYED</span>
-            </div>
-
-            <div class="pipeline-row">
-              <div class="pipeline-info">
-                <span class="pipeline-icon pup">PP</span>
-                <div>
-                  <h4>Puppet</h4>
-                  <p>Security Baseline & Policy Enforcement</p>
-                </div>
-              </div>
-              <span class="status-badge ok">ENFORCED</span>
-            </div>
-
-            <div class="pipeline-row">
-              <div class="pipeline-info">
-                <span class="pipeline-icon nag">NG</span>
-                <div>
-                  <h4>Nagios</h4>
-                  <p>NRPE, Ping, HTTP, SSH & CPU Probes</p>
-                </div>
-              </div>
-              <span class="status-badge ok">MONITORING</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <p>DevOps Academic Capstone Platform &bull; Automated Cloud Infrastructure & Configuration Management</p>
-    </footer>
+  <div class="card">
+    <h1>🚀 Hello World!</h1>
+    <p>This website was automatically provisioned with <strong>Terraform</strong> and deployed with <strong>Ansible</strong> on <strong>Nginx</strong>.</p>
+    <div class="tag">Managed by Puppet &bull; Monitored by Nagios</div>
   </div>
-
-  <script src="app.js"></script>
 </body>
 </html>

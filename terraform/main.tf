@@ -101,6 +101,15 @@ resource "aws_security_group" "devops_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Backend API Ports (Python 8000, Spring Boot 8080, Node 5000)
+  ingress {
+    description = "Backend API microservices"
+    from_port   = 5000
+    to_port     = 9000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Nagios NRPE Monitoring Port
   ingress {
     description = "Nagios NRPE monitoring"
@@ -158,3 +167,4 @@ resource "aws_instance" "web_server" {
     ManagedBy   = "Terraform"
   }
 }
+

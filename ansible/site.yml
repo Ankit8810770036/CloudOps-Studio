@@ -1,9 +1,13 @@
 ---
-- name: Configure Cloud Server and Deploy Application
+- name: Configure Cloud Server and Deploy Full-Stack Polyglot Application
   hosts: webservers
   become: yes
   vars:
     web_server_type: "{{ web_server_type | default('nginx') }}"
+    frontend_type: "{{ frontend_type | default('react') }}"
+    backend_type: "{{ backend_type | default('python') }}"
+    database_type: "{{ database_type | default('sqlite') }}"
+    backend_port: "{{ backend_port | default(8000) }}"
     web_root: "/var/www/devops_app"
 
   pre_tasks:
@@ -23,19 +27,29 @@
           - net-tools
         state: present
 
-    - name: Stop conflicting web server if switching
-      service:
-        name: "{{ 'apache2' if web_server_type == 'nginx' else 'nginx' }}"
-        state: stopped
-        enabled: no
-      ignore_errors: yes
-
   roles:
+    # 1. Database Tier
+    - role: database_postgresql
+      when: database_type == 'postgresql'
+    - role: database_mysql
+      when: database_type == 'mysql'
+
+    # 2. Backend Tier
+    - role: backend_python
+      when: backend_type == 'python'
+    - role: backend_java
+      when: backend_type == 'java_springboot'
+    - role: backend_nodejs
+      when: backend_type == 'nodejs'
+
+    # 3. Frontend Tier & Reverse Proxy
     - role: nginx
       when: web_server_type == 'nginx'
     - role: apache
       when: web_server_type == 'apache'
     - role: webapp
+    - role: nginx_reverse_proxy
+      when: web_server_type == 'nginx' and backend_type != 'none'
 
   post_tasks:
     - name: Ensure UFW firewall allows HTTP traffic
@@ -50,7 +64,7 @@
         port: '22'
         proto: tcp
 
-    - name: Verify Web Service is running and responding
+    - name: Verify Frontend Web Service is running and responding
       uri:
         url: "http://127.0.0.1:80"
         status_code: 200
@@ -60,6 +74,6 @@
       delay: 3
       until: web_check.status == 200
 
-    - name: Display Deployment Verification
+    - name: Display Full-Stack Deployment Summary
       debug:
-        msg: "Success! {{ web_server_type | upper }} is active and serving the application on port 80."
+        msg: "Success! Deployed Full-Stack [Frontend: {{ frontend_type }} | Backend: {{ backend_type }} (Port {{ backend_port }}) | Database: {{ database_type }}] on port 80."

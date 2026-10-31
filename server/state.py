@@ -17,6 +17,29 @@ class PlatformState:
             "aws_secret_key": ""
         }
         
+        # Full-Stack Customization Config (Frontend, Backend, Database)
+        self.stack = {
+            "preset": "custom", # 'python_fullstack', 'spring_enterprise', 'mern_stack', 'static_html', 'custom'
+            "frontend": {
+                "type": "react", # 'react', 'html', 'nodejs_ssr'
+                "title": "CloudOps Operations Dashboard",
+                "port": 80
+            },
+            "backend": {
+                "type": "python", # 'python', 'java_springboot', 'nodejs', 'none'
+                "framework": "FastAPI",
+                "port": 8000,
+                "health_endpoint": "/api/health"
+            },
+            "database": {
+                "type": "postgresql", # 'postgresql', 'mysql', 'mongodb', 'sqlite', 'none'
+                "engine": "PostgreSQL 15",
+                "port": 5432,
+                "db_name": "devops_db",
+                "db_user": "app_user"
+            }
+        }
+        
         # Step 1: Terraform Infrastructure
         self.infrastructure = {
             "status": "not_provisioned", # not_provisioned, provisioning, ready, destroyed, error
@@ -34,7 +57,7 @@ class PlatformState:
         self.deployment = {
             "status": "not_deployed", # not_deployed, deploying, deployed, failed
             "web_server": "nginx", # nginx or apache
-            "deployed_app": "CloudOps Operations Portal v1.0",
+            "deployed_app": "Full-Stack Web Application (React + Python + PostgreSQL)",
             "deployed_at": None,
             "response_code": None
         }
@@ -47,8 +70,9 @@ class PlatformState:
                 {"name": "SSH Hardening (No root password, MaxAuthTries 4)", "status": "active"},
                 {"name": "System Compliance MOTD & Banner", "status": "active"},
                 {"name": "Security Packages (fail2ban, ufw, htop)", "status": "active"},
-                {"name": "NRPE Monitoring Daemon & Plugins", "status": "active"},
-                {"name": "Web Root Permissions (/var/www/devops_app 0755)", "status": "active"}
+                {"name": "Backend Daemon Supervision (Systemd)", "status": "active"},
+                {"name": "Database Isolation (Bound to 127.0.0.1)", "status": "active"},
+                {"name": "NRPE Monitoring Daemon & Multi-Tier Sensors", "status": "active"}
             ],
             "drift_count": 0
         }
@@ -59,7 +83,9 @@ class PlatformState:
             "last_check": None,
             "checks": {
                 "ping": {"name": "Host Ping (ICMP)", "status": "UNKNOWN", "latency_ms": 0, "packet_loss": "0%"},
-                "http": {"name": "HTTP Service (Port 80)", "status": "UNKNOWN", "code": 0, "response_time_ms": 0},
+                "http": {"name": "Frontend Web Tier (Port 80)", "status": "UNKNOWN", "code": 0, "response_time_ms": 0},
+                "backend_api": {"name": "Backend API Tier", "status": "UNKNOWN", "port": 8000, "latency_ms": 0},
+                "database": {"name": "Database Tier", "status": "UNKNOWN", "engine": "PostgreSQL", "port": 5432},
                 "ssh": {"name": "SSH Daemon (Port 22)", "status": "UNKNOWN", "port_open": False},
                 "cpu": {"name": "CPU Utilization", "status": "UNKNOWN", "value": 0, "unit": "%"},
                 "memory": {"name": "RAM Utilization", "status": "UNKNOWN", "value": 0, "unit": "%"},
@@ -70,7 +96,7 @@ class PlatformState:
         
         # Chaos Failure Injection State
         self.chaos = {
-            "active_fault": None, # None, 'http_down', 'cpu_spike', 'config_tamper'
+            "active_fault": None, # None, 'http_down', 'backend_down', 'db_down', 'cpu_spike', 'config_tamper'
             "description": None,
             "injected_at": None
         }
@@ -95,7 +121,6 @@ class PlatformState:
         if len(self.recent_logs) > 600:
             self.recent_logs.pop(0)
             
-        # Broadcast to all connected WebSockets
         for q in list(self.log_subscribers):
             try:
                 q.put_nowait(entry)
@@ -106,7 +131,7 @@ class PlatformState:
         alert_entry = {
             "id": f"alert_{int(time.time()*1000)}",
             "timestamp": time.strftime("%H:%M:%S"),
-            "severity": severity, # WARNING, CRITICAL, INFO
+            "severity": severity,
             "title": title,
             "description": description,
             "service": service

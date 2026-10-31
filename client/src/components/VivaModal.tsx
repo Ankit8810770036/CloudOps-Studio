@@ -107,3 +107,4 @@ export const VivaModal: React.FC<VivaModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
+

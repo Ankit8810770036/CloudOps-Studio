@@ -66,6 +66,9 @@ class ProvisionRequest(BaseModel):
 
 class DeployRequest(BaseModel):
     web_server: Optional[str] = "nginx" # 'nginx' or 'apache'
+    frontend_type: Optional[str] = "react" # 'react', 'html', 'nodejs_ssr'
+    backend_type: Optional[str] = "python" # 'python', 'java_springboot', 'nodejs', 'none'
+    database_type: Optional[str] = "postgresql" # 'postgresql', 'mysql', 'mongodb', 'sqlite', 'none'
 
 class WebAppContentRequest(BaseModel):
     html: str
@@ -81,6 +84,7 @@ async def get_status():
         "is_running_pipeline": state.is_running_pipeline,
         "current_action": state.current_action,
         "infrastructure": state.infrastructure,
+        "stack": state.stack,
         "deployment": state.deployment,
         "compliance": state.compliance,
         "telemetry": state.telemetry,
@@ -150,8 +154,20 @@ async def deploy_ansible(req: DeployRequest):
         raise HTTPException(status_code=400, detail="Cannot deploy: Infrastructure is not ready. Provision with Terraform first.")
         
     engine = simulator if state.mode == "simulation" else live_engine
-    asyncio.create_task(engine.run_ansible_deploy(web_server=req.web_server))
-    return {"status": "started", "action": "ansible_deploy", "web_server": req.web_server}
+    asyncio.create_task(engine.run_ansible_deploy(
+        web_server=req.web_server,
+        frontend_type=req.frontend_type,
+        backend_type=req.backend_type,
+        database_type=req.database_type
+    ))
+    return {
+        "status": "started",
+        "action": "ansible_deploy",
+        "web_server": req.web_server,
+        "frontend": req.frontend_type,
+        "backend": req.backend_type,
+        "database": req.database_type
+    }
 
 # Custom Website Management Endpoints
 WEBAPP_INDEX = Path(__file__).resolve().parent.parent / "ansible" / "roles" / "webapp" / "files" / "app" / "index.html"

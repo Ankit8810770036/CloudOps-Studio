@@ -96,7 +96,7 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
         <button
           onClick={() => onInject('http_down')}
           disabled={isRunning || !isInfraReady || hasFault}
@@ -108,7 +108,35 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
           }}
         >
           <Zap size={14} />
-          <span>Simulate Web Crash (HTTP 502)</span>
+          <span>Simulate Frontend Web Crash</span>
+        </button>
+
+        <button
+          onClick={() => onInject('backend_down')}
+          disabled={isRunning || !isInfraReady || hasFault}
+          className="btn-secondary"
+          style={{
+            justifyContent: 'center',
+            borderColor: 'rgba(245, 158, 11, 0.3)',
+            color: '#fbbf24'
+          }}
+        >
+          <ShieldAlert size={14} />
+          <span>Crash Backend API Service</span>
+        </button>
+
+        <button
+          onClick={() => onInject('db_down')}
+          disabled={isRunning || !isInfraReady || hasFault}
+          className="btn-secondary"
+          style={{
+            justifyContent: 'center',
+            borderColor: 'rgba(16, 185, 129, 0.3)',
+            color: '#34d399'
+          }}
+        >
+          <Flame size={14} />
+          <span>Crash Database Daemon</span>
         </button>
 
         <button
@@ -117,8 +145,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = ({
           className="btn-secondary"
           style={{
             justifyContent: 'center',
-            borderColor: 'rgba(245, 158, 11, 0.3)',
-            color: '#fbbf24'
+            borderColor: 'rgba(238, 0, 0, 0.3)',
+            color: '#f87171'
           }}
         >
           <ShieldAlert size={14} />

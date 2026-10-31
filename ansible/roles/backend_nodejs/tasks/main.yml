@@ -1,0 +1,59 @@
+---
+- name: Install Node.js and npm
+  apt:
+    name:
+      - nodejs
+      - npm
+    state: present
+
+- name: Create Node.js Backend Application Directory
+  file:
+    path: /opt/devops_node
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Deploy package.json
+  copy:
+    content: |
+      {
+        "name": "devops-node-backend",
+        "version": "1.0.0",
+        "main": "server.js",
+        "dependencies": {}
+      }
+    dest: /opt/devops_node/package.json
+    owner: www-data
+
+- name: Deploy Express/Node.js Server Code
+  template:
+    src: server.js.j2
+    dest: /opt/devops_node/server.js
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+- name: Configure Systemd Service for Node.js
+  template:
+    src: devops-node.service.j2
+    dest: /etc/systemd/system/devops-node.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable and Start Node.js Systemd Service
+  systemd:
+    name: devops-node
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: Verify Node.js Health Endpoint
+  uri:
+    url: "http://127.0.0.1:{{ backend_port | default(5000) }}/api/health"
+    status_code: 200
+  register: node_check
+  retries: 5
+  delay: 2
+  until: node_check.status == 200

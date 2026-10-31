@@ -1,0 +1,42 @@
+import os
+import time
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="DevOps Full-Stack Backend API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+DATABASE_TYPE = "{{ database_type | default('sqlite') }}"
+DB_HOST = "{{ db_host | default('127.0.0.1') }}"
+DB_NAME = "{{ db_name | default('devops_db') }}"
+
+@app.get("/api/health")
+def health_check():
+    return {
+        "status": "UP",
+        "tier": "backend",
+        "framework": "Python FastAPI",
+        "database": DATABASE_TYPE,
+        "timestamp": time.time()
+    }
+
+@app.get("/api/data")
+def get_sample_data():
+    return {
+        "message": "Hello from Python FastAPI Backend!",
+        "database_connected": DATABASE_TYPE != "none",
+        "database_engine": DATABASE_TYPE.upper(),
+        "records": [
+            {"id": 1, "task": "Provision Cloud Infrastructure", "tool": "Terraform", "status": "COMPLETED"},
+            {"id": 2, "task": "Deploy Full-Stack Application", "tool": "Ansible", "status": "ACTIVE"},
+            {"id": 3, "task": "Configuration Compliance", "tool": "Puppet", "status": "ENFORCED"},
+            {"id": 4, "task": "Proactive Health Monitoring", "tool": "Nagios Core", "status": "MONITORING"}
+        ]
+    }

@@ -1,0 +1,5 @@
+server.port={{ backend_port | default(8080) }}
+spring.application.name=DevOps-SpringBoot-Backend
+management.endpoints.web.exposure.include=health,info,metrics
+spring.datasource.url=jdbc:postgresql://{{ db_host | default('127.0.0.1') }}:5432/{{ db_name | default('devops_db') }}
+spring.jpa.hibernate.ddl-auto=update

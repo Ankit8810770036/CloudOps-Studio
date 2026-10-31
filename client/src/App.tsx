@@ -77,8 +77,8 @@ export function App() {
     setStatus(updated);
   };
 
-  const handleDeployAnsible = async (webServer: 'nginx' | 'apache') => {
-    await deployAnsible(webServer);
+  const handleDeployAnsible = async (webServer: 'nginx' | 'apache', frontend: string, backend: string, database: string) => {
+    await deployAnsible(webServer, frontend, backend, database);
     const updated = await fetchStatus();
     setStatus(updated);
   };
@@ -223,6 +223,7 @@ export function App() {
             <AnsibleStep
               deployment={status.deployment}
               infra={status.infrastructure}
+              stack={status.stack}
               onDeploy={handleDeployAnsible}
               isRunning={isRunning}
             />
