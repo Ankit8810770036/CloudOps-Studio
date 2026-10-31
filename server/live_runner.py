@@ -197,6 +197,47 @@ class LiveEngine:
             state.add_log(f"Waiting for EC2 SSH port to be ready... (Attempt {attempt}/10)", stage="ANSIBLE")
             await asyncio.sleep(6)
             
+        # 1. Custom File Injection & Dependency Manifests
+        py_req_file = ANSIBLE_DIR / "roles" / "backend_python" / "files" / "app" / "requirements.txt"
+        node_pkg_file = ANSIBLE_DIR / "roles" / "backend_nodejs" / "files" / "app" / "package.json"
+
+        backend_dep_cmd = ""
+        if backend_type == "python":
+            backend_dep_cmd = """
+            sudo apt-get install -y python3 python3-pip python3-venv
+            sudo mkdir -p /opt/devops_backend
+            sudo python3 -m venv /opt/devops_backend/venv
+            sudo /opt/devops_backend/venv/bin/pip install --upgrade pip fastapi uvicorn[standard] pydantic requests
+            """
+            if py_req_file.exists():
+                req_content = py_req_file.read_text(encoding="utf-8")
+                backend_dep_cmd += f"""
+                sudo bash -c 'cat << "EOF" > /opt/devops_backend/requirements.txt
+{req_content}
+EOF'
+                echo "Installing custom Python libraries from requirements.txt..."
+                sudo /opt/devops_backend/venv/bin/pip install -r /opt/devops_backend/requirements.txt
+                """
+        elif backend_type == "nodejs":
+            backend_dep_cmd = """
+            sudo apt-get install -y nodejs npm
+            sudo mkdir -p /opt/devops_node
+            """
+            if node_pkg_file.exists():
+                pkg_content = node_pkg_file.read_text(encoding="utf-8")
+                backend_dep_cmd += f"""
+                sudo bash -c 'cat << "EOF" > /opt/devops_node/package.json
+{pkg_content}
+EOF'
+                echo "Installing custom Node.js libraries from package.json..."
+                cd /opt/devops_node && sudo npm install --production
+                """
+        elif backend_type == "java_springboot":
+            backend_dep_cmd = """
+            sudo apt-get install -y openjdk-17-jdk-headless
+            sudo mkdir -p /opt/devops_springboot
+            """
+
         # Execute deployment on target node
         deploy_cmd = f"""
         sudo apt-get update -y
@@ -222,6 +263,9 @@ class LiveEngine:
             sudo sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/devops_app|g' /etc/apache2/sites-available/000-default.conf
             sudo systemctl reload apache2
         fi
+
+        {backend_dep_cmd}
+
         sudo ufw allow 80/tcp
         sudo ufw allow 22/tcp
         """

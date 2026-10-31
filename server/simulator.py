@@ -166,22 +166,47 @@ class SimulationEngine:
             ])
 
         # 2. Backend Tier Task Simulation
+        has_custom_b = bool(state.custom_code.get("backend"))
+        b_files = (state.custom_code.get("backend") or {}).get("files", [])
+
         if backend_type == 'java_springboot':
             logs.extend([
-                ("TASK [backend_java : Install OpenJDK 17 Runtime & Maven] *********************", 1.2),
-                (f"changed: [{target_ip}] => openjdk-17-jdk-headless", 0.7),
-                ("TASK [backend_java : Deploy Spring Boot Application Code & Properties] *******", 0.9),
-                (f"changed: [{target_ip}] => dest=/opt/devops_springboot/application.properties", 0.6),
-                ("TASK [backend_java : Compile Java Source & Configure Systemd Unit] ***********", 1.2),
-                (f"changed: [{target_ip}] => /etc/systemd/system/devops-springboot.service", 0.7),
+                ("TASK [backend_java : Install OpenJDK 17 Runtime & Maven Build Tools] *********", 1.2),
+                (f"changed: [{target_ip}] => openjdk-17-jdk-headless & maven", 0.7),
+            ])
+            if has_custom_b and any(f.lower().endswith(".jar") for f in b_files):
+                logs.extend([
+                    ("TASK [backend_java : Deploy Standalone Executable Spring Boot JAR] ***********", 1.0),
+                    (f"changed: [{target_ip}] => /opt/devops_springboot/app.jar (All libraries embedded in BOOT-INF/lib)", 0.8),
+                ])
+            else:
+                logs.extend([
+                    ("TASK [backend_java : Deploy Spring Boot Application Code & Properties] *******", 0.9),
+                    (f"changed: [{target_ip}] => dest=/opt/devops_springboot/application.properties", 0.6),
+                    ("TASK [backend_java : Compile Java Source & Configure Systemd Unit] ***********", 1.2),
+                    (f"changed: [{target_ip}] => /etc/systemd/system/devops-springboot.service", 0.7),
+                ])
+            logs.extend([
                 ("TASK [backend_java : Start Spring Boot Daemon & Wait for Health Endpoint] ***", 1.4),
                 (f"ok: [{target_ip}] => HTTP 200 on http://127.0.0.1:8080/api/health", 0.6),
                 ("", 0.2)
             ])
         elif backend_type == 'python':
             logs.extend([
-                ("TASK [backend_python : Create Python venv & Install FastAPI/Uvicorn] **********", 1.1),
-                (f"changed: [{target_ip}] => (fastapi, uvicorn, pydantic, psycopg2)", 0.7),
+                ("TASK [backend_python : Create Python venv & Core Virtual Environment] *********", 1.1),
+                (f"changed: [{target_ip}] => /opt/devops_backend/venv (Python 3.10+)", 0.7),
+            ])
+            if has_custom_b and any("requirements.txt" in f.lower() for f in b_files):
+                logs.extend([
+                    ("TASK [backend_python : Detect requirements.txt & Install Project Libraries] ***", 1.2),
+                    (f"changed: [{target_ip}] => pip install -r requirements.txt (Dependencies successfully resolved)", 1.0),
+                ])
+            else:
+                logs.extend([
+                    ("TASK [backend_python : Install Default FastAPI & Microservice Dependencies] ***", 0.9),
+                    (f"changed: [{target_ip}] => (fastapi, uvicorn, pydantic, psycopg2)", 0.6),
+                ])
+            logs.extend([
                 ("TASK [backend_python : Deploy API Application Code & Systemd Unit] ***********", 0.9),
                 (f"changed: [{target_ip}] => /etc/systemd/system/devops-backend.service", 0.6),
                 ("TASK [backend_python : Start FastAPI Daemon & Verify /api/health] *************", 1.0),
@@ -190,8 +215,20 @@ class SimulationEngine:
             ])
         elif backend_type == 'nodejs':
             logs.extend([
-                ("TASK [backend_nodejs : Install Node.js v20 LTS & npm] *************************", 1.0),
-                (f"changed: [{target_ip}] => /usr/bin/node v20.12.0", 0.6),
+                ("TASK [backend_nodejs : Install Node.js v20 LTS & npm Package Manager] *********", 1.0),
+                (f"changed: [{target_ip}] => /usr/bin/node v20.12.0 & npm v10.5.0", 0.6),
+            ])
+            if has_custom_b and any("package.json" in f.lower() for f in b_files):
+                logs.extend([
+                    ("TASK [backend_nodejs : Detect package.json & Install Project Dependencies] ****", 1.2),
+                    (f"changed: [{target_ip}] => npm install --production (node_modules populated)", 1.0),
+                ])
+            else:
+                logs.extend([
+                    ("TASK [backend_nodejs : Install Default Express & REST API Dependencies] *******", 0.9),
+                    (f"changed: [{target_ip}] => (express, cors, dotenv)", 0.6),
+                ])
+            logs.extend([
                 ("TASK [backend_nodejs : Deploy Express Application & Systemd Unit] *************", 0.9),
                 (f"changed: [{target_ip}] => /etc/systemd/system/devops-node.service (Port 5000)", 0.6),
                 ("TASK [backend_nodejs : Start Node Daemon & Verify /api/health] ****************", 1.0),
