@@ -20,6 +20,11 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState('');
 
+  const handleCloseConfirm = () => {
+    setIsConfirmOpen(false);
+    setConfirmInput('');
+  };
+
   const isProvisioned = infra.status === 'ready';
 
   return (
@@ -174,7 +179,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
 
       {/* Safety Guardrail Confirmation Modal */}
       {isConfirmOpen && (
-        <div className="modal-overlay" onClick={() => setIsConfirmOpen(false)}>
+        <div className="modal-overlay" onClick={handleCloseConfirm}>
           <div
             className="modal-content"
             style={{ maxWidth: '440px', padding: '1.25rem' }}
@@ -191,7 +196,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
               </div>
               <button
                 type="button"
-                onClick={() => setIsConfirmOpen(false)}
+                onClick={handleCloseConfirm}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
               >
                 <X size={16} />
@@ -221,7 +226,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => setIsConfirmOpen(false)}
+                onClick={handleCloseConfirm}
                 style={{ height: '34px', fontSize: '0.8rem', padding: '0 0.85rem' }}
               >
                 Cancel
@@ -231,7 +236,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
                 className="btn-danger"
                 disabled={confirmInput.trim().toLowerCase() !== 'destroy' || isRunning}
                 onClick={() => {
-                  setIsConfirmOpen(false);
+                  handleCloseConfirm();
                   onDestroy();
                 }}
                 style={{

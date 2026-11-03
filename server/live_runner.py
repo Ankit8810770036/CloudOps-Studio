@@ -143,17 +143,7 @@ class LiveEngine:
         )
         await destroy_proc.wait()
         
-        state.infrastructure.update({
-            "status": "destroyed",
-            "instance_id": None,
-            "public_ip": None,
-            "public_dns": None,
-            "security_group": None,
-            "app_url": None,
-            "ssh_command": None,
-            "provisioned_at": None
-        })
-        state.deployment["status"] = "not_deployed"
+        state.reset_on_destroy()
         state.is_running_pipeline = False
         state.current_action = None
 
@@ -466,6 +456,14 @@ EOF'
                 "last_enforced": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "drift_count": 0
             })
+            for rule in state.compliance.get("rules_enforced", []):
+                rule["status"] = "active"
+                
+            if state.chaos["active_fault"] == "config_tamper":
+                state.chaos["active_fault"] = None
+                state.chaos["description"] = None
+                state.clear_alerts_for_service("puppet_drift")
+                state.add_alert("INFO", "Compliance Restored", "Puppet healed configuration drift and locked security policies.", "puppet_drift")
         else:
             state.add_log(f"Puppet compliance enforcement failed: {err}", stream="stderr", stage="PUPPET")
             

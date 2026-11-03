@@ -173,5 +173,35 @@ class PlatformState:
         if len(self.telemetry["history"]) > 20:
             self.telemetry["history"].pop(0)
 
+    def reset_on_destroy(self):
+        self.infrastructure.update({
+            "status": "destroyed",
+            "instance_id": None,
+            "public_ip": None,
+            "public_dns": None,
+            "security_group": None,
+            "app_url": None,
+            "ssh_command": None,
+            "provisioned_at": None
+        })
+        self.deployment["status"] = "not_deployed"
+        self.compliance.update({
+            "status": "pending",
+            "last_enforced": None,
+            "drift_count": 0
+        })
+        for rule in self.compliance.get("rules_enforced", []):
+            rule["status"] = "active"
+        self.telemetry["overall_health"] = "UNKNOWN"
+        self.telemetry["last_check"] = None
+        self.telemetry["alerts"] = []
+        for k in self.telemetry["checks"]:
+            self.telemetry["checks"][k]["status"] = "UNKNOWN"
+        self.chaos = {
+            "active_fault": None,
+            "description": None,
+            "injected_at": None
+        }
+
 # Global singleton
 state = PlatformState()

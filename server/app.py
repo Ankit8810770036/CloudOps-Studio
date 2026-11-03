@@ -258,6 +258,8 @@ async def upload_code(
                                 dest_item = target_dir / Path(*member_parts[1:])
                             else:
                                 dest_item = target_dir / Path(member.filename)
+                            if not dest_item.resolve().is_relative_to(target_dir.resolve()):
+                                continue
                             dest_item.parent.mkdir(parents=True, exist_ok=True)
                             with z.open(member) as source, open(dest_item, "wb") as dest:
                                 shutil.copyfileobj(source, dest)
@@ -276,6 +278,8 @@ async def upload_code(
                                 dest_item = target_dir / Path(*member_parts[1:])
                             else:
                                 dest_item = target_dir / Path(member.name)
+                            if not dest_item.resolve().is_relative_to(target_dir.resolve()):
+                                continue
                             dest_item.parent.mkdir(parents=True, exist_ok=True)
                             f_obj = t.extractfile(member)
                             if f_obj:
@@ -294,6 +298,8 @@ async def upload_code(
         # 4. Individual File or Preserved Subfolder File
         else:
             dest_file = target_dir / clean_rel_path
+            if not dest_file.resolve().is_relative_to(target_dir.resolve()):
+                continue
             dest_file.parent.mkdir(parents=True, exist_ok=True)
             dest_file.write_bytes(content)
             saved_files.append(str(clean_rel_path))
@@ -444,7 +450,6 @@ async def websocket_logs(websocket: WebSocket):
         if q in state.log_subscribers:
             state.log_subscribers.remove(q)
 
-from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 
 client_dist = Path(__file__).resolve().parent.parent / "client" / "dist"

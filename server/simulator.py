@@ -94,20 +94,7 @@ class SimulationEngine:
             state.add_log(text, stage="TERRAFORM")
             await asyncio.sleep(delay * 0.25)
             
-        state.infrastructure.update({
-            "status": "destroyed",
-            "instance_id": None,
-            "public_ip": None,
-            "public_dns": None,
-            "security_group": None,
-            "app_url": None,
-            "ssh_command": None,
-            "provisioned_at": None
-        })
-        state.deployment["status"] = "not_deployed"
-        state.telemetry["overall_health"] = "UNKNOWN"
-        for k in state.telemetry["checks"]:
-            state.telemetry["checks"][k]["status"] = "UNKNOWN"
+        state.reset_on_destroy()
             
         state.is_running_pipeline = False
         state.current_action = None
@@ -333,6 +320,8 @@ class SimulationEngine:
             "last_enforced": time.strftime("%Y-%m-%d %H:%M:%S"),
             "drift_count": 0
         })
+        for rule in state.compliance.get("rules_enforced", []):
+            rule["status"] = "active"
         
         if state.chaos["active_fault"] == "config_tamper":
             state.chaos["active_fault"] = None
@@ -351,28 +340,25 @@ class SimulationEngine:
         if fault == "http_down":
             state.telemetry["checks"]["http"]["status"] = "CRITICAL"
             state.telemetry["checks"]["http"]["code"] = 502
+            state.telemetry["checks"]["http"]["response_time_ms"] = 0.0
             state.telemetry["overall_health"] = "CRITICAL"
-            return
             
-        if fault == "backend_down":
+        elif fault == "backend_down":
             state.telemetry["checks"]["backend_api"]["status"] = "CRITICAL"
             state.telemetry["checks"]["backend_api"]["latency_ms"] = 0
             state.telemetry["overall_health"] = "CRITICAL"
-            return
 
-        if fault == "db_down":
+        elif fault == "db_down":
             state.telemetry["checks"]["database"]["status"] = "CRITICAL"
             state.telemetry["overall_health"] = "CRITICAL"
-            return
             
-        if fault == "cpu_spike":
+        elif fault == "cpu_spike":
             state.telemetry["checks"]["cpu"]["status"] = "CRITICAL"
             state.telemetry["checks"]["cpu"]["value"] = 96.8
             state.telemetry["overall_health"] = "CRITICAL"
-            return
             
-        # Normal healthy fluctuation
-        if state.deployment["status"] == "deployed":
+        elif state.deployment["status"] == "deployed":
+            # Normal healthy fluctuation
             b_type = state.stack["backend"]["type"]
             d_type = state.stack["database"]["type"]
             
@@ -461,6 +447,9 @@ class SimulationEngine:
             state.chaos["description"] = "Unauthorized Configuration Drift (/etc/motd & SSH tampered)"
             state.compliance["status"] = "drift_detected"
             state.compliance["drift_count"] = 2
+            if len(state.compliance.get("rules_enforced", [])) >= 2:
+                state.compliance["rules_enforced"][0]["status"] = "drift_detected"
+                state.compliance["rules_enforced"][1]["status"] = "drift_detected"
             state.telemetry["overall_health"] = "WARNING"
             state.add_alert("WARNING", "Configuration Drift Detected", "System security baseline diverged from Puppet manifest.", "puppet_drift")
 
