@@ -30,7 +30,13 @@ import {
   connectLogWebSocket,
 } from './services/api';
 import { FullStatus, LogEntry } from './types';
-import { Layers, Package, ShieldCheck, Activity, Flame, Terminal as TerminalIcon, LayoutDashboard } from 'lucide-react';
+import { Layers, Package, ShieldCheck, Activity, Flame, Terminal as TerminalIcon, LayoutDashboard, AlertTriangle, Key, X } from 'lucide-react';
+
+export interface ModeAlertData {
+  title: string;
+  message: string;
+  type: 'warning' | 'error' | 'info' | 'success';
+}
 
 export function App() {
   const [status, setStatus] = useState<FullStatus | null>(null);
@@ -47,6 +53,17 @@ export function App() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isLiveModeRequired, setIsLiveModeRequired] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
+  const [modeAlert, setModeAlert] = useState<ModeAlertData | null>(null);
+
+  // Auto-dismiss mode alert after 10 seconds
+  useEffect(() => {
+    if (modeAlert) {
+      const timer = setTimeout(() => {
+        setModeAlert(null);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [modeAlert]);
 
   // Real-time confirmation message for completed steps
   const [completionNotice, setCompletionNotice] = useState<StepCompletionData | null>(null);
@@ -268,7 +285,30 @@ export function App() {
         const hasSecret = Boolean(config.has_aws_keys || config.has_secret_key || (config.aws_secret_key_masked && config.aws_secret_key_masked.length > 0));
 
         if (!hasAccess || !hasSecret) {
-          // Credentials NOT filled yet -> open credentials configuration modal with Live requirement prompt
+          // Explicitly inform the user WHY they are not able to switch
+          const missingParts = [];
+          if (!hasAccess) missingParts.push('AWS Access Key ID');
+          if (!hasSecret) missingParts.push('AWS Secret Access Key');
+
+          const detailMsg = `Cannot switch to Live Mode: ${missingParts.join(' and ')} ${missingParts.length > 1 ? 'are' : 'is'} not configured. Please fill in your Default AWS Region (ap-south-1), Access Key ID, and Secret Key to connect to AWS.`;
+
+          setModeAlert({
+            title: 'Cannot Switch to Live Mode: AWS Credentials Required',
+            message: detailMsg,
+            type: 'warning'
+          });
+
+          // Add a high-visibility log into the live terminal stream
+          setLogs(prev => [
+            ...prev,
+            {
+              timestamp: new Date().toLocaleTimeString(),
+              text: `[WARNING] ${detailMsg}`,
+              stream: 'stderr',
+              stage: 'SYSTEM'
+            }
+          ]);
+
           setIsLiveModeRequired(true);
           setIsConfigOpen(true);
           return;
@@ -278,8 +318,19 @@ export function App() {
         await setExecutionMode('live');
         const updated = await fetchStatus();
         setStatus(updated);
+        setModeAlert({
+          title: 'Live AWS Cloud Mode Activated',
+          message: 'Execution mode successfully switched to LIVE MODE. Actions will provision real AWS infrastructure in Region ap-south-1.',
+          type: 'success'
+        });
       } catch (err: any) {
         console.error('Mode toggle check error', err);
+        const errMsg = err.message || 'AWS credentials verification failed.';
+        setModeAlert({
+          title: 'Cannot Switch to Live Mode',
+          message: errMsg,
+          type: 'error'
+        });
         setIsLiveModeRequired(true);
         setIsConfigOpen(true);
       }
@@ -288,6 +339,11 @@ export function App() {
       await setExecutionMode('simulation');
       const updated = await fetchStatus();
       setStatus(updated);
+      setModeAlert({
+        title: 'Switched to Simulation Mode',
+        message: 'Execution mode changed to SIMULATION MODE. Safe sandbox environment with mock cloud telemetry.',
+        type: 'info'
+      });
     }
   }, [status]);
 
@@ -704,6 +760,13 @@ export function App() {
       <ConfigModal
         isOpen={isConfigOpen}
         onClose={() => {
+          if (isLiveModeRequired) {
+            setModeAlert({
+              title: 'Live Mode Switch Cancelled',
+              message: 'Platform remains in SIMULATION MODE. Provide your AWS credentials whenever you are ready to switch.',
+              type: 'info'
+            });
+          }
           setIsConfigOpen(false);
           setIsLiveModeRequired(false);
         }}
@@ -715,13 +778,127 @@ export function App() {
               const updated = await fetchStatus();
               setStatus(updated);
               setIsLiveModeRequired(false);
+              setModeAlert({
+                title: 'Live AWS Cloud Mode Activated',
+                message: 'AWS credentials saved. Platform successfully switched to LIVE MODE in Region ap-south-1.',
+                type: 'success'
+              });
             } catch (err: any) {
               console.error('Failed to activate live mode after credential save', err);
+              setModeAlert({
+                title: 'Live Mode Activation Failed',
+                message: err.message || 'Could not switch to Live Mode.',
+                type: 'error'
+              });
             }
           }
         }}
       />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
+
+      {/* Floating On-Screen Mode Switch Alert Toast */}
+      {modeAlert && (
+        <aside
+          className="mode-alert-card"
+          role="alert"
+          aria-live="assertive"
+          style={{
+            position: 'fixed',
+            top: '70px',
+            right: '24px',
+            width: '430px',
+            maxWidth: 'calc(100vw - 48px)',
+            background: 'var(--bg-card)',
+            border: `1.5px solid ${
+              modeAlert.type === 'warning' || modeAlert.type === 'error'
+                ? 'var(--aws-orange)'
+                : modeAlert.type === 'success'
+                ? 'var(--status-success)'
+                : 'var(--aws-blue)'
+            }`,
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45)',
+            padding: '1.15rem',
+            zIndex: 10000,
+            animation: 'slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              color: modeAlert.type === 'warning' || modeAlert.type === 'error'
+                ? 'var(--aws-orange)'
+                : modeAlert.type === 'success'
+                ? 'var(--status-success)'
+                : 'var(--aws-blue)',
+              background: modeAlert.type === 'warning' || modeAlert.type === 'error'
+                ? 'rgba(236, 114, 17, 0.12)'
+                : modeAlert.type === 'success'
+                ? 'rgba(22, 163, 74, 0.12)'
+                : 'rgba(9, 114, 211, 0.12)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '4px',
+              border: `1px solid ${
+                modeAlert.type === 'warning' || modeAlert.type === 'error'
+                  ? 'rgba(236, 114, 17, 0.3)'
+                  : modeAlert.type === 'success'
+                  ? 'rgba(22, 163, 74, 0.3)'
+                  : 'rgba(9, 114, 211, 0.3)'
+              }`,
+              letterSpacing: '0.04em'
+            }}>
+              <AlertTriangle size={13} />
+              <span>{modeAlert.type === 'warning' || modeAlert.type === 'error' ? 'MODE SWITCH BLOCKED' : 'SYSTEM NOTICE'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModeAlert(null)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '2px' }}
+              title="Dismiss notification"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          <div style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+            {modeAlert.title}
+          </div>
+
+          <p style={{ fontSize: '0.81rem', color: 'var(--text-muted)', lineHeight: 1.45, margin: '0 0 0.85rem 0' }}>
+            {modeAlert.message}
+          </p>
+
+          {(modeAlert.type === 'warning' || modeAlert.type === 'error') && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.55rem' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setModeAlert(null)}
+                style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.75rem' }}
+              >
+                Dismiss
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  setModeAlert(null);
+                  setIsLiveModeRequired(true);
+                  setIsConfigOpen(true);
+                }}
+                style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.85rem' }}
+              >
+                <Key size={13} />
+                <span>Configure AWS Credentials</span>
+              </button>
+            </div>
+          )}
+        </aside>
+      )}
 
       {/* Floating On-Screen Step Completion Notification */}
       <StepCompletionNotification

@@ -109,9 +109,11 @@ async def set_mode(req: ModeRequest):
         secret_key = (state.config.get("aws_secret_key") or "").strip()
         is_dummy = access_key == "AKIAIOSFODNN7EXAMPLE"
         if not access_key or not secret_key or is_dummy:
+            err_msg = "AWS Credentials Required: Cannot switch to LIVE MODE. Default AWS Region (ap-south-1), AWS Access Key ID, and AWS Secret Access Key must be configured first."
+            state.add_log(f"[WARNING] {err_msg}", stage="SYSTEM", stream="stderr")
             raise HTTPException(
                 status_code=400,
-                detail="AWS Credentials Required: Please configure your Default AWS Region, AWS Access Key ID, and AWS Secret Access Key before switching to Live Mode."
+                detail=err_msg
             )
 
     state.mode = req.mode

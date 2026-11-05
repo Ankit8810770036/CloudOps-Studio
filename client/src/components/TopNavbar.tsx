@@ -296,7 +296,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
         <button
           className="navbar-mode-btn"
           onClick={onToggleMode}
-          title="Switch execution mode between Live AWS and Simulation"
+          title={mode === 'simulation' ? "Click to switch to Live AWS Mode (requires AWS Region, Access Key, and Secret Key)" : "Click to switch to Simulation Demo Mode"}
         >
           <span className={`mode-indicator-dot ${mode}`} />
           <span>{mode.toUpperCase()} MODE</span>

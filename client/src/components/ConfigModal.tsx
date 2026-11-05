@@ -89,12 +89,20 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <Key size={22} color="var(--aws-orange)" />
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>AWS Cloud Credentials & Settings</h3>
-            {hasKeys && (
-              <span style={{ fontSize: '0.72rem', color: 'var(--status-success)', border: '1px solid var(--status-success)', padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 700 }}>
-                Active
-              </span>
-            )}
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                {isLiveModeRequired ? 'Cannot Switch to Live Mode: AWS Credentials Required' : 'AWS Cloud Credentials & Settings'}
+              </h3>
+              {isLiveModeRequired ? (
+                <div style={{ fontSize: '0.73rem', color: 'var(--aws-orange)', fontWeight: 600, marginTop: '2px' }}>
+                  Action Required: Configure AWS credentials to enable live cloud deployment
+                </div>
+              ) : hasKeys ? (
+                <span style={{ fontSize: '0.72rem', color: 'var(--status-success)', border: '1px solid var(--status-success)', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 700 }}>
+                  Active Credentials Configured
+                </span>
+              ) : null}
+            </div>
           </div>
           <button className="close-btn" onClick={handleClose}><X size={20} /></button>
         </div>
@@ -103,19 +111,31 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         {isLiveModeRequired && (
           <div style={{
             background: 'rgba(236, 114, 17, 0.12)',
-            border: '1px solid var(--aws-orange)',
+            border: '1.5px solid var(--aws-orange)',
             borderRadius: '8px',
-            padding: '0.85rem 1rem',
+            padding: '0.95rem 1.1rem',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: '0.65rem'
+            gap: '0.75rem'
           }}>
-            <AlertTriangle size={18} color="var(--aws-orange)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.45 }}>
-              <strong>AWS Cloud Credentials Required for Live Mode:</strong>
-              <div style={{ color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                You are switching from <strong>SIMULATION MODE</strong> to <strong>LIVE MODE</strong>. Real AWS provisioning requires an active AWS Region, Access Key ID, and Secret Access Key. Please fill or verify these credentials below to proceed.
+            <AlertTriangle size={20} color="var(--aws-orange)" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ fontSize: '0.83rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 800, color: 'var(--aws-orange)', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                Why were you not able to switch to Live Mode?
+              </div>
+              <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)' }}>
+                You requested to switch to <strong>LIVE AWS CLOUD MODE</strong>, but your cloud credentials have not been configured yet. Without valid credentials, the orchestrator cannot authenticate with AWS EC2 or create cloud resources.
+              </p>
+              <div style={{ background: 'var(--bg-card)', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.76rem', color: 'var(--text-primary)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Please fill in these 3 required settings below:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.78rem' }}>
+                  <div>• <strong>Default AWS Region:</strong> Asia Pacific (Mumbai) - <code>ap-south-1</code></div>
+                  <div>• <strong>AWS Access Key ID:</strong> Your 20-character AWS key (not the sample placeholder)</div>
+                  <div>• <strong>AWS Secret Access Key:</strong> Your private AWS secret key</div>
+                </div>
               </div>
             </div>
           </div>

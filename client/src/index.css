@@ -1844,6 +1844,17 @@ html.modal-open {
   }
 }
 
+@keyframes slideInDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .step-completion-header {
   display: flex;
   align-items: center;
