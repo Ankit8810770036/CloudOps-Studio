@@ -57,7 +57,6 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
 
   // Upload Management State
   const [uploadTier, setUploadTier] = useState<'backend' | 'frontend'>('backend');
-  const [uploadFramework, setUploadFramework] = useState<'nodejs' | 'springboot' | 'python' | 'react' | 'docker'>('nodejs');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -119,6 +118,28 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
     return 0;
   };
 
+  const getBackendFramework = (type: string): string => {
+    if (type === 'java_springboot') return 'springboot';
+    if (type === 'nodejs') return 'nodejs';
+    if (type === 'python') return 'python';
+    return 'docker';
+  };
+
+  const getBackendLabel = (type: string) => {
+    if (type === 'java_springboot') return 'Spring Boot';
+    if (type === 'nodejs') return 'Node.js Express';
+    if (type === 'python') return 'Python FastAPI';
+    if (type === 'docker') return 'Universal Docker';
+    return 'Custom Service';
+  };
+
+  const getFrontendLabel = (type: string) => {
+    if (type === 'react') return 'React SPA';
+    if (type === 'html') return 'Static HTML5';
+    if (type === 'nodejs_ssr') return 'Node.js SSR';
+    return 'Frontend UI';
+  };
+
   const previewUrl = isDeployed && infra.app_url ? infra.app_url : 'http://127.0.0.1:8000/api/webapp/preview';
 
   // Handle uploading files list
@@ -128,10 +149,14 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
     setUploadError(null);
     setUploadSuccess(null);
 
+    const effectiveFramework = uploadTier === 'frontend'
+      ? (frontendType === 'html' ? 'html' : 'react')
+      : getBackendFramework(backendType);
+
     try {
       const formData = new FormData();
       formData.append('target_tier', uploadTier);
-      formData.append('framework', uploadFramework);
+      formData.append('framework', effectiveFramework);
 
       const paths: string[] = [];
       files.forEach((f) => {
@@ -145,10 +170,10 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       const res = await uploadCustomCode(formData);
       if (res.has_dockerfile) {
         setBackendType('docker');
-        setUploadFramework('docker');
-        setUploadSuccess(`🐳 Dockerfile Auto-Detected! Framework set to Universal Docker Container (Go, Rust, Ruby, PHP, Python, Node, etc.). Uploaded ${res.file_count} files!`);
+        setUploadSuccess(`🐳 Dockerfile Auto-Detected! Switched to Universal Docker container. Uploaded ${res.file_count} files!`);
       } else {
-        setUploadSuccess(`Successfully uploaded ${res.file_count} files for ${uploadFramework.toUpperCase()}!`);
+        const targetName = uploadTier === 'backend' ? getBackendLabel(backendType) : getFrontendLabel(frontendType);
+        setUploadSuccess(`Successfully uploaded ${res.file_count} files for ${targetName}!`);
       }
       if (onRefreshStatus) onRefreshStatus();
       setTimeout(() => setUploadSuccess(null), 4000);
@@ -197,21 +222,6 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       if (onRefreshStatus) onRefreshStatus();
     } catch (err: any) {
       console.error(err);
-    }
-  };
-
-  // Sync framework buttons with tier
-  const handleSelectFramework = (fw: 'nodejs' | 'springboot' | 'python' | 'react' | 'docker') => {
-    setUploadFramework(fw);
-    if (fw === 'react') {
-      setUploadTier('frontend');
-      setFrontendType('react');
-    } else {
-      setUploadTier('backend');
-      if (fw === 'nodejs') setBackendType('nodejs');
-      if (fw === 'springboot') setBackendType('java_springboot');
-      if (fw === 'python') setBackendType('python');
-      if (fw === 'docker') setBackendType('docker');
     }
   };
 
@@ -490,63 +500,46 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
             <div className="upload-header-row">
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                  Upload Project Code (Node.js, Spring Boot, Python, Dockerfile / Any Lang, React)
+                  Upload Custom Code Package
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-                  Select runtime or upload a project with a <code>Dockerfile</code> to auto-containerize any language (Go, Rust, Ruby, PHP, .NET, etc.).
+                  Deploy custom source files, directory, or archive for the selected architecture tier.
                 </div>
               </div>
             </div>
 
-            {/* Target Language / Framework Selector */}
+            {/* Target Tier Selector (Backend vs Frontend) */}
             <div className="upload-framework-selector">
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', marginRight: '0.2rem' }}>
-                Target:
+                Target Tier:
               </span>
               <button
                 type="button"
-                className={`upload-framework-btn ${uploadFramework === 'docker' ? 'active' : ''}`}
-                onClick={() => handleSelectFramework('docker')}
+                className={`upload-framework-btn ${uploadTier === 'backend' ? 'active' : ''}`}
+                onClick={() => setUploadTier('backend')}
               >
-                <span>🐳</span>
-                <span>Dockerfile (Any Lang)</span>
+                <Server size={13} color={uploadTier === 'backend' ? 'var(--aws-orange)' : 'var(--text-dim)'} />
+                <span>Backend Service</span>
+                <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
+                  ({getBackendLabel(backendType)})
+                </span>
               </button>
 
               <button
                 type="button"
-                className={`upload-framework-btn ${uploadFramework === 'nodejs' ? 'active' : ''}`}
-                onClick={() => handleSelectFramework('nodejs')}
+                className={`upload-framework-btn ${uploadTier === 'frontend' ? 'active' : ''}`}
+                onClick={() => setUploadTier('frontend')}
               >
-                <span>🟢</span>
-                <span>Node.js Express</span>
+                <Layout size={13} color={uploadTier === 'frontend' ? 'var(--aws-orange)' : 'var(--text-dim)'} />
+                <span>Frontend UI</span>
+                <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
+                  ({getFrontendLabel(frontendType)})
+                </span>
               </button>
 
-              <button
-                type="button"
-                className={`upload-framework-btn ${uploadFramework === 'springboot' ? 'active' : ''}`}
-                onClick={() => handleSelectFramework('springboot')}
-              >
-                <span>☕</span>
-                <span>Spring Boot (.jar)</span>
-              </button>
-
-              <button
-                type="button"
-                className={`upload-framework-btn ${uploadFramework === 'python' ? 'active' : ''}`}
-                onClick={() => handleSelectFramework('python')}
-              >
-                <span>🐍</span>
-                <span>Python FastAPI</span>
-              </button>
-
-              <button
-                type="button"
-                className={`upload-framework-btn ${uploadFramework === 'react' ? 'active' : ''}`}
-                onClick={() => handleSelectFramework('react')}
-              >
-                <span>⚛️</span>
-                <span>Frontend UI (React/Static)</span>
-              </button>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 'auto' }}>
+                🐳 Dockerfile auto-detected on upload
+              </span>
             </div>
 
             {/* Upload Action Zone & Drag-and-Drop */}
@@ -580,13 +573,13 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
               </div>
 
               <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-                or drag and drop your project folder, <code>.zip</code>, or Spring Boot <code>.jar</code> here
+                or drag and drop your project folder, <code>.zip</code>, or <code>.jar</code> here
               </div>
 
               {isUploading && (
                 <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', color: 'var(--aws-orange)', fontSize: '0.78rem', fontWeight: 600 }}>
                   <RefreshCw size={14} className="animate-spin" />
-                  <span>Uploading and extracting {uploadFramework.toUpperCase()} code package...</span>
+                  <span>Uploading and packaging {uploadTier === 'backend' ? getBackendLabel(backendType) : getFrontendLabel(frontendType)}...</span>
                 </div>
               )}
             </div>
