@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { ChaosState, InfrastructureState, ExecutionMode } from '../types';
 
@@ -6,7 +6,7 @@ interface ChaosPanelProps {
   chaos: ChaosState;
   infra: InfrastructureState;
   onInject: (faultType: string) => void;
-  onHeal: () => void;
+  onHeal: () => Promise<void> | void;
   isRunning: boolean;
   mode?: ExecutionMode;
   onNavigate?: (tabId: string) => void;
@@ -21,13 +21,24 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
   mode = 'simulation',
   onNavigate,
 }) => {
+  const [isHealing, setIsHealing] = useState(false);
   const isInfraReady = infra.status === 'ready';
   const hasFault = Boolean(chaos.active_fault);
   const isDriftFault = chaos.active_fault === 'config_tamper';
-  const canInject = (mode === 'simulation' || isInfraReady) && !isRunning && !hasFault;
+  const canInject = (mode === 'simulation' || isInfraReady) && !isRunning && !isHealing && !hasFault;
+
+  const handleHealClick = async () => {
+    if (isHealing || isRunning) return;
+    setIsHealing(true);
+    try {
+      await onHeal();
+    } finally {
+      setIsHealing(false);
+    }
+  };
 
   const getButtonTitle = (actionName: string) => {
-    if (isRunning) return 'Pipeline action currently in progress';
+    if (isRunning || isHealing) return 'Remediation/Pipeline action currently in progress';
     if (hasFault) return 'Resolve current fault before injecting a new failure scenario';
     if (mode === 'live' && !isInfraReady) return 'Live EC2 target required: provision infrastructure with Step 1 (Terraform)';
     return actionName;
@@ -64,8 +75,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
 
         {hasFault && (
           <button
-            onClick={onHeal}
-            disabled={isRunning}
+            onClick={handleHealClick}
+            disabled={isRunning || isHealing}
             className="btn-primary"
             style={{
               background: isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)',
@@ -75,12 +86,20 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
               fontSize: '0.78rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.45rem'
+              gap: '0.45rem',
+              cursor: (isRunning || isHealing) ? 'not-allowed' : 'pointer',
+              opacity: (isRunning || isHealing) ? 0.8 : 1
             }}
             title={isDriftFault ? "Invoke Puppet desired-state engine to heal drift" : "Restart failed service and restore baseline"}
           >
-            {isDriftFault ? <ShieldCheck size={14} /> : <Wrench size={13} />}
-            <span>{isDriftFault ? 'Puppet Reconcile & Heal' : 'Auto-Remediate'}</span>
+            {isHealing ? (
+              <div style={{ width: 13, height: 13, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            ) : isDriftFault ? (
+              <ShieldCheck size={14} />
+            ) : (
+              <Wrench size={13} />
+            )}
+            <span>{isHealing ? 'Remediating...' : isDriftFault ? 'Puppet Reconcile & Heal' : 'Auto-Remediate'}</span>
           </button>
         )}
       </div>

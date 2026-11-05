@@ -384,9 +384,14 @@ export function App() {
   }, []);
 
   const handleHealChaos = useCallback(async () => {
-    await healChaos();
-    const updated = await fetchStatus();
-    setStatus(updated);
+    try {
+      await healChaos();
+    } catch (err) {
+      console.error('Remediation error:', err);
+    } finally {
+      const updated = await fetchStatus();
+      setStatus(updated);
+    }
   }, []);
 
   const handleClearLogs = useCallback(async () => {

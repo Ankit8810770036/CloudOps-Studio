@@ -612,63 +612,80 @@ EOF'
             state.add_alert("WARNING", "Configuration Drift Detected", "Security baseline tampered: /etc/motd modified and firewall disabled.", "puppet_drift")
 
     async def heal_chaos(self):
+        fault = state.chaos["active_fault"]
+        if not fault:
+            return
+
         target_ip = state.infrastructure.get("public_ip")
         if not target_ip:
+            state.chaos["active_fault"] = None
+            state.chaos["description"] = None
+            state.telemetry["overall_health"] = "HEALTHY"
             return
             
-        fault = state.chaos["active_fault"]
-        server = state.deployment.get("web_server", "nginx")
+        state.is_running_pipeline = True
+        state.current_action = "Auto-Remediation (Live EC2 Node)"
+        try:
+            server = state.deployment.get("web_server", "nginx")
 
-        if fault == "config_tamper":
-            state.add_log("[Heal] Invoking Puppet desired-state engine to reconcile drift...", stage="PUPPET")
-            await self.run_puppet_enforce()
-            state.chaos["active_fault"] = None
-            state.clear_alerts_for_service("puppet_drift")
-            state.add_alert("INFO", "Compliance Restored", "Puppet healed configuration drift and locked security policies.", "puppet_drift")
-            return
+            if fault == "config_tamper":
+                state.add_log("[Heal] Invoking Puppet desired-state engine to reconcile drift...", stage="PUPPET")
+                await self.run_puppet_enforce()
+                state.chaos["active_fault"] = None
+                state.chaos["description"] = None
+                state.clear_alerts_for_service("puppet_drift")
+                state.add_alert("INFO", "Compliance Restored", "Puppet healed configuration drift and locked security policies.", "puppet_drift")
+                return
 
-        elif fault == "backend_down":
-            b_type = state.stack["backend"]["type"]
-            state.add_log(f"[Heal] Restarting backend ({b_type.upper()}) on EC2...", stage="SYSTEM")
-            if b_type == "docker":
-                self.execute_ssh_command(target_ip, "sudo docker start cloudops-custom-app")
-            else:
-                self.execute_ssh_command(target_ip, "sudo systemctl restart cloudops-app.service || sudo systemctl restart devops-backend || sudo systemctl restart devops-node || sudo systemctl restart devops-springboot")
+            elif fault == "backend_down":
+                b_type = state.stack["backend"]["type"]
+                state.add_log(f"[Heal] Restarting backend ({b_type.upper()}) on EC2...", stage="SYSTEM")
+                if b_type == "docker":
+                    self.execute_ssh_command(target_ip, "sudo docker start cloudops-custom-app")
+                else:
+                    self.execute_ssh_command(target_ip, "sudo systemctl restart cloudops-app.service || sudo systemctl restart devops-backend || sudo systemctl restart devops-node || sudo systemctl restart devops-springboot")
+                await asyncio.sleep(2)
+                await self.run_nagios_probe()
+                state.chaos["active_fault"] = None
+                state.chaos["description"] = None
+                state.clear_alerts_for_service("backend")
+                state.add_alert("INFO", "Backend Restored", f"Backend {b_type.upper()} restarted successfully.", "backend")
+                return
+
+            elif fault == "db_down":
+                d_type = state.stack["database"]["type"]
+                state.add_log(f"[Heal] Restarting database ({d_type.upper()}) on EC2...", stage="SYSTEM")
+                self.execute_ssh_command(target_ip, "sudo systemctl restart postgresql || sudo systemctl restart mysql || sudo systemctl restart mongod")
+                await asyncio.sleep(2)
+                await self.run_nagios_probe()
+                state.chaos["active_fault"] = None
+                state.chaos["description"] = None
+                state.clear_alerts_for_service("database")
+                state.add_alert("INFO", "Database Restored", f"Database {d_type.upper()} service restarted and verified.", "database")
+                return
+
+            elif fault == "cpu_spike":
+                state.add_log("[Heal] Terminating high CPU stress workloads...", stage="SYSTEM")
+                self.execute_ssh_command(target_ip, "sudo pkill -f 'python3 -c'")
+                await asyncio.sleep(2)
+                await self.run_nagios_probe()
+                state.chaos["active_fault"] = None
+                state.chaos["description"] = None
+                state.clear_alerts_for_service("cpu_utilization")
+                state.add_alert("INFO", "CPU Normal", "Stress process terminated. Load normal.", "cpu_utilization")
+                return
+
+            state.add_log(f"[Heal] Restarting {server} and restoring baseline...", stage="SYSTEM")
+            self.execute_ssh_command(target_ip, f"sudo systemctl restart {server} && sudo pkill -f 'python3 -c'")
             await asyncio.sleep(2)
             await self.run_nagios_probe()
             state.chaos["active_fault"] = None
-            state.clear_alerts_for_service("backend")
-            state.add_alert("INFO", "Backend Restored", f"Backend {b_type.upper()} restarted successfully.", "backend")
-            return
-
-        elif fault == "db_down":
-            d_type = state.stack["database"]["type"]
-            state.add_log(f"[Heal] Restarting database ({d_type.upper()}) on EC2...", stage="SYSTEM")
-            self.execute_ssh_command(target_ip, "sudo systemctl restart postgresql || sudo systemctl restart mysql || sudo systemctl restart mongod")
-            await asyncio.sleep(2)
-            await self.run_nagios_probe()
-            state.chaos["active_fault"] = None
-            state.clear_alerts_for_service("database")
-            state.add_alert("INFO", "Database Restored", f"Database {d_type.upper()} service restarted and verified.", "database")
-            return
-
-        elif fault == "cpu_spike":
-            state.add_log("[Heal] Terminating high CPU stress workloads...", stage="SYSTEM")
-            self.execute_ssh_command(target_ip, "sudo pkill -f 'python3 -c'")
-            await asyncio.sleep(2)
-            await self.run_nagios_probe()
-            state.chaos["active_fault"] = None
+            state.chaos["description"] = None
+            state.clear_alerts_for_service("http_service")
             state.clear_alerts_for_service("cpu_utilization")
-            state.add_alert("INFO", "CPU Normal", "Stress process terminated. Load normal.", "cpu_utilization")
-            return
-
-        state.add_log(f"[Heal] Restarting {server} and restoring baseline...", stage="SYSTEM")
-        self.execute_ssh_command(target_ip, f"sudo systemctl restart {server} && sudo pkill -f 'python3 -c'")
-        await asyncio.sleep(2)
-        await self.run_nagios_probe()
-        state.chaos["active_fault"] = None
-        state.clear_alerts_for_service("http_service")
-        state.clear_alerts_for_service("cpu_utilization")
+        finally:
+            state.is_running_pipeline = False
+            state.current_action = None
 
 live_engine = LiveEngine()
 

@@ -357,8 +357,8 @@ class SimulationEngine:
             state.telemetry["checks"]["cpu"]["value"] = 96.8
             state.telemetry["overall_health"] = "CRITICAL"
             
-        elif state.deployment["status"] == "deployed":
-            # Normal healthy fluctuation
+        else:
+            # Normal healthy baseline/fluctuation
             b_type = state.stack["backend"]["type"]
             d_type = state.stack["database"]["type"]
             
@@ -482,45 +482,75 @@ class SimulationEngine:
         if not fault:
             return
             
-        state.add_log(f"Initiating Automated Multi-Tier Remediation for fault [{fault}]...", stage="SYSTEM")
-        await asyncio.sleep(0.8)
-        
-        if fault == "http_down":
-            server = state.deployment["web_server"]
-            state.add_log(f"Ansible Handler: Restarting {server} web daemon...", stage="ANSIBLE")
-            await asyncio.sleep(1.0)
-            state.clear_alerts_for_service("frontend")
-            state.add_alert("INFO", "Frontend Restored", f"{server.upper()} restarted and verified.", "frontend")
+        state.is_running_pipeline = True
+        state.current_action = "Auto-Remediation (Self-Healing Outage)"
+        try:
+            state.add_log(f"Initiating Automated Multi-Tier Remediation for fault [{fault}]...", stage="SYSTEM")
+            await asyncio.sleep(0.5)
             
-        elif fault == "backend_down":
-            b_type = state.stack["backend"]["type"]
-            if b_type == "docker":
-                state.add_log("Docker Supervisor: Restarting container (docker start cloudops-custom-app)...", stage="SYSTEM")
-            else:
-                state.add_log(f"Puppet Supervisor: Reviving {b_type.upper()} backend service...", stage="PUPPET")
-            await asyncio.sleep(1.0)
-            state.clear_alerts_for_service("backend")
-            state.add_alert("INFO", "Backend Restored", f"{b_type.upper()} service restarted and responsive on port {state.stack['backend']['port']}.", "backend")
+            if fault == "http_down":
+                server = state.deployment.get("web_server", "nginx")
+                state.add_log(f"Ansible Handler: Restarting {server} web daemon...", stage="ANSIBLE")
+                await asyncio.sleep(0.8)
+                state.telemetry["checks"]["http"] = {
+                    "name": "Frontend Web Tier (Port 80)",
+                    "status": "OK",
+                    "code": 200,
+                    "response_time_ms": round(random.uniform(22.0, 36.0), 1)
+                }
+                state.clear_alerts_for_service("frontend")
+                state.add_alert("INFO", "Frontend Restored", f"{server.upper()} restarted and verified.", "frontend")
+                
+            elif fault == "backend_down":
+                b_type = state.stack["backend"]["type"]
+                if b_type == "docker":
+                    state.add_log("Docker Supervisor: Restarting container (docker start cloudops-custom-app)...", stage="SYSTEM")
+                else:
+                    state.add_log(f"Puppet Supervisor: Reviving {b_type.upper()} backend service...", stage="PUPPET")
+                await asyncio.sleep(0.8)
+                state.telemetry["checks"]["backend_api"] = {
+                    "name": f"Backend API ({b_type.upper()})",
+                    "status": "OK",
+                    "port": state.stack["backend"]["port"],
+                    "latency_ms": round(random.uniform(14.0, 24.0), 1)
+                }
+                state.clear_alerts_for_service("backend")
+                state.add_alert("INFO", "Backend Restored", f"{b_type.upper()} service restarted and responsive on port {state.stack['backend']['port']}.", "backend")
 
-        elif fault == "db_down":
-            d_type = state.stack["database"]["type"]
-            state.add_log(f"Puppet Daemon Manager: Restarting {d_type.upper()} database service...", stage="PUPPET")
-            await asyncio.sleep(1.0)
-            state.clear_alerts_for_service("database")
-            state.add_alert("INFO", "Database Restored", f"{d_type.upper()} accepting connections on port {state.stack['database']['port']}.", "database")
+            elif fault == "db_down":
+                d_type = state.stack["database"]["type"]
+                state.add_log(f"Puppet Daemon Manager: Restarting {d_type.upper()} database service...", stage="PUPPET")
+                await asyncio.sleep(0.8)
+                state.telemetry["checks"]["database"] = {
+                    "name": f"Database ({d_type.upper()})",
+                    "status": "OK",
+                    "engine": d_type.upper(),
+                    "port": state.stack["database"]["port"]
+                }
+                state.clear_alerts_for_service("database")
+                state.add_alert("INFO", "Database Restored", f"{d_type.upper()} accepting connections on port {state.stack['database']['port']}.", "database")
 
-        elif fault == "cpu_spike":
-            state.add_log("Terminating stress workloads...", stage="SYSTEM")
-            await asyncio.sleep(1.0)
-            state.clear_alerts_for_service("cpu")
-            state.add_alert("INFO", "CPU Normal", "Load returned to normal operating range.", "cpu")
-            
-        elif fault == "config_tamper":
-            await self.run_puppet_enforce()
-            
-        state.chaos["active_fault"] = None
-        state.chaos["description"] = None
-        state.telemetry["overall_health"] = "HEALTHY"
-        await self.run_nagios_probe()
+            elif fault == "cpu_spike":
+                state.add_log("Terminating stress workloads...", stage="SYSTEM")
+                await asyncio.sleep(0.8)
+                state.telemetry["checks"]["cpu"] = {
+                    "name": "CPU Utilization",
+                    "status": "OK",
+                    "value": round(random.uniform(18.0, 26.0), 1),
+                    "unit": "%"
+                }
+                state.clear_alerts_for_service("cpu")
+                state.add_alert("INFO", "CPU Normal", "Load returned to normal operating range.", "cpu")
+                
+            elif fault == "config_tamper":
+                await self.run_puppet_enforce()
+                
+            state.chaos["active_fault"] = None
+            state.chaos["description"] = None
+            state.telemetry["overall_health"] = "HEALTHY"
+            await self.run_nagios_probe()
+        finally:
+            state.is_running_pipeline = False
+            state.current_action = None
 
 simulator = SimulationEngine()
