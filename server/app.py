@@ -194,7 +194,9 @@ async def deploy_ansible(req: DeployRequest):
     if state.is_running_pipeline:
         raise HTTPException(status_code=409, detail=f"A pipeline step is already running: {state.current_action}")
     if state.infrastructure.get("status") != "ready":
-        raise HTTPException(status_code=400, detail="Cannot deploy: Infrastructure is not ready. Provision with Terraform first.")
+        err_msg = "Prerequisite Required: Cannot start Step 2 (Ansible Deployment). Complete Step 1: Terraform IaC first (manually)."
+        state.add_log(f"[GUARDRAIL] {err_msg}", stage="ANSIBLE", stream="stderr")
+        raise HTTPException(status_code=400, detail=err_msg)
         
     engine = simulator if state.mode == "simulation" else live_engine
     asyncio.create_task(engine.run_ansible_deploy(
@@ -429,7 +431,13 @@ async def enforce_puppet():
     if state.is_running_pipeline:
         raise HTTPException(status_code=409, detail=f"A pipeline step is already running: {state.current_action}")
     if state.infrastructure.get("status") != "ready":
-        raise HTTPException(status_code=400, detail="Cannot enforce compliance: Infrastructure is not ready.")
+        err_msg = "Prerequisite Required: Cannot start Step 3 (Puppet Compliance). Complete Step 1: Terraform IaC first (manually)."
+        state.add_log(f"[GUARDRAIL] {err_msg}", stage="PUPPET", stream="stderr")
+        raise HTTPException(status_code=400, detail=err_msg)
+    if state.deployment.get("status") != "deployed":
+        err_msg = "Prerequisite Required: Cannot start Step 3 (Puppet Compliance). Complete Step 2: Ansible Deployment first (manually)."
+        state.add_log(f"[GUARDRAIL] {err_msg}", stage="PUPPET", stream="stderr")
+        raise HTTPException(status_code=400, detail=err_msg)
         
     engine = simulator if state.mode == "simulation" else live_engine
     asyncio.create_task(engine.run_puppet_enforce())
@@ -438,6 +446,19 @@ async def enforce_puppet():
 # 7. Nagios Telemetry Probing
 @app.post("/api/nagios/probe")
 async def probe_nagios():
+    if state.infrastructure.get("status") != "ready":
+        err_msg = "Prerequisite Required: Cannot probe Step 4 (Nagios Observability). Complete Step 1: Terraform IaC first (manually)."
+        state.add_log(f"[GUARDRAIL] {err_msg}", stage="NAGIOS", stream="stderr")
+        raise HTTPException(status_code=400, detail=err_msg)
+    if state.deployment.get("status") != "deployed":
+        err_msg = "Prerequisite Required: Cannot probe Step 4 (Nagios Observability). Complete Step 2: Ansible Deployment first (manually)."
+        state.add_log(f"[GUARDRAIL] {err_msg}", stage="NAGIOS", stream="stderr")
+        raise HTTPException(status_code=400, detail=err_msg)
+    if state.compliance.get("status") != "compliant":
+        err_msg = "Prerequisite Required: Cannot probe Step 4 (Nagios Observability). Complete Step 3: Puppet Compliance first (manually)."
+        state.add_log(f"[GUARDRAIL] {err_msg}", stage="NAGIOS", stream="stderr")
+        raise HTTPException(status_code=400, detail=err_msg)
+
     engine = simulator if state.mode == "simulation" else live_engine
     await engine.run_nagios_probe()
     return {"status": "ok", "telemetry": state.telemetry}

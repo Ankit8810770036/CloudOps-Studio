@@ -69,11 +69,16 @@ export async function deployAnsible(
       database_type: databaseType,
     }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to deploy with Ansible');
+  }
   return res.json();
 }
 
 export async function fetchWebappContent(): Promise<{ html: string }> {
   const res = await fetch(`${API_BASE}/api/webapp/content`);
+  if (!res.ok) throw new Error('Failed to fetch webapp content');
   return res.json();
 }
 
@@ -83,6 +88,7 @@ export async function saveWebappContent(html: string): Promise<{ status: string 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ html }),
   });
+  if (!res.ok) throw new Error('Failed to save webapp content');
   return res.json();
 }
 
@@ -90,6 +96,10 @@ export async function enforcePuppet() {
   const res = await fetch(`${API_BASE}/api/puppet/enforce`, {
     method: 'POST',
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to enforce Puppet compliance');
+  }
   return res.json();
 }
 
@@ -97,6 +107,10 @@ export async function probeNagios() {
   const res = await fetch(`${API_BASE}/api/nagios/probe`, {
     method: 'POST',
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to probe Nagios telemetry');
+  }
   return res.json();
 }
 

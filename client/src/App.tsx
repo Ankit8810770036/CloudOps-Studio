@@ -36,6 +36,9 @@ export interface ModeAlertData {
   title: string;
   message: string;
   type: 'warning' | 'error' | 'info' | 'success';
+  badge?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 export function App() {
@@ -75,8 +78,100 @@ export function App() {
 
   const mainContentRef = useRef<HTMLElement>(null);
 
-  // Tab switching with instant scroll-to-top (Memoized to prevent unnecessary re-renders)
+  // Check sequential pipeline dependencies.
+  const checkPipelinePrerequisite = useCallback((targetTab: string): { targetTab: string; title: string; message: string; actionLabel: string } | null => {
+    if (!status) return null;
+
+    const isTfDone = status.infrastructure.status === 'ready';
+    const isAnsDone = status.deployment.status === 'deployed';
+    const isPupDone = status.compliance.status === 'compliant';
+
+    // Trying to start or view Step 2 (Ansible Deployment)
+    if (targetTab === 'ans' && !isTfDone) {
+      return {
+        targetTab: 'tf',
+        title: 'Step 1 Incomplete (Prerequisite Required)',
+        message: 'Complete Step 1: Terraform IaC first (manually). You must provision infrastructure before deploying applications with Ansible.',
+        actionLabel: 'Go to Step 1: Terraform ➔'
+      };
+    }
+
+    // Trying to start or view Step 3 (Puppet Baseline)
+    if (targetTab === 'pup') {
+      if (!isTfDone) {
+        return {
+          targetTab: 'tf',
+          title: 'Step 1 Incomplete (Prerequisite Required)',
+          message: 'Complete Step 1: Terraform IaC first (manually). Infrastructure must be provisioned before enforcing security compliance.',
+          actionLabel: 'Go to Step 1: Terraform ➔'
+        };
+      }
+      if (!isAnsDone) {
+        return {
+          targetTab: 'ans',
+          title: 'Step 2 Incomplete (Prerequisite Required)',
+          message: 'Complete Step 2: Ansible Deployment first (manually). The web application stack must be deployed before enforcing Puppet desired-state policies.',
+          actionLabel: 'Go to Step 2: Ansible Deploy ➔'
+        };
+      }
+    }
+
+    // Trying to start or view Step 4 (Nagios Observability)
+    if (targetTab === 'nag') {
+      if (!isTfDone) {
+        return {
+          targetTab: 'tf',
+          title: 'Step 1 Incomplete (Prerequisite Required)',
+          message: 'Complete Step 1: Terraform IaC first (manually) before starting health monitoring.',
+          actionLabel: 'Go to Step 1: Terraform ➔'
+        };
+      }
+      if (!isAnsDone) {
+        return {
+          targetTab: 'ans',
+          title: 'Step 2 Incomplete (Prerequisite Required)',
+          message: 'Complete Step 2: Ansible Deployment first (manually) before starting health monitoring.',
+          actionLabel: 'Go to Step 2: Ansible Deploy ➔'
+        };
+      }
+      if (!isPupDone) {
+        return {
+          targetTab: 'pup',
+          title: 'Step 3 Incomplete (Prerequisite Required)',
+          message: 'Complete Step 3: Puppet Compliance first (manually). Security baseline must be enforced before probing Nagios telemetry.',
+          actionLabel: 'Go to Step 3: Puppet Baseline ➔'
+        };
+      }
+    }
+
+    return null;
+  }, [status]);
+
+  // Tab switching with instant scroll-to-top and sequential step guardrail
   const handleSelectTab = useCallback((tab: string) => {
+    const violation = checkPipelinePrerequisite(tab);
+    if (violation) {
+      setActiveTab(violation.targetTab);
+      setModeAlert({
+        badge: 'STEP SEQUENCE GUARDRAIL',
+        title: violation.title,
+        message: violation.message,
+        type: 'warning',
+        actionLabel: violation.actionLabel,
+        onAction: () => {
+          setActiveTab(violation.targetTab);
+          setModeAlert(null);
+        }
+      });
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollTop = 0;
+      }
+      return;
+    }
+
     setActiveTab(tab);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     document.documentElement.scrollTop = 0;
@@ -84,7 +179,7 @@ export function App() {
     if (mainContentRef.current) {
       mainContentRef.current.scrollTop = 0;
     }
-  }, []);
+  }, [checkPipelinePrerequisite]);
 
   // Scroll to top immediately whenever activeTab changes
   useEffect(() => {
@@ -360,22 +455,100 @@ export function App() {
   }, []);
 
   const handleDeployAnsible = useCallback(async (webServer: 'nginx' | 'apache', frontend: string, backend: string, database: string) => {
-    await deployAnsible(webServer, frontend, backend, database);
-    const updated = await fetchStatus();
-    setStatus(updated);
-  }, []);
+    const violation = checkPipelinePrerequisite('ans');
+    if (violation) {
+      setActiveTab(violation.targetTab);
+      setModeAlert({
+        badge: 'STEP SEQUENCE GUARDRAIL',
+        title: violation.title,
+        message: violation.message,
+        type: 'warning',
+        actionLabel: violation.actionLabel,
+        onAction: () => {
+          setActiveTab(violation.targetTab);
+          setModeAlert(null);
+        }
+      });
+      return;
+    }
+
+    try {
+      await deployAnsible(webServer, frontend, backend, database);
+      const updated = await fetchStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      setModeAlert({
+        badge: 'DEPLOYMENT BLOCKED',
+        title: 'Ansible Deployment Error',
+        message: err.message || 'Complete previous steps first (manually).',
+        type: 'error'
+      });
+    }
+  }, [checkPipelinePrerequisite]);
 
   const handleEnforcePuppet = useCallback(async () => {
-    await enforcePuppet();
-    const updated = await fetchStatus();
-    setStatus(updated);
-  }, []);
+    const violation = checkPipelinePrerequisite('pup');
+    if (violation) {
+      setActiveTab(violation.targetTab);
+      setModeAlert({
+        badge: 'STEP SEQUENCE GUARDRAIL',
+        title: violation.title,
+        message: violation.message,
+        type: 'warning',
+        actionLabel: violation.actionLabel,
+        onAction: () => {
+          setActiveTab(violation.targetTab);
+          setModeAlert(null);
+        }
+      });
+      return;
+    }
+
+    try {
+      await enforcePuppet();
+      const updated = await fetchStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      setModeAlert({
+        badge: 'COMPLIANCE BLOCKED',
+        title: 'Puppet Compliance Error',
+        message: err.message || 'Complete previous steps first (manually).',
+        type: 'error'
+      });
+    }
+  }, [checkPipelinePrerequisite]);
 
   const handleProbeNagios = useCallback(async () => {
-    await probeNagios();
-    const updated = await fetchStatus();
-    setStatus(updated);
-  }, []);
+    const violation = checkPipelinePrerequisite('nag');
+    if (violation) {
+      setActiveTab(violation.targetTab);
+      setModeAlert({
+        badge: 'STEP SEQUENCE GUARDRAIL',
+        title: violation.title,
+        message: violation.message,
+        type: 'warning',
+        actionLabel: violation.actionLabel,
+        onAction: () => {
+          setActiveTab(violation.targetTab);
+          setModeAlert(null);
+        }
+      });
+      return;
+    }
+
+    try {
+      await probeNagios();
+      const updated = await fetchStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      setModeAlert({
+        badge: 'OBSERVABILITY BLOCKED',
+        title: 'Nagios Probing Error',
+        message: err.message || 'Complete previous steps first (manually).',
+        type: 'error'
+      });
+    }
+  }, [checkPipelinePrerequisite]);
 
   const handleInjectChaos = useCallback(async (faultType: string) => {
     await injectChaos(faultType);
@@ -861,7 +1034,7 @@ export function App() {
               letterSpacing: '0.04em'
             }}>
               <AlertTriangle size={13} />
-              <span>{modeAlert.type === 'warning' || modeAlert.type === 'error' ? 'MODE SWITCH BLOCKED' : 'SYSTEM NOTICE'}</span>
+              <span>{modeAlert.badge || (modeAlert.type === 'warning' || modeAlert.type === 'error' ? 'STEP SEQUENCE GUARDRAIL' : 'SYSTEM NOTICE')}</span>
             </div>
             <button
               type="button"
@@ -881,16 +1054,28 @@ export function App() {
             {modeAlert.message}
           </p>
 
-          {(modeAlert.type === 'warning' || modeAlert.type === 'error') && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.55rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.55rem' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setModeAlert(null)}
+              style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.75rem' }}
+            >
+              Dismiss
+            </button>
+            {modeAlert.actionLabel && modeAlert.onAction ? (
               <button
                 type="button"
-                className="btn-secondary"
-                onClick={() => setModeAlert(null)}
-                style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.75rem' }}
+                className="btn-primary"
+                onClick={() => {
+                  modeAlert.onAction?.();
+                  setModeAlert(null);
+                }}
+                style={{ height: '30px', fontSize: '0.76rem', padding: '0 0.85rem' }}
               >
-                Dismiss
+                <span>{modeAlert.actionLabel}</span>
               </button>
+            ) : (modeAlert.type === 'warning' || modeAlert.type === 'error') && modeAlert.title.includes('Credentials') ? (
               <button
                 type="button"
                 className="btn-primary"
@@ -904,8 +1089,8 @@ export function App() {
                 <Key size={13} />
                 <span>Configure AWS Credentials</span>
               </button>
-            </div>
-          )}
+            ) : null}
+          </div>
         </aside>
       )}
 
