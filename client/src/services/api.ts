@@ -1,4 +1,4 @@
-import { FullStatus, LogEntry } from '../types';
+import { FullStatus, LogEntry, CloudConfig } from '../types';
 
 const API_BASE = 'http://127.0.0.1:8000';
 const WS_BASE = 'ws://127.0.0.1:8000';
@@ -15,11 +15,16 @@ export async function setExecutionMode(mode: 'simulation' | 'live') {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to switch execution mode');
+  }
   return res.json();
 }
 
-export async function fetchConfig() {
+export async function fetchConfig(): Promise<CloudConfig> {
   const res = await fetch(`${API_BASE}/api/config`);
+  if (!res.ok) throw new Error('Failed to fetch cloud config');
   return res.json();
 }
 

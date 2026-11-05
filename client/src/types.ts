@@ -89,6 +89,17 @@ export interface ChaosState {
   injected_at: string | null;
 }
 
+export interface CloudConfig {
+  aws_region: string;
+  instance_type: string;
+  environment: string;
+  has_aws_keys: boolean;
+  has_access_key?: boolean;
+  has_secret_key?: boolean;
+  aws_access_key: string;
+  aws_secret_key_masked: string;
+}
+
 export interface UploadedCodePackage {
   framework: string;
   file_count: number;

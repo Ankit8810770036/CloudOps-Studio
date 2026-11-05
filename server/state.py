@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 from typing import List, Dict, Any, Optional
 
@@ -7,14 +8,14 @@ class PlatformState:
         # Mode: 'simulation' or 'live'
         self.mode: str = "simulation"
         
-        # Cloud Configuration
+        # Cloud Configuration (Default: Asia Pacific (Mumbai) - ap-south-1)
         self.config = {
-            "aws_region": "us-east-1",
+            "aws_region": os.environ.get("AWS_DEFAULT_REGION", "ap-south-1"),
             "instance_type": "t2.micro",
             "environment": "devops-production",
-            "has_aws_keys": False,
-            "aws_access_key": "",
-            "aws_secret_key": ""
+            "has_aws_keys": bool(os.environ.get("AWS_ACCESS_KEY_ID") and os.environ.get("AWS_SECRET_ACCESS_KEY")),
+            "aws_access_key": os.environ.get("AWS_ACCESS_KEY_ID", ""),
+            "aws_secret_key": os.environ.get("AWS_SECRET_ACCESS_KEY", "")
         }
         
         # Full-Stack Customization Config (Frontend, Backend, Database)

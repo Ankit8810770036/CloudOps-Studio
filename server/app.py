@@ -1,4 +1,5 @@
 import asyncio
+import os
 import json
 import shutil
 import zipfile
@@ -102,6 +103,17 @@ async def get_status():
 async def set_mode(req: ModeRequest):
     if req.mode not in ["simulation", "live"]:
         raise HTTPException(status_code=400, detail="Mode must be 'simulation' or 'live'")
+        
+    if req.mode == "live":
+        access_key = (state.config.get("aws_access_key") or "").strip()
+        secret_key = (state.config.get("aws_secret_key") or "").strip()
+        is_dummy = access_key == "AKIAIOSFODNN7EXAMPLE"
+        if not access_key or not secret_key or is_dummy:
+            raise HTTPException(
+                status_code=400,
+                detail="AWS Credentials Required: Please configure your Default AWS Region, AWS Access Key ID, and AWS Secret Access Key before switching to Live Mode."
+            )
+
     state.mode = req.mode
     state.add_log(f"Execution Mode changed to [{state.mode.upper()}].", stage="SYSTEM")
     return {"status": "ok", "mode": state.mode}
@@ -109,14 +121,20 @@ async def set_mode(req: ModeRequest):
 # 3. Cloud Configuration
 @app.get("/api/config")
 async def get_config():
-    # Return masked secret
-    masked_secret = f"{state.config['aws_secret_key'][:4]}...{state.config['aws_secret_key'][-4:]}" if state.config.get("aws_secret_key") else ""
+    access_key = state.config.get("aws_access_key", "")
+    secret_key = state.config.get("aws_secret_key", "")
+    is_dummy = access_key == "AKIAIOSFODNN7EXAMPLE"
+    has_access = bool(access_key and not is_dummy)
+    has_secret = bool(secret_key and not is_dummy)
+    masked_secret = f"{secret_key[:4]}...{secret_key[-4:]}" if has_secret else ""
     return {
-        "aws_region": state.config["aws_region"],
-        "instance_type": state.config["instance_type"],
-        "environment": state.config["environment"],
-        "has_aws_keys": bool(state.config.get("aws_access_key")),
-        "aws_access_key": state.config.get("aws_access_key", ""),
+        "aws_region": state.config.get("aws_region", "ap-south-1"),
+        "instance_type": state.config.get("instance_type", "t2.micro"),
+        "environment": state.config.get("environment", "devops-production"),
+        "has_aws_keys": bool(has_access and has_secret),
+        "has_access_key": has_access,
+        "has_secret_key": has_secret,
+        "aws_access_key": access_key if not is_dummy else "",
         "aws_secret_key_masked": masked_secret
     }
 
@@ -125,9 +143,20 @@ async def update_config(req: ConfigRequest):
     if req.aws_region: state.config["aws_region"] = req.aws_region
     if req.instance_type: state.config["instance_type"] = req.instance_type
     if req.environment: state.config["environment"] = req.environment
-    if req.aws_access_key: state.config["aws_access_key"] = req.aws_access_key
-    if req.aws_secret_key: state.config["aws_secret_key"] = req.aws_secret_key
-    state.config["has_aws_keys"] = bool(state.config.get("aws_access_key"))
+    if req.aws_access_key is not None:
+        state.config["aws_access_key"] = req.aws_access_key.strip()
+    if req.aws_secret_key is not None and req.aws_secret_key.strip():
+        state.config["aws_secret_key"] = req.aws_secret_key.strip()
+        
+    access_key = state.config.get("aws_access_key", "")
+    secret_key = state.config.get("aws_secret_key", "")
+    is_dummy = access_key == "AKIAIOSFODNN7EXAMPLE"
+    state.config["has_aws_keys"] = bool(access_key and secret_key and not is_dummy)
+    
+    if state.config["has_aws_keys"]:
+        os.environ["AWS_ACCESS_KEY_ID"] = access_key
+        os.environ["AWS_SECRET_ACCESS_KEY"] = secret_key
+        os.environ["AWS_DEFAULT_REGION"] = state.config.get("aws_region", "ap-south-1")
     
     state.add_log(f"Cloud configuration updated: Region={state.config['aws_region']}, Type={state.config['instance_type']}", stage="SYSTEM")
     return {"status": "ok", "config": state.config}

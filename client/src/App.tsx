@@ -17,6 +17,7 @@ import { PreDeploymentChecklist } from './components/PreDeploymentChecklist';
 
 import {
   fetchStatus,
+  fetchConfig,
   setExecutionMode,
   applyTerraform,
   destroyTerraform,
@@ -36,7 +37,7 @@ export function App() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
-  const [selectedRegion, setSelectedRegion] = useState<string>('us-east-1');
+  const [selectedRegion, setSelectedRegion] = useState<string>('ap-south-1');
 
   // Theme: 'dark' (Enterprise NOC) or 'light' (Clean Dev Studio)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -44,6 +45,7 @@ export function App() {
   });
 
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isLiveModeRequired, setIsLiveModeRequired] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
 
   // Real-time confirmation message for completed steps
@@ -257,10 +259,36 @@ export function App() {
 
   const handleToggleMode = useCallback(async () => {
     if (!status) return;
-    const newMode = status.mode === 'simulation' ? 'live' : 'simulation';
-    await setExecutionMode(newMode);
-    const updated = await fetchStatus();
-    setStatus(updated);
+
+    if (status.mode === 'simulation') {
+      // Switching from SIMULATION MODE to LIVE MODE -> check credentials first!
+      try {
+        const config = await fetchConfig();
+        const hasAccess = Boolean(config.aws_access_key && config.aws_access_key.trim() && config.aws_access_key !== 'AKIAIOSFODNN7EXAMPLE');
+        const hasSecret = Boolean(config.has_aws_keys || config.has_secret_key || (config.aws_secret_key_masked && config.aws_secret_key_masked.length > 0));
+
+        if (!hasAccess || !hasSecret) {
+          // Credentials NOT filled yet -> open credentials configuration modal with Live requirement prompt
+          setIsLiveModeRequired(true);
+          setIsConfigOpen(true);
+          return;
+        }
+
+        // Credentials are fully filled -> switch to Live Mode directly
+        await setExecutionMode('live');
+        const updated = await fetchStatus();
+        setStatus(updated);
+      } catch (err: any) {
+        console.error('Mode toggle check error', err);
+        setIsLiveModeRequired(true);
+        setIsConfigOpen(true);
+      }
+    } else {
+      // Switching from LIVE MODE to SIMULATION MODE -> always allowed immediately
+      await setExecutionMode('simulation');
+      const updated = await fetchStatus();
+      setStatus(updated);
+    }
   }, [status]);
 
   const handleApplyTerraform = useCallback(async (region: string, instanceType: string) => {
@@ -673,7 +701,26 @@ export function App() {
       </div>
 
       {/* Dialog Modals */}
-      <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />
+      <ConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => {
+          setIsConfigOpen(false);
+          setIsLiveModeRequired(false);
+        }}
+        isLiveModeRequired={isLiveModeRequired}
+        onSuccess={async () => {
+          if (isLiveModeRequired) {
+            try {
+              await setExecutionMode('live');
+              const updated = await fetchStatus();
+              setStatus(updated);
+              setIsLiveModeRequired(false);
+            } catch (err: any) {
+              console.error('Failed to activate live mode after credential save', err);
+            }
+          }
+        }}
+      />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
 
       {/* Floating On-Screen Step Completion Notification */}

@@ -35,10 +35,10 @@ interface TopNavbarProps {
 }
 
 const AWS_REGIONS = [
+  { id: 'ap-south-1', code: 'ap-south-1', name: 'Mumbai' },
   { id: 'us-east-1', code: 'us-east-1', name: 'N. Virginia' },
   { id: 'us-west-2', code: 'us-west-2', name: 'Oregon' },
   { id: 'eu-west-1', code: 'eu-west-1', name: 'Ireland' },
-  { id: 'ap-south-1', code: 'ap-south-1', name: 'Mumbai' },
 ];
 
 export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
