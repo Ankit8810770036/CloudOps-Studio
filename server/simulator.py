@@ -403,6 +403,28 @@ class SimulationEngine:
         state.record_telemetry_point(cpu=cur_cpu, memory=cur_mem, latency=cur_lat)
 
     async def inject_chaos(self, fault_type: str):
+        # Auto-ensure baseline target in simulation mode if not yet applied
+        if state.infrastructure["status"] != "ready":
+            state.infrastructure.update({
+                "status": "ready",
+                "instance_id": "i-094b81c29e710dfa4",
+                "public_ip": "54.210.88.142",
+                "public_dns": "ec2-54-210-88-142.compute-1.amazonaws.com",
+                "security_group": "sg-07b9a4c09d4128f11",
+                "vpc_id": "vpc-0a817f9b42c13d80a",
+                "app_url": "http://54.210.88.142",
+                "ssh_command": "ssh -i terraform/devops-key.pem ubuntu@54.210.88.142",
+                "provisioned_at": time.strftime("%Y-%m-%d %H:%M:%S")
+            })
+            if state.deployment["status"] != "deployed":
+                state.deployment.update({
+                    "status": "deployed",
+                    "web_server": "nginx",
+                    "deployed_app": "Polyglot Microservices Stack",
+                    "deployed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "response_code": 200
+                })
+
         state.chaos["active_fault"] = fault_type
         state.chaos["injected_at"] = time.strftime("%H:%M:%S")
         
@@ -452,6 +474,8 @@ class SimulationEngine:
                 state.compliance["rules_enforced"][1]["status"] = "drift_detected"
             state.telemetry["overall_health"] = "WARNING"
             state.add_alert("WARNING", "Configuration Drift Detected", "System security baseline diverged from Puppet manifest.", "puppet_drift")
+
+        await self.run_nagios_probe()
 
     async def heal_chaos(self):
         fault = state.chaos["active_fault"]

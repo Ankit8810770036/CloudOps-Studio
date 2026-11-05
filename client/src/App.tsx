@@ -491,6 +491,8 @@ export function App() {
                 onInject={handleInjectChaos}
                 onHeal={handleHealChaos}
                 isRunning={isRunning}
+                mode={status.mode}
+                onNavigate={handleSelectTab}
               />
 
               {/* Separate Section: Pre-Deployment Project Readiness Check (Before Starting Pipeline Steps) */}
@@ -723,6 +725,8 @@ export function App() {
                   onInject={handleInjectChaos}
                   onHeal={handleHealChaos}
                   isRunning={isRunning}
+                  mode={status.mode}
+                  onNavigate={handleSelectTab}
                 />
                 <NagiosStep
                   telemetry={status.telemetry}

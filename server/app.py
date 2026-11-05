@@ -446,8 +446,11 @@ async def inject_chaos(req: ChaosRequest):
 @app.post("/api/chaos/heal")
 async def heal_chaos():
     engine = simulator if state.mode == "simulation" else live_engine
-    asyncio.create_task(engine.heal_chaos())
-    return {"status": "healing"}
+    if state.mode == "simulation":
+        await engine.heal_chaos()
+    else:
+        asyncio.create_task(engine.heal_chaos())
+    return {"status": "ok", "chaos": state.chaos}
 
 # 9. Log History & Management
 @app.get("/api/logs")

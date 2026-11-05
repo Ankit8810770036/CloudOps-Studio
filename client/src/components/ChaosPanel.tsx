@@ -1,6 +1,6 @@
 import React from 'react';
-import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck } from 'lucide-react';
-import { ChaosState, InfrastructureState } from '../types';
+import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ChaosState, InfrastructureState, ExecutionMode } from '../types';
 
 interface ChaosPanelProps {
   chaos: ChaosState;
@@ -8,6 +8,8 @@ interface ChaosPanelProps {
   onInject: (faultType: string) => void;
   onHeal: () => void;
   isRunning: boolean;
+  mode?: ExecutionMode;
+  onNavigate?: (tabId: string) => void;
 }
 
 export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
@@ -16,10 +18,20 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
   onInject,
   onHeal,
   isRunning,
+  mode = 'simulation',
+  onNavigate,
 }) => {
   const isInfraReady = infra.status === 'ready';
   const hasFault = Boolean(chaos.active_fault);
   const isDriftFault = chaos.active_fault === 'config_tamper';
+  const canInject = (mode === 'simulation' || isInfraReady) && !isRunning && !hasFault;
+
+  const getButtonTitle = (actionName: string) => {
+    if (isRunning) return 'Pipeline action currently in progress';
+    if (hasFault) return 'Resolve current fault before injecting a new failure scenario';
+    if (mode === 'live' && !isInfraReady) return 'Live EC2 target required: provision infrastructure with Step 1 (Terraform)';
+    return actionName;
+  };
 
   return (
     <div className={`chaos-lab-container ${hasFault ? 'fault-active' : ''}`}>
@@ -73,6 +85,46 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
         )}
       </div>
 
+      {/* Live Mode Missing Infra Banner */}
+      {!isInfraReady && mode === 'live' && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            padding: '0.65rem 0.85rem',
+            borderRadius: '6px',
+            background: 'rgba(234, 179, 8, 0.12)',
+            border: '1px solid rgba(234, 179, 8, 0.35)',
+            color: 'var(--text-primary)',
+            fontSize: '0.8rem',
+            marginBottom: '0.85rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertTriangle size={15} color="var(--status-warning, #eab308)" style={{ flexShrink: 0 }} />
+            <span>
+              <strong>Live Target Required:</strong> Provision AWS infrastructure with Terraform (Step 1) before injecting live chaos.
+            </span>
+          </div>
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate('tf')}
+              className="btn-secondary"
+              style={{
+                padding: '0.3rem 0.65rem',
+                fontSize: '0.75rem',
+                whiteSpace: 'nowrap',
+                borderRadius: '4px'
+              }}
+            >
+              Go to Step 1: Terraform ➔
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Outage / Drift Alert Banner */}
       {hasFault && (
         <div
@@ -98,8 +150,9 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.55rem' }}>
         <button
           onClick={() => onInject('http_down')}
-          disabled={isRunning || !isInfraReady || hasFault}
+          disabled={!canInject}
           className="chaos-btn"
+          title={getButtonTitle('Crash Frontend Nginx Service')}
         >
           <Zap size={13} color="var(--status-danger)" style={{ flexShrink: 0 }} />
           <span>Crash Frontend (80)</span>
@@ -107,8 +160,9 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
 
         <button
           onClick={() => onInject('backend_down')}
-          disabled={isRunning || !isInfraReady || hasFault}
+          disabled={!canInject}
           className="chaos-btn"
+          title={getButtonTitle('Crash Microservice Backend API')}
         >
           <Server size={13} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
           <span>Crash Backend API</span>
@@ -116,8 +170,9 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
 
         <button
           onClick={() => onInject('db_down')}
-          disabled={isRunning || !isInfraReady || hasFault}
+          disabled={!canInject}
           className="chaos-btn"
+          title={getButtonTitle('Crash Database Server')}
         >
           <Database size={13} color="var(--status-success)" style={{ flexShrink: 0 }} />
           <span>Crash Database</span>
@@ -125,8 +180,9 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
 
         <button
           onClick={() => onInject('cpu_spike')}
-          disabled={isRunning || !isInfraReady || hasFault}
+          disabled={!canInject}
           className="chaos-btn"
+          title={getButtonTitle('Stress CPU to 96%')}
         >
           <Cpu size={13} color="var(--accent-terraform)" style={{ flexShrink: 0 }} />
           <span>CPU Spike (&gt;90%)</span>
@@ -134,9 +190,9 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
 
         <button
           onClick={() => onInject('config_tamper')}
-          disabled={isRunning || !isInfraReady || hasFault}
+          disabled={!canInject}
           className="chaos-btn"
-          title="Inject unauthorized drift into /etc/motd and security baseline to trigger Puppet reconciliation"
+          title={getButtonTitle('Inject unauthorized drift into /etc/motd and security baseline to trigger Puppet reconciliation')}
         >
           <ShieldCheck size={13} color="var(--accent-puppet)" style={{ flexShrink: 0 }} />
           <span>Tamper Config (Puppet Drift)</span>
