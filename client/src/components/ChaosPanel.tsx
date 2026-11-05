@@ -73,35 +73,33 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
           </div>
         </div>
 
-        {hasFault && (
-          <button
-            onClick={handleHealClick}
-            disabled={isRunning || isHealing}
-            className="btn-primary"
-            style={{
-              background: isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)',
-              border: `1px solid ${isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)'}`,
-              color: '#FFFFFF',
-              height: '32px',
-              fontSize: '0.78rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              cursor: (isRunning || isHealing) ? 'not-allowed' : 'pointer',
-              opacity: (isRunning || isHealing) ? 0.8 : 1
-            }}
-            title={isDriftFault ? "Invoke Puppet desired-state engine to heal drift" : "Restart failed service and restore baseline"}
-          >
-            {isHealing ? (
-              <div style={{ width: 13, height: 13, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            ) : isDriftFault ? (
-              <ShieldCheck size={14} />
-            ) : (
-              <Wrench size={13} />
-            )}
-            <span>{isHealing ? 'Remediating...' : isDriftFault ? 'Puppet Reconcile & Heal' : 'Auto-Remediate'}</span>
-          </button>
-        )}
+        <button
+          onClick={handleHealClick}
+          disabled={isRunning || isHealing}
+          className="btn-primary"
+          style={{
+            background: hasFault ? (isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)') : 'rgba(22, 163, 74, 0.12)',
+            border: `1px solid ${hasFault ? (isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)') : 'rgba(22, 163, 74, 0.3)'}`,
+            color: hasFault ? '#FFFFFF' : 'var(--status-success)',
+            height: '32px',
+            fontSize: '0.78rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            cursor: (isRunning || isHealing) ? 'not-allowed' : 'pointer',
+            opacity: (isRunning || isHealing) ? 0.8 : 1
+          }}
+          title={isDriftFault ? "Invoke Puppet desired-state engine to heal drift" : "Restart failed service and restore baseline"}
+        >
+          {isHealing ? (
+            <div style={{ width: 13, height: 13, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          ) : isDriftFault ? (
+            <ShieldCheck size={14} />
+          ) : (
+            <Wrench size={13} />
+          )}
+          <span>{isHealing ? 'Remediating...' : isDriftFault ? 'Puppet Reconcile & Heal' : 'Auto-Remediate'}</span>
+        </button>
       </div>
 
       {/* Live Mode Missing Infra Banner */}
@@ -217,6 +215,51 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
           <span>Tamper Config (Puppet Drift)</span>
         </button>
       </div>
+
+      {/* Primary Auto-Remediate & Self-Healing Action Bar */}
+      <button
+        onClick={handleHealClick}
+        disabled={isRunning || isHealing}
+        className="btn-primary"
+        style={{
+          width: '100%',
+          marginTop: '0.85rem',
+          height: '40px',
+          fontSize: '0.82rem',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.55rem',
+          background: hasFault
+            ? (isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)')
+            : 'rgba(22, 163, 74, 0.12)',
+          border: `1px solid ${hasFault ? (isDriftFault ? 'var(--accent-puppet)' : 'var(--status-success)') : 'rgba(22, 163, 74, 0.35)'}`,
+          color: hasFault ? '#FFFFFF' : 'var(--status-success)',
+          cursor: (isRunning || isHealing) ? 'not-allowed' : 'pointer',
+          borderRadius: '6px',
+          transition: 'all 0.2s ease',
+          boxShadow: hasFault ? '0 0 14px rgba(22, 163, 74, 0.35)' : 'none'
+        }}
+        title="Trigger automated self-healing across Frontend, Backend, Database, and Puppet desired state without rebuilding infrastructure"
+      >
+        {isHealing ? (
+          <div style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        ) : isDriftFault ? (
+          <ShieldCheck size={15} />
+        ) : (
+          <Wrench size={14} />
+        )}
+        <span>
+          {isHealing
+            ? 'Remediating & Restoring All Services...'
+            : isDriftFault
+            ? 'Puppet Reconcile & Heal Configuration Drift'
+            : hasFault
+            ? 'Auto-Remediate & Heal All (Restore Baseline)'
+            : 'Auto-Remediate & Heal All (Verify Desired State)'}
+        </span>
+      </button>
     </div>
   );
 });

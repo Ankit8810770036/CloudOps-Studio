@@ -266,43 +266,50 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
 
         {/* Active Alerts List */}
         <div>
-          <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-dim)', display: 'block', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Active Incidents ({telemetry.alerts.length})
-          </span>
-          <div className="alert-feed-container">
-            {telemetry.alerts.length === 0 ? (
-              <div style={{ fontSize: '0.78rem', color: 'var(--status-success)', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0' }}>
-                <CheckCircle size={14} style={{ flexShrink: 0 }} />
-                <span><strong>All Clear:</strong> Frontend, Backend, and Database are operating normally.</span>
-              </div>
-            ) : (
-              telemetry.alerts.map((a) => (
-                <div
-                  key={a.id}
-                  style={{
-                    fontSize: '0.78rem',
-                    padding: '0.35rem 0.55rem',
-                    borderRadius: '4px',
-                    background: a.severity === 'CRITICAL' ? 'var(--status-danger-bg)' :
-                                a.severity === 'WARNING' ? 'var(--status-warning-bg)' : 'var(--status-success-bg)',
-                    borderLeft: `3px solid ${a.severity === 'CRITICAL' ? 'var(--status-danger)' : a.severity === 'WARNING' ? 'var(--status-warning)' : 'var(--status-success)'}`,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '0.45rem'
-                  }}
-                >
-                  <div>
-                    <strong style={{ color: a.severity === 'CRITICAL' ? 'var(--status-danger)' : a.severity === 'WARNING' ? 'var(--status-warning)' : 'var(--status-success)' }}>
-                      [{a.severity}] {a.title}
-                    </strong>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.05rem' }}>{a.description}</div>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace', flexShrink: 0 }}>{a.timestamp}</span>
+          {(() => {
+            const activeIncidents = telemetry.alerts.filter(a => a.severity === 'CRITICAL' || a.severity === 'WARNING');
+            return (
+              <>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-dim)', display: 'block', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Active Incidents ({activeIncidents.length})
+                </span>
+                <div className="alert-feed-container">
+                  {activeIncidents.length === 0 ? (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--status-success)', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0' }}>
+                      <CheckCircle size={14} style={{ flexShrink: 0 }} />
+                      <span><strong>All Clear:</strong> Frontend, Backend, and Database are operating normally.</span>
+                    </div>
+                  ) : (
+                    activeIncidents.map((a) => (
+                      <div
+                        key={a.id}
+                        style={{
+                          fontSize: '0.78rem',
+                          padding: '0.35rem 0.55rem',
+                          borderRadius: '4px',
+                          background: a.severity === 'CRITICAL' ? 'var(--status-danger-bg)' :
+                                      a.severity === 'WARNING' ? 'var(--status-warning-bg)' : 'var(--status-success-bg)',
+                          borderLeft: `3px solid ${a.severity === 'CRITICAL' ? 'var(--status-danger)' : a.severity === 'WARNING' ? 'var(--status-warning)' : 'var(--status-success)'}`,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '0.45rem'
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: a.severity === 'CRITICAL' ? 'var(--status-danger)' : a.severity === 'WARNING' ? 'var(--status-warning)' : 'var(--status-success)' }}>
+                            [{a.severity}] {a.title}
+                          </strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '0.05rem' }}>{a.description}</div>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'monospace', flexShrink: 0 }}>{a.timestamp}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ))
-            )}
-          </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Step 4 Completion Confirmation Banner */}

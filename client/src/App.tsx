@@ -739,7 +739,7 @@ export function App() {
                   onProbe={handleProbeNagios}
                   isRunning={isRunning}
                 />
-                <Terminal logs={logs.filter(l => l.stage === 'CHAOS' || l.stage === 'NAGIOS' || l.stage === 'PUPPET')} onClear={handleClearLogs} />
+                <Terminal logs={logs.filter(l => l.stage === 'CHAOS' || l.stage === 'NAGIOS' || l.stage === 'PUPPET' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
               </div>
             </div>
           )}

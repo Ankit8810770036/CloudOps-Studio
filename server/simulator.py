@@ -356,6 +356,9 @@ class SimulationEngine:
             state.telemetry["checks"]["cpu"]["status"] = "CRITICAL"
             state.telemetry["checks"]["cpu"]["value"] = 96.8
             state.telemetry["overall_health"] = "CRITICAL"
+
+        elif fault == "config_tamper" or state.compliance.get("status") == "drift_detected":
+            state.telemetry["overall_health"] = "WARNING"
             
         else:
             # Normal healthy baseline/fluctuation
@@ -478,20 +481,21 @@ class SimulationEngine:
         await self.run_nagios_probe()
 
     async def heal_chaos(self):
-        fault = state.chaos["active_fault"]
-        if not fault:
-            return
-            
+        fault = state.chaos.get("active_fault")
         state.is_running_pipeline = True
         state.current_action = "Auto-Remediation (Self-Healing Outage)"
         try:
-            state.add_log(f"Initiating Automated Multi-Tier Remediation for fault [{fault}]...", stage="SYSTEM")
-            await asyncio.sleep(0.5)
-            
-            if fault == "http_down":
-                server = state.deployment.get("web_server", "nginx")
-                state.add_log(f"Ansible Handler: Restarting {server} web daemon...", stage="ANSIBLE")
-                await asyncio.sleep(0.8)
+            if fault:
+                state.add_log(f"[CHAOS] Initiating Automated Self-Healing for fault [{fault}]...", stage="CHAOS")
+            else:
+                state.add_log("[CHAOS] Initiating Multi-Tier Automated Self-Healing & Baseline Verification...", stage="CHAOS")
+            await asyncio.sleep(0.4)
+
+            # 1. Frontend Web Server Restoration
+            server = state.deployment.get("web_server", "nginx")
+            if fault == "http_down" or state.telemetry["checks"]["http"].get("status") != "OK":
+                state.add_log(f"[CHAOS] Ansible Handler: Restarting {server.upper()} web server on port 80...", stage="CHAOS")
+                await asyncio.sleep(0.4)
                 state.telemetry["checks"]["http"] = {
                     "name": "Frontend Web Tier (Port 80)",
                     "status": "OK",
@@ -499,40 +503,45 @@ class SimulationEngine:
                     "response_time_ms": round(random.uniform(22.0, 36.0), 1)
                 }
                 state.clear_alerts_for_service("frontend")
-                state.add_alert("INFO", "Frontend Restored", f"{server.upper()} restarted and verified.", "frontend")
-                
-            elif fault == "backend_down":
-                b_type = state.stack["backend"]["type"]
+                state.add_log(f"[CHAOS] ✔ {server.upper()} web server active and verified (200 OK).", stage="CHAOS")
+
+            # 2. Backend Microservice Restoration
+            b_type = state.stack["backend"]["type"]
+            port = state.stack["backend"]["port"]
+            if fault == "backend_down" or state.telemetry["checks"]["backend_api"].get("status") != "OK":
                 if b_type == "docker":
-                    state.add_log("Docker Supervisor: Restarting container (docker start cloudops-custom-app)...", stage="SYSTEM")
+                    state.add_log("[CHAOS] Docker Supervisor: Restarting container (docker start cloudops-custom-app)...", stage="CHAOS")
                 else:
-                    state.add_log(f"Puppet Supervisor: Reviving {b_type.upper()} backend service...", stage="PUPPET")
-                await asyncio.sleep(0.8)
+                    state.add_log(f"[CHAOS] Supervisor: Reviving {b_type.upper()} microservice on port {port}...", stage="CHAOS")
+                await asyncio.sleep(0.4)
                 state.telemetry["checks"]["backend_api"] = {
                     "name": f"Backend API ({b_type.upper()})",
                     "status": "OK",
-                    "port": state.stack["backend"]["port"],
+                    "port": port,
                     "latency_ms": round(random.uniform(14.0, 24.0), 1)
                 }
                 state.clear_alerts_for_service("backend")
-                state.add_alert("INFO", "Backend Restored", f"{b_type.upper()} service restarted and responsive on port {state.stack['backend']['port']}.", "backend")
+                state.add_log(f"[CHAOS] ✔ {b_type.upper()} microservice responsive on port {port}.", stage="CHAOS")
 
-            elif fault == "db_down":
-                d_type = state.stack["database"]["type"]
-                state.add_log(f"Puppet Daemon Manager: Restarting {d_type.upper()} database service...", stage="PUPPET")
-                await asyncio.sleep(0.8)
+            # 3. Database Restoration
+            d_type = state.stack["database"]["type"]
+            d_port = state.stack["database"]["port"]
+            if fault == "db_down" or state.telemetry["checks"]["database"].get("status") != "OK":
+                state.add_log(f"[CHAOS] Database Daemon: Restarting {d_type.upper()} service on port {d_port}...", stage="CHAOS")
+                await asyncio.sleep(0.4)
                 state.telemetry["checks"]["database"] = {
                     "name": f"Database ({d_type.upper()})",
                     "status": "OK",
                     "engine": d_type.upper(),
-                    "port": state.stack["database"]["port"]
+                    "port": d_port
                 }
                 state.clear_alerts_for_service("database")
-                state.add_alert("INFO", "Database Restored", f"{d_type.upper()} accepting connections on port {state.stack['database']['port']}.", "database")
+                state.add_log(f"[CHAOS] ✔ {d_type.upper()} database accepting local connections.", stage="CHAOS")
 
-            elif fault == "cpu_spike":
-                state.add_log("Terminating stress workloads...", stage="SYSTEM")
-                await asyncio.sleep(0.8)
+            # 4. CPU Stress Termination
+            if fault == "cpu_spike" or state.telemetry["checks"]["cpu"].get("status") != "OK":
+                state.add_log("[CHAOS] Process Manager: Terminating high-CPU stress workloads...", stage="CHAOS")
+                await asyncio.sleep(0.4)
                 state.telemetry["checks"]["cpu"] = {
                     "name": "CPU Utilization",
                     "status": "OK",
@@ -540,15 +549,29 @@ class SimulationEngine:
                     "unit": "%"
                 }
                 state.clear_alerts_for_service("cpu")
-                state.add_alert("INFO", "CPU Normal", "Load returned to normal operating range.", "cpu")
-                
-            elif fault == "config_tamper":
-                await self.run_puppet_enforce()
-                
+                state.add_log("[CHAOS] ✔ CPU load normalized to operating baseline (<30%).", stage="CHAOS")
+
+            # 5. Puppet Configuration Drift Reconciliation
+            if fault == "config_tamper" or state.compliance.get("status") == "drift_detected":
+                state.add_log("[CHAOS] Puppet Desired-State: Reconciling /etc/motd and security policies...", stage="CHAOS")
+                await asyncio.sleep(0.4)
+                state.compliance.update({
+                    "status": "compliant",
+                    "last_enforced": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "drift_count": 0
+                })
+                for rule in state.compliance.get("rules_enforced", []):
+                    rule["status"] = "active"
+                state.clear_alerts_for_service("puppet_drift")
+                state.add_log("[CHAOS] ✔ Puppet catalog applied: 0 security drifts remaining.", stage="CHAOS")
+
+            # Reset Chaos and Alert State
             state.chaos["active_fault"] = None
             state.chaos["description"] = None
+            state.telemetry["alerts"] = [a for a in state.telemetry["alerts"] if a.get("severity") not in ("CRITICAL", "WARNING")]
             state.telemetry["overall_health"] = "HEALTHY"
             await self.run_nagios_probe()
+            state.add_log("[CHAOS] ✔ Automated Multi-Tier Remediation Complete: All services HEALTHY (100% UP).", stage="CHAOS")
         finally:
             state.is_running_pipeline = False
             state.current_action = None

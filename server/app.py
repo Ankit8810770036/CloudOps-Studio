@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 import json
 import shutil
 import zipfile
@@ -7,6 +8,11 @@ import tarfile
 import io
 import time
 from pathlib import Path
+
+# Ensure server directory is always in sys.path regardless of execution root
+server_dir = str(Path(__file__).resolve().parent)
+if server_dir not in sys.path:
+    sys.path.insert(0, server_dir)
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
