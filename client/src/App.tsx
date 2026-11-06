@@ -673,21 +673,6 @@ export function App() {
                 onNavigate={handleSelectTab}
               />
 
-              {/* Separate Section: Pre-Deployment Project Readiness Check (Before Starting Pipeline Steps) */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <PreDeploymentChecklist
-                  backendType={status.stack?.backend?.type || 'python'}
-                  frontendType={status.stack?.frontend?.type || 'react'}
-                  isInfraReady={status.infrastructure.status === 'ready'}
-                  hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
-                  customCode={status.custom_code}
-                  onProceed={() => handleSelectTab('tf')}
-                  proceedLabel="Proceed to Step 1: Terraform IaC"
-                  defaultOpen={false}
-                  titlePrefix="Pre-Flight Readiness:"
-                />
-              </div>
-
               {/* 4 Pipeline Steps Grid (Equal Stretch Alignment) */}
               <div className="main-grid">
                 <TerraformStep
@@ -772,17 +757,6 @@ export function App() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {/* Pre-Deployment Readiness Check (Before Starting Step 1) */}
-                <PreDeploymentChecklist
-                  backendType={status.stack?.backend?.type || 'python'}
-                  frontendType={status.stack?.frontend?.type || 'react'}
-                  isInfraReady={status.infrastructure.status === 'ready'}
-                  hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
-                  customCode={status.custom_code}
-                  titlePrefix="Step 1 Prerequisite:"
-                  defaultOpen={false}
-                />
-
                 <TerraformStep
                   infra={status.infrastructure}
                   onApply={handleApplyTerraform}
