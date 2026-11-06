@@ -92,7 +92,7 @@ export const StepCompletionNotification: React.FC<StepCompletionNotificationProp
             target="_blank"
             rel="noreferrer"
             className="btn-secondary"
-            style={{ fontSize: '0.76rem', height: '30px', padding: '0 0.65rem' }}
+            style={{ fontSize: '0.76rem', height: '32px', padding: '0 0.65rem', flexShrink: 0 }}
           >
             <ExternalLink size={12} />
             <span>Open Website</span>
@@ -107,9 +107,10 @@ export const StepCompletionNotification: React.FC<StepCompletionNotificationProp
             onProceed(data.nextStepTab);
             onClose();
           }}
+          title={data.nextStepLabel}
         >
-          <span>{data.nextStepLabel}</span>
-          <ChevronRight size={13} />
+          <span>{(data.nextStepLabel || '').replace(/[➔→>]/g, '').trim()}</span>
+          <ChevronRight size={13} style={{ flexShrink: 0 }} />
         </button>
       </div>
     </aside>

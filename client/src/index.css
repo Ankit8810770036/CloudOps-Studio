@@ -1821,8 +1821,8 @@ html.modal-open {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 380px;
-  max-width: calc(100vw - 48px);
+  width: 440px;
+  max-width: calc(100vw - 32px);
   background: var(--bg-card);
   border: 1.5px solid #10B981;
   border-radius: var(--radius-lg);
@@ -1830,6 +1830,7 @@ html.modal-open {
   padding: 1.15rem;
   z-index: 9999;
   box-sizing: border-box;
+  overflow: hidden;
   animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -1949,18 +1950,34 @@ html.modal-open {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.step-completion-actions .btn-secondary {
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .step-completion-proceed-btn {
-  flex: 1;
-  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
   font-size: 0.78rem;
   font-weight: 700;
   height: 32px;
-  padding: 0 0.85rem;
+  padding: 0 0.75rem;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.step-completion-proceed-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ==========================================================================

@@ -303,7 +303,7 @@ export function App() {
           { label: 'Status', value: 'Ready for Ansible' }
         ],
         nextStepTab: 'ans',
-        nextStepLabel: 'Proceed to Step 2: Ansible Deploy ➔'
+        nextStepLabel: 'Step 2: Ansible Deploy'
       });
     }
 
@@ -321,7 +321,7 @@ export function App() {
           { label: 'URL', value: status.infrastructure.app_url || `http://${status.infrastructure.public_ip}` }
         ],
         nextStepTab: 'pup',
-        nextStepLabel: 'Proceed to Step 3: Puppet Baseline ➔',
+        nextStepLabel: 'Step 3: Puppet Baseline',
         appUrl: status.infrastructure.app_url || (status.infrastructure.public_ip ? `http://${status.infrastructure.public_ip}` : undefined)
       });
     }
@@ -340,7 +340,7 @@ export function App() {
           { label: 'State', value: '100% Compliant' }
         ],
         nextStepTab: 'nag',
-        nextStepLabel: 'Proceed to Step 4: Nagios Telemetry ➔'
+        nextStepLabel: 'Step 4: Nagios Telemetry'
       });
     }
 
@@ -358,7 +358,7 @@ export function App() {
           { label: 'Status', value: 'All Probes Passing' }
         ],
         nextStepTab: 'all',
-        nextStepLabel: 'View Full Console Overview ➔',
+        nextStepLabel: 'Console Overview',
         appUrl: status.infrastructure.app_url || (status.infrastructure.public_ip ? `http://${status.infrastructure.public_ip}` : undefined)
       });
     }
