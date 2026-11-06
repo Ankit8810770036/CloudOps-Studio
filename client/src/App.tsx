@@ -30,7 +30,7 @@ import {
   connectLogWebSocket,
 } from './services/api';
 import { FullStatus, LogEntry } from './types';
-import { Layers, Package, ShieldCheck, Activity, Flame, Terminal as TerminalIcon, LayoutDashboard, AlertTriangle, Key, X } from 'lucide-react';
+import { Terminal as TerminalIcon, LayoutDashboard, AlertTriangle, Key, X } from 'lucide-react';
 
 export interface ModeAlertData {
   title: string;
@@ -711,183 +711,99 @@ export function App() {
 
           {/* SECTION 0: PRE-DEPLOYMENT PROJECT READINESS DEDICATED VIEW */}
           {activeTab === 'preflight' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <ShieldCheck size={18} color="var(--aws-orange)" />
-                    <span>0. Pre-Deployment Readiness Checklist</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    Verify manifests, host binding, and health route before deploy.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <PreDeploymentChecklist
-                  backendType={status.stack?.backend?.type || 'python'}
-                  frontendType={status.stack?.frontend?.type || 'react'}
-                  isInfraReady={status.infrastructure.status === 'ready'}
-                  hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
-                  customCode={status.custom_code}
-                  onProceed={() => handleSelectTab('tf')}
-                  proceedLabel="Proceed to Step 1: Terraform IaC"
-                  defaultOpen={true}
-                  titlePrefix="Project Readiness:"
-                />
-                <Terminal logs={logs} onClear={handleClearLogs} />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <PreDeploymentChecklist
+                backendType={status.stack?.backend?.type || 'python'}
+                frontendType={status.stack?.frontend?.type || 'react'}
+                isInfraReady={status.infrastructure.status === 'ready'}
+                hasCustomCode={!!(status.custom_code?.backend || status.custom_code?.frontend)}
+                customCode={status.custom_code}
+                onProceed={() => handleSelectTab('tf')}
+                proceedLabel="Proceed to Step 1: Terraform IaC"
+                defaultOpen={true}
+                titlePrefix="0. Pre-Flight Check:"
+              />
+              <Terminal logs={logs} onClear={handleClearLogs} />
             </div>
           )}
 
           {/* SECTION 2: TERRAFORM IAC FOCUSED VIEW */}
           {activeTab === 'tf' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <Layers size={18} color="var(--accent-terraform)" />
-                    <span>Step 1: Terraform IaC</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    AWS VPC, Subnets, Security Groups & EC2 provisioning.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <TerraformStep
-                  infra={status.infrastructure}
-                  onApply={handleApplyTerraform}
-                  onDestroy={handleDestroyTerraform}
-                  isRunning={isRunning}
-                />
-                <Terminal logs={logs.filter(l => l.stage === 'TERRAFORM' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <TerraformStep
+                infra={status.infrastructure}
+                onApply={handleApplyTerraform}
+                onDestroy={handleDestroyTerraform}
+                isRunning={isRunning}
+              />
+              <Terminal logs={logs.filter(l => l.stage === 'TERRAFORM' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
             </div>
           )}
 
           {/* SECTION 3: ANSIBLE FULL-STACK DEPLOYMENT FOCUSED VIEW */}
           {activeTab === 'ans' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <Package size={18} color="var(--accent-ansible)" />
-                    <span>Step 2: Ansible Deployment</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    Polyglot 3-tier application stack & Nginx reverse proxy.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <AnsibleStep
-                  deployment={status.deployment}
-                  infra={status.infrastructure}
-                  stack={status.stack}
-                  customCode={status.custom_code}
-                  onDeploy={handleDeployAnsible}
-                  isRunning={isRunning}
-                  onRefreshStatus={() => fetchStatus().then(setStatus)}
-                />
-                <Terminal logs={logs.filter(l => l.stage === 'ANSIBLE' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <AnsibleStep
+                deployment={status.deployment}
+                infra={status.infrastructure}
+                stack={status.stack}
+                customCode={status.custom_code}
+                onDeploy={handleDeployAnsible}
+                isRunning={isRunning}
+                onRefreshStatus={() => fetchStatus().then(setStatus)}
+              />
+              <Terminal logs={logs.filter(l => l.stage === 'ANSIBLE' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
             </div>
           )}
 
           {/* SECTION 4: PUPPET COMPLIANCE FOCUSED VIEW */}
           {activeTab === 'pup' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <ShieldCheck size={18} color="var(--accent-puppet)" />
-                    <span>Step 3: Puppet Compliance</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    Configuration baseline, SSH hardening, and drift self-healing.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <PuppetStep
-                  compliance={status.compliance}
-                  infra={status.infrastructure}
-                  onEnforce={handleEnforcePuppet}
-                  isRunning={isRunning}
-                />
-                <Terminal logs={logs.filter(l => l.stage === 'PUPPET' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <PuppetStep
+                compliance={status.compliance}
+                infra={status.infrastructure}
+                onEnforce={handleEnforcePuppet}
+                isRunning={isRunning}
+              />
+              <Terminal logs={logs.filter(l => l.stage === 'PUPPET' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
             </div>
           )}
 
           {/* SECTION 5: NAGIOS OBSERVABILITY FOCUSED VIEW */}
           {activeTab === 'nag' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <Activity size={18} color="var(--accent-nagios)" />
-                    <span>Step 4: Nagios Observability</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    Active HTTP port 80 health checks, backend API latency, and host load.
-                  </div>
-                </div>
-              </div>
-
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Real-time Hardware Charts inside Monitoring */}
               <MetricCharts telemetry={status.telemetry} />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <NagiosStep
-                  telemetry={status.telemetry}
-                  infra={status.infrastructure}
-                  onProbe={handleProbeNagios}
-                  isRunning={isRunning}
-                />
-                <Terminal logs={logs.filter(l => l.stage === 'NAGIOS' || l.stage === 'CHAOS')} onClear={handleClearLogs} />
-              </div>
+              <NagiosStep
+                telemetry={status.telemetry}
+                infra={status.infrastructure}
+                onProbe={handleProbeNagios}
+                isRunning={isRunning}
+              />
+              <Terminal logs={logs.filter(l => l.stage === 'NAGIOS' || l.stage === 'CHAOS')} onClear={handleClearLogs} />
             </div>
           )}
 
           {/* SECTION 6: CHAOS LAB FOCUSED VIEW */}
           {activeTab === 'chaos' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <Flame size={18} color="var(--status-danger)" />
-                    <span>Chaos Engineering Lab</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    Failure simulation and automated self-healing verification.
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <ChaosPanel
-                  chaos={status.chaos}
-                  infra={status.infrastructure}
-                  onInject={handleInjectChaos}
-                  onHeal={handleHealChaos}
-                  isRunning={isRunning}
-                  mode={status.mode}
-                  onNavigate={handleSelectTab}
-                />
-                <NagiosStep
-                  telemetry={status.telemetry}
-                  infra={status.infrastructure}
-                  onProbe={handleProbeNagios}
-                  isRunning={isRunning}
-                />
-                <Terminal logs={logs.filter(l => l.stage === 'CHAOS' || l.stage === 'NAGIOS' || l.stage === 'PUPPET' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <ChaosPanel
+                chaos={status.chaos}
+                infra={status.infrastructure}
+                onInject={handleInjectChaos}
+                onHeal={handleHealChaos}
+                isRunning={isRunning}
+                mode={status.mode}
+                onNavigate={handleSelectTab}
+              />
+              <NagiosStep
+                telemetry={status.telemetry}
+                infra={status.infrastructure}
+                onProbe={handleProbeNagios}
+                isRunning={isRunning}
+              />
+              <Terminal logs={logs.filter(l => l.stage === 'CHAOS' || l.stage === 'NAGIOS' || l.stage === 'PUPPET' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
             </div>
           )}
 
