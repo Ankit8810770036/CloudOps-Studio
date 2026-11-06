@@ -241,10 +241,11 @@ async def update_config(req: ConfigRequest):
 async def apply_terraform(req: ProvisionRequest):
     if state.is_running_pipeline:
         raise HTTPException(status_code=409, detail=f"A pipeline step is already running: {state.current_action}")
-        
+
+    target_region = req.aws_region if (req.aws_region and req.aws_region != "us-east-1") else state.config.get("aws_region", "ap-south-1")
     engine = simulator if state.mode == "simulation" else live_engine
-    asyncio.create_task(engine.run_terraform_apply(region=req.aws_region, instance_type=req.instance_type))
-    return {"status": "started", "action": "terraform_apply"}
+    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t2.micro"))
+    return {"status": "started", "action": "terraform_apply", "region": target_region}
 
 @app.post("/api/terraform/destroy")
 async def destroy_terraform():

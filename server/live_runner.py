@@ -23,11 +23,12 @@ class LiveEngine:
             env["AWS_ACCESS_KEY_ID"] = state.config["aws_access_key"]
         if state.config.get("aws_secret_key"):
             env["AWS_SECRET_ACCESS_KEY"] = state.config["aws_secret_key"]
-        if state.config.get("aws_region"):
-            env["AWS_DEFAULT_REGION"] = state.config["aws_region"]
+        region = state.config.get("aws_region", "ap-south-1")
+        env["AWS_DEFAULT_REGION"] = region
+        env["AWS_REGION"] = region
         return env
 
-    async def run_terraform_apply(self, region: str = "us-east-1", instance_type: str = "t2.micro"):
+    async def run_terraform_apply(self, region: str = "ap-south-1", instance_type: str = "t2.micro"):
         state.is_running_pipeline = True
         state.current_action = "Terraform Live Provisioning"
         state.infrastructure["status"] = "provisioning"
