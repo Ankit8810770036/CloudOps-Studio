@@ -28,12 +28,17 @@ from live_runner import live_engine
 async def nagios_background_poller():
     while True:
         try:
-            if state.infrastructure.get("status") == "ready":
+            # Poll live/simulated telemetry once infrastructure is ready and deployment + compliance have been established
+            if (
+                state.infrastructure.get("status") == "ready"
+                and state.deployment.get("status") == "deployed"
+                and state.compliance.get("status") == "compliant"
+            ):
                 if state.mode == "simulation":
                     await simulator.run_nagios_probe()
                 else:
                     await live_engine.run_nagios_probe()
-        except Exception as e:
+        except Exception:
             pass
         await asyncio.sleep(4)
 
