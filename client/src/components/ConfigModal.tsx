@@ -24,6 +24,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
   const handleClose = () => {
     setValidationError(null);
+    setSecretKey('');
     onClose();
   };
 
@@ -70,6 +71,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         aws_access_key: cleanAccess,
         ...(cleanSecret ? { aws_secret_key: cleanSecret } : {})
       });
+      setSecretKey('');
       setSaved(true);
       if (onSuccess) {
         await onSuccess();

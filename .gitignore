@@ -13,14 +13,21 @@ client/node_modules/
 dist/
 .DS_Store
 
-# Terraform
+# Terraform & AWS Keys
 .terraform/
 *.tfstate
 *.tfstate.*
 crash.log
 *.tfvars
 !terraform.tfvars.example
+*.pem
+*.key
+*.pub
+*.id_rsa
+id_rsa*
+credentials
 devops-key.pem
+terraform/devops-key.pem
 
 # IDE
 .vscode/

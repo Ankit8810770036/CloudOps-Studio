@@ -153,9 +153,9 @@ async def get_config():
 
 @app.post("/api/config")
 async def update_config(req: ConfigRequest):
-    if req.aws_region: state.config["aws_region"] = req.aws_region
-    if req.instance_type: state.config["instance_type"] = req.instance_type
-    if req.environment: state.config["environment"] = req.environment
+    if req.aws_region: state.config["aws_region"] = req.aws_region.strip()
+    if req.instance_type: state.config["instance_type"] = req.instance_type.strip()
+    if req.environment: state.config["environment"] = req.environment.strip()
     if req.aws_access_key is not None:
         state.config["aws_access_key"] = req.aws_access_key.strip()
     if req.aws_secret_key is not None and req.aws_secret_key.strip():
@@ -163,8 +163,10 @@ async def update_config(req: ConfigRequest):
         
     access_key = state.config.get("aws_access_key", "")
     secret_key = state.config.get("aws_secret_key", "")
-    is_dummy = access_key == "AKIAIOSFODNN7EXAMPLE"
-    state.config["has_aws_keys"] = bool(access_key and secret_key and not is_dummy)
+    is_dummy = access_key in ("AKIAIOSFODNN7EXAMPLE", "")
+    has_access = bool(access_key and not is_dummy)
+    has_secret = bool(secret_key and not is_dummy)
+    state.config["has_aws_keys"] = bool(has_access and has_secret)
     
     if state.config["has_aws_keys"]:
         os.environ["AWS_ACCESS_KEY_ID"] = access_key
@@ -172,7 +174,21 @@ async def update_config(req: ConfigRequest):
         os.environ["AWS_DEFAULT_REGION"] = state.config.get("aws_region", "ap-south-1")
     
     state.add_log(f"Cloud configuration updated: Region={state.config['aws_region']}, Type={state.config['instance_type']}", stage="SYSTEM")
-    return {"status": "ok", "config": state.config}
+
+    masked_secret = f"{secret_key[:4]}...{secret_key[-4:]}" if has_secret and len(secret_key) >= 8 else ("****" if has_secret else "")
+    return {
+        "status": "ok",
+        "config": {
+            "aws_region": state.config.get("aws_region", "ap-south-1"),
+            "instance_type": state.config.get("instance_type", "t2.micro"),
+            "environment": state.config.get("environment", "devops-production"),
+            "has_aws_keys": bool(has_access and has_secret),
+            "has_access_key": has_access,
+            "has_secret_key": has_secret,
+            "aws_access_key": access_key if not is_dummy else "",
+            "aws_secret_key_masked": masked_secret
+        }
+    }
 
 # 4. Terraform Endpoints
 @app.post("/api/terraform/apply")
@@ -274,6 +290,10 @@ async def upload_code(
 
     target_dir.mkdir(parents=True, exist_ok=True)
 
+    MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 100 MB max payload protection
+    if len(files) > 1000:
+        raise HTTPException(status_code=400, detail="Payload file count exceeds 1,000 files limit.")
+
     saved_files = []
     total_size = 0
 
@@ -290,6 +310,8 @@ async def upload_code(
 
         content = await f.read()
         total_size += len(content)
+        if total_size > MAX_UPLOAD_SIZE:
+            raise HTTPException(status_code=413, detail="Payload Too Large: Upload exceeds 100MB security limit.")
 
         # 1. Zip Archive Auto-Extraction
         if filename.lower().endswith(".zip"):

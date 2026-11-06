@@ -128,6 +128,10 @@ class PlatformState:
         self.recent_logs: List[Dict[str, Any]] = []
 
     def add_log(self, text: str, stream: str = "stdout", stage: str = "SYSTEM"):
+        # Security sanitization: strip any AWS secrets before logging or broadcasting
+        sec = self.config.get("aws_secret_key")
+        if sec and len(sec) > 4 and sec in text:
+            text = text.replace(sec, "****************")
         timestamp = time.strftime("%H:%M:%S")
         entry = {
             "timestamp": timestamp,
