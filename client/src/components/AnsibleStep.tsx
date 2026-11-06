@@ -84,31 +84,6 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
     setTimeout(() => setIsSaved(false), 2000);
   };
 
-  // Quick Preset Handlers
-  const applyPreset = (preset: 'python' | 'spring' | 'mern' | 'static' | 'docker') => {
-    if (preset === 'python') {
-      setFrontendType('react');
-      setBackendType('python');
-      setDatabaseType('postgresql');
-    } else if (preset === 'spring') {
-      setFrontendType('react');
-      setBackendType('java_springboot');
-      setDatabaseType('mysql');
-    } else if (preset === 'mern') {
-      setFrontendType('react');
-      setBackendType('nodejs');
-      setDatabaseType('mongodb');
-    } else if (preset === 'static') {
-      setFrontendType('html');
-      setBackendType('none');
-      setDatabaseType('none');
-    } else if (preset === 'docker') {
-      setFrontendType('react');
-      setBackendType('docker');
-      setDatabaseType('postgresql');
-    }
-  };
-
   const getBackendPort = () => {
     if (backendType === 'java_springboot') return 8080;
     if (backendType === 'nodejs') return 5000;
@@ -275,71 +250,6 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
         <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.85rem' }}>
           Configures Frontend, Backend runtime, Database, and Nginx reverse proxy.
         </p>
-
-        {/* Quick Architecture Presets */}
-        <div style={{ marginBottom: '0.85rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.55rem' }}>
-            <button
-              type="button"
-              className={`preset-chip ${backendType === 'python' ? 'active-preset' : ''}`}
-              onClick={() => applyPreset('python')}
-            >
-              <span>🐍</span>
-              <div>
-                <div style={{ fontWeight: 700 }}>Python Stack</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>FastAPI + Postgres</div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`preset-chip ${backendType === 'java_springboot' ? 'active-preset' : ''}`}
-              onClick={() => applyPreset('spring')}
-            >
-              <span>☕</span>
-              <div>
-                <div style={{ fontWeight: 700 }}>Spring Boot</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Java 17 + MySQL</div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`preset-chip ${backendType === 'nodejs' ? 'active-preset' : ''}`}
-              onClick={() => applyPreset('mern')}
-            >
-              <span>🟢</span>
-              <div>
-                <div style={{ fontWeight: 700 }}>Node.js Express</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Express + Mongo</div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`preset-chip ${backendType === 'docker' ? 'active-preset' : ''}`}
-              onClick={() => applyPreset('docker')}
-            >
-              <span>🐳</span>
-              <div>
-                <div style={{ fontWeight: 700 }}>Universal Docker</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>Any Lang (Dockerfile)</div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`preset-chip ${backendType === 'none' ? 'active-preset' : ''}`}
-              onClick={() => applyPreset('static')}
-            >
-              <span>🌐</span>
-              <div>
-                <div style={{ fontWeight: 700 }}>Static Web</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>HTML5 / Nginx</div>
-              </div>
-            </button>
-          </div>
-        </div>
 
         {/* 3-Tier Customization Selectors Grid (Non-Overflowing) */}
         <div className="tier-container-box">
