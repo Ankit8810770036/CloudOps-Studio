@@ -634,12 +634,14 @@ export function App() {
 
         {/* Main Content Area */}
         <main className="content-container" ref={mainContentRef}>
-          {/* Global Pipeline Stepper Progress */}
-          <PipelineStepper
-            status={status}
-            activeTab={activeTab}
-            onNavigate={handleSelectTab}
-          />
+          {/* Global Pipeline Stepper Progress (Hidden in Chaos Lab and Live Terminal) */}
+          {activeTab !== 'chaos' && activeTab !== 'term' && (
+            <PipelineStepper
+              status={status}
+              activeTab={activeTab}
+              onNavigate={handleSelectTab}
+            />
+          )}
 
           {/* SECTION 1: CONSOLE OVERVIEW (ALL) */}
           {activeTab === 'all' && (
