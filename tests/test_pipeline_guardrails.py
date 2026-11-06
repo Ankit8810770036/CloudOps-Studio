@@ -33,3 +33,4 @@ def test_concurrent_pipeline_conflict(client):
     res = client.post("/api/terraform/apply", json={"aws_region": "ap-south-1", "instance_type": "t3.micro"})
     assert res.status_code == 409
     assert "A pipeline step is already running" in res.json()["detail"]
+

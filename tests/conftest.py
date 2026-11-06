@@ -44,3 +44,4 @@ def reset_state():
     state.projects = orig_projects
     state.recent_logs = orig_logs
     state.is_running_pipeline = orig_running
+

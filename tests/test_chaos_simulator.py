@@ -28,3 +28,4 @@ def test_chaos_heal(client):
     assert res.status_code == 200
     assert state.chaos["active_fault"] is None
     assert state.telemetry["checks"]["http"]["status"] == "OK"
+

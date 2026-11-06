@@ -68,3 +68,4 @@ def test_switch_project_not_found(client):
     state.projects = []
     res = client.post("/api/projects/switch", json={"project_id": "non-existent-proj"})
     assert res.status_code == 404
+

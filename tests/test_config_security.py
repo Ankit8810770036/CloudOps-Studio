@@ -43,3 +43,4 @@ def test_log_sanitizer_redacts_secret_keys(client):
     last_log = state.recent_logs[-1]
     assert "ACTUAL_SECRET_TOKEN_XYZ_99" not in last_log["text"]
     assert "****************" in last_log["text"]
+
