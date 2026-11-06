@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   const isTfDone = status.infrastructure.status === 'ready';
   const isAnsDone = status.deployment.status === 'deployed';
   const isPupDone = status.compliance.status === 'compliant';
-  const isNagDone = isHealthy && isAnsDone;
+  const isNagDone = isTfDone && isAnsDone && isPupDone && Boolean(status.telemetry.last_check) && isHealthy;
 
   const navItems = [
     { id: 'all', label: 'Console Overview', icon: LayoutDashboard },

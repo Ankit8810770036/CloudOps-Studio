@@ -288,7 +288,10 @@ class SimulationEngine:
         state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "OK", "value": 22.4, "unit": "%"}
         state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "OK", "value": 41.5, "unit": "%"}
         state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "OK", "value": 24.0, "unit": "%"}
-        state.telemetry["overall_health"] = "HEALTHY"
+        if state.compliance.get("status") == "compliant" and state.telemetry.get("last_check"):
+            state.telemetry["overall_health"] = "HEALTHY"
+        else:
+            state.telemetry["overall_health"] = "UNKNOWN"
         
         state.is_running_pipeline = False
         state.current_action = None

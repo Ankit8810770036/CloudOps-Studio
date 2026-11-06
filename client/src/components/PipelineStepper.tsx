@@ -22,7 +22,8 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
   const isPupCompliant = status.compliance.status === 'compliant';
   const isPupRunning = status.compliance.status === 'enforcing';
 
-  const isNagHealthy = status.telemetry.overall_health === 'HEALTHY' && isAnsDeployed;
+  // Step 4 (Nagios) requires all previous steps to be finished and an active probe executed
+  const isNagHealthy = isTfReady && isAnsDeployed && isPupCompliant && Boolean(status.telemetry.last_check) && status.telemetry.overall_health === 'HEALTHY';
 
   const steps = [
     {
@@ -69,7 +70,9 @@ export const PipelineStepper: React.FC<PipelineStepperProps> = React.memo(({
       id: 'nag',
       num: 4,
       title: '4. Nagios Telemetry',
-      sub: isNagHealthy ? 'Health: 100% OK' : (status.telemetry.overall_health === 'CRITICAL' ? 'Alerts Active' : 'Active Probes'),
+      sub: isNagHealthy
+        ? 'Health: 100% OK'
+        : (status.telemetry.overall_health === 'CRITICAL' ? 'Alerts Active' : (!isPupCompliant ? 'Pending Step 3' : 'Awaiting Probe')),
       isComplete: isNagHealthy,
       isRunning: false,
       icon: Activity,

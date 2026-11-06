@@ -313,7 +313,7 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
         </div>
 
         {/* Step 4 Completion Confirmation Banner */}
-        {telemetry.overall_health === 'HEALTHY' && isInfraReady && (
+        {telemetry.overall_health === 'HEALTHY' && isInfraReady && Boolean(telemetry.last_check) && (
           <div className="step-success-banner" style={{ marginTop: '0.85rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
               <CheckCircle size={16} color="#10B981" style={{ flexShrink: 0 }} />
