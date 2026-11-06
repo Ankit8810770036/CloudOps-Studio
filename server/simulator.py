@@ -56,17 +56,23 @@ class SimulationEngine:
             state.add_log(text, stage="TERRAFORM")
             await asyncio.sleep(delay * 0.35)
             
+        proj_idx = len(state.projects) + 1
+        sim_ip = "54.210.88.142" if proj_idx == 1 else f"54.210.88.{141 + proj_idx}"
+        sim_id = "i-094b81c29e710dfa4" if proj_idx == 1 else f"i-0{abs(hash(sim_ip)) % 100000000:08d}a"
+
         state.infrastructure.update({
             "status": "ready",
-            "instance_id": "i-094b81c29e710dfa4",
-            "public_ip": "54.210.88.142",
-            "public_dns": "ec2-54-210-88-142.compute-1.amazonaws.com",
+            "instance_id": sim_id,
+            "public_ip": sim_ip,
+            "public_dns": f"ec2-{sim_ip.replace('.', '-')}.compute-1.amazonaws.com",
             "security_group": "sg-07b9a4c09d4128f11",
             "vpc_id": "vpc-0a817f9b42c13d80a",
-            "app_url": "http://54.210.88.142",
-            "ssh_command": "ssh -i terraform/devops-key.pem ubuntu@54.210.88.142",
+            "app_url": f"http://{sim_ip}",
+            "ssh_command": f"ssh -i terraform/devops-key.pem ubuntu@{sim_ip}",
             "provisioned_at": time.strftime("%Y-%m-%d %H:%M:%S")
         })
+        
+        state.save_current_project()
         
         state.telemetry["checks"]["ping"] = {"name": "Host Ping (ICMP)", "status": "OK", "latency_ms": 24.2, "packet_loss": "0%"}
         state.telemetry["checks"]["ssh"] = {"name": "SSH Daemon (Port 22)", "status": "OK", "port_open": True}
@@ -292,6 +298,8 @@ class SimulationEngine:
             state.telemetry["overall_health"] = "HEALTHY"
         else:
             state.telemetry["overall_health"] = "UNKNOWN"
+
+        state.save_current_project()
         
         state.is_running_pipeline = False
         state.current_action = None

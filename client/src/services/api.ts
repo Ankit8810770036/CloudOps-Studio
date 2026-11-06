@@ -160,6 +160,32 @@ export async function clearLogs() {
   return res.json();
 }
 
+export async function fetchProjects() {
+  const res = await fetch(`${API_BASE}/api/projects`);
+  if (!res.ok) throw new Error('Failed to fetch deployed projects');
+  return res.json();
+}
+
+export async function createNewProject(name?: string) {
+  const res = await fetch(`${API_BASE}/api/project/new`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error('Failed to start new project');
+  return res.json();
+}
+
+export async function switchProject(projectId: string) {
+  const res = await fetch(`${API_BASE}/api/projects/switch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_id: projectId }),
+  });
+  if (!res.ok) throw new Error('Failed to switch project');
+  return res.json();
+}
+
 export function connectLogWebSocket(onLog: (entry: LogEntry) => void): WebSocket {
   const ws = new WebSocket(`${WS_BASE}/ws/logs`);
   ws.onmessage = (event) => {

@@ -11,6 +11,7 @@ import { ChaosPanel } from './components/ChaosPanel';
 import { Terminal } from './components/Terminal';
 import { ConfigModal } from './components/ConfigModal';
 import { VivaModal } from './components/VivaModal';
+import { NewProjectModal } from './components/NewProjectModal';
 import { PipelineStepper } from './components/PipelineStepper';
 import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
 import { PreDeploymentChecklist } from './components/PreDeploymentChecklist';
@@ -28,6 +29,8 @@ import {
   healChaos,
   clearLogs,
   connectLogWebSocket,
+  createNewProject,
+  switchProject,
 } from './services/api';
 import { FullStatus, LogEntry } from './types';
 import { Terminal as TerminalIcon, LayoutDashboard, AlertTriangle, Key, X } from 'lucide-react';
@@ -56,6 +59,7 @@ export function App() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isLiveModeRequired, setIsLiveModeRequired] = useState(false);
   const [isVivaOpen, setIsVivaOpen] = useState(false);
+  const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [modeAlert, setModeAlert] = useState<ModeAlertData | null>(null);
 
   // Auto-dismiss mode alert after 10 seconds
@@ -572,6 +576,48 @@ export function App() {
     setLogs([]);
   }, []);
 
+  const handleNewProject = useCallback(async (projectName: string) => {
+    try {
+      await createNewProject(projectName);
+      const updated = await fetchStatus();
+      setStatus(updated);
+      setActiveTab('preflight');
+      setCompletionNotice(null);
+      setModeAlert({
+        badge: 'NEW PROJECT SESSION',
+        title: 'Project Workspace Reset Ready',
+        message: `Deployment wizard is reset for "${projectName}". Select your application stack or upload custom code to deploy.`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      setModeAlert({
+        title: 'Failed to initialize new project',
+        message: err.message || 'Error occurred while resetting workspace',
+        type: 'error'
+      });
+    }
+  }, []);
+
+  const handleSwitchProject = useCallback(async (projectId: string) => {
+    try {
+      await switchProject(projectId);
+      const updated = await fetchStatus();
+      setStatus(updated);
+      setModeAlert({
+        badge: 'TARGET SWITCHED',
+        title: 'Switched Monitored Target',
+        message: `Telemetry and Chaos Lab are now targeting project: ${projectId}.`,
+        type: 'info'
+      });
+    } catch (err: any) {
+      setModeAlert({
+        title: 'Failed to switch project',
+        message: err.message || 'Error switching monitored target',
+        type: 'error'
+      });
+    }
+  }, []);
+
   if (!status) {
     return (
       <div style={{
@@ -630,6 +676,7 @@ export function App() {
           onNavigate={handleSelectTab}
           onOpenConfig={() => setIsConfigOpen(true)}
           onOpenViva={() => setIsVivaOpen(true)}
+          onOpenNewProject={() => setIsNewProjectOpen(true)}
         />
 
         {/* Main Content Area */}
@@ -673,6 +720,10 @@ export function App() {
                 isRunning={isRunning}
                 mode={status.mode}
                 onNavigate={handleSelectTab}
+                projects={status.projects}
+                activeProjectId={status.active_project_id}
+                onSwitchProject={handleSwitchProject}
+                onNewProject={() => setIsNewProjectOpen(true)}
               />
 
               {/* 4 Pipeline Steps Grid (Equal Stretch Alignment) */}
@@ -798,6 +849,10 @@ export function App() {
                 isRunning={isRunning}
                 mode={status.mode}
                 onNavigate={handleSelectTab}
+                projects={status.projects}
+                activeProjectId={status.active_project_id}
+                onSwitchProject={handleSwitchProject}
+                onNewProject={() => setIsNewProjectOpen(true)}
               />
               <NagiosStep
                 telemetry={status.telemetry}
@@ -869,6 +924,12 @@ export function App() {
         }}
       />
       <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
+      <NewProjectModal
+        isOpen={isNewProjectOpen}
+        onClose={() => setIsNewProjectOpen(false)}
+        onConfirm={handleNewProject}
+        status={status}
+      />
 
       {/* Floating On-Screen Mode Switch Alert Toast */}
       {modeAlert && (

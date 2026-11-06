@@ -114,6 +114,20 @@ export interface CustomCodeState {
   backend?: UploadedCodePackage | null;
 }
 
+export interface DeployedProject {
+  id: string;
+  name: string;
+  created_at: string;
+  region: string;
+  public_ip: string;
+  instance_id?: string;
+  app_url?: string;
+  stack?: StackConfig;
+  deployed_app?: string;
+  status: 'ready' | 'provisioning' | 'degraded' | 'healthy' | 'critical';
+  chaos_fault?: string | null;
+}
+
 export interface FullStatus {
   mode: ExecutionMode;
   is_running_pipeline: boolean;
@@ -125,6 +139,8 @@ export interface FullStatus {
   telemetry: TelemetryState;
   chaos: ChaosState;
   custom_code?: CustomCodeState;
+  projects?: DeployedProject[];
+  active_project_id?: string | null;
 }
 
 export interface LogEntry {

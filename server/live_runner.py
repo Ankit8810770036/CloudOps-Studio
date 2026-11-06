@@ -105,6 +105,7 @@ class LiveEngine:
                         "provisioned_at": time.strftime("%Y-%m-%d %H:%M:%S")
                     })
                     state.add_log(f"✔ Live AWS Instance ready! Public IP: {ip}", stage="TERRAFORM")
+                    state.save_current_project()
                 except Exception as e:
                     state.add_log(f"Error parsing terraform output: {e}", stream="stderr", stage="TERRAFORM")
         else:
@@ -524,6 +525,7 @@ EOF'
         state.infrastructure["app_url"] = f"http://{target_ip}"
         state.add_log(f"✔ Ansible: Successfully deployed application at http://{target_ip}", stage="ANSIBLE")
         state.add_log(f"✔ Live Reverse Proxy Active: Frontend (/) -> Static SPA • Backend (/api/) -> {backend_type.upper()} ({backend_port})", stage="ANSIBLE")
+        state.save_current_project()
 
         state.is_running_pipeline = False
         state.current_action = None

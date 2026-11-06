@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Settings,
   X,
-  ChevronDown
+  ChevronDown,
+  PlusCircle
 } from 'lucide-react';
 import { ExecutionMode, FullStatus } from '../types';
 
@@ -32,6 +33,7 @@ interface TopNavbarProps {
   onNavigate: (tabId: string) => void;
   onOpenConfig: () => void;
   onOpenViva: () => void;
+  onOpenNewProject?: () => void;
 }
 
 const AWS_REGIONS = [
@@ -52,6 +54,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
   onNavigate,
   onOpenConfig,
   onOpenViva,
+  onOpenNewProject,
 }) => {
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -290,6 +293,35 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
             <span className="status-dot pending" />
             <span>No Node Active</span>
           </div>
+        )}
+
+        {/* Deploy New Project Button */}
+        {onOpenNewProject && (
+          <button
+            type="button"
+            className="navbar-new-project-btn"
+            onClick={onOpenNewProject}
+            title="Deploy a new project (archives current deployment and resets wizard for fresh configuration)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              height: '32px',
+              padding: '0 0.8rem',
+              borderRadius: '6px',
+              border: '1px solid rgba(255, 153, 0, 0.45)',
+              background: 'rgba(255, 153, 0, 0.12)',
+              color: 'var(--aws-orange)',
+              fontWeight: 700,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <PlusCircle size={14} />
+            <span>+ New Project Deployment</span>
+          </button>
         )}
 
         {/* Mode Toggle Button */}

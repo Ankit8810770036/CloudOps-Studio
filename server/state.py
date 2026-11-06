@@ -46,6 +46,10 @@ class PlatformState:
             "frontend": None,
             "backend": None
         }
+
+        # Multi-Project Registry (Allows deploying multiple projects and switching between them)
+        self.projects: List[Dict[str, Any]] = []
+        self.active_project_id: Optional[str] = None
         
         # Step 1: Terraform Infrastructure
         self.infrastructure = {
@@ -207,6 +211,118 @@ class PlatformState:
             "description": None,
             "injected_at": None
         }
+
+    def save_current_project(self, name: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        ip = self.infrastructure.get("public_ip")
+        if not ip:
+            return None
+
+        instance_id = self.infrastructure.get("instance_id") or f"i-{abs(hash(ip)) % 10000000:07d}"
+        existing = next((p for p in self.projects if p.get("public_ip") == ip), None)
+        if existing:
+            existing.update({
+                "region": self.config.get("aws_region", "ap-south-1"),
+                "app_url": self.infrastructure.get("app_url") or f"http://{ip}",
+                "stack": dict(self.stack),
+                "deployed_app": self.deployment.get("deployed_app", "Full-Stack Web Application"),
+                "status": "ready" if self.infrastructure.get("status") == "ready" else "degraded",
+                "chaos_fault": self.chaos.get("active_fault")
+            })
+            if name:
+                existing["name"] = name
+            return existing
+
+        proj_id = f"proj-{len(self.projects) + 1}"
+        backend_name = self.stack.get("backend", {}).get("framework") or self.stack.get("backend", {}).get("type", "Web App").upper()
+        default_name = f"Project {len(self.projects) + 1}: {backend_name} ({self.config.get('aws_region', 'ap-south-1')})"
+
+        new_project = {
+            "id": proj_id,
+            "name": name or default_name,
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "region": self.config.get("aws_region", "ap-south-1"),
+            "public_ip": ip,
+            "instance_id": instance_id,
+            "app_url": self.infrastructure.get("app_url") or f"http://{ip}",
+            "stack": dict(self.stack),
+            "deployed_app": self.deployment.get("deployed_app", "Full-Stack Web Application"),
+            "status": "ready" if self.infrastructure.get("status") == "ready" else "provisioning",
+            "chaos_fault": self.chaos.get("active_fault")
+        }
+        self.projects.append(new_project)
+        self.active_project_id = proj_id
+        return new_project
+
+    def reset_for_new_project(self, project_name: Optional[str] = None):
+        # 1. Archive current project to projects registry if it has an IP
+        if self.infrastructure.get("public_ip"):
+            self.save_current_project(name=project_name)
+
+        # 2. Reset infrastructure, deployment, and monitoring pipeline wizard
+        self.infrastructure.update({
+            "status": "not_provisioned",
+            "instance_id": None,
+            "public_ip": None,
+            "public_dns": None,
+            "security_group": None,
+            "vpc_id": None,
+            "app_url": None,
+            "ssh_command": None,
+            "provisioned_at": None
+        })
+        self.deployment.update({
+            "status": "not_deployed",
+            "web_server": "nginx",
+            "deployed_app": "Full-Stack Web Application",
+            "deployed_at": None,
+            "response_code": None
+        })
+        self.compliance.update({
+            "status": "pending",
+            "last_enforced": None,
+            "drift_count": 0
+        })
+        for rule in self.compliance.get("rules_enforced", []):
+            rule["status"] = "active"
+
+        self.telemetry["overall_health"] = "UNKNOWN"
+        self.telemetry["last_check"] = None
+        self.telemetry["alerts"] = []
+        for k in self.telemetry["checks"]:
+            self.telemetry["checks"][k]["status"] = "UNKNOWN"
+
+        self.chaos = {
+            "active_fault": None,
+            "description": None,
+            "injected_at": None
+        }
+        self.custom_code = {
+            "frontend": None,
+            "backend": None
+        }
+        self.is_running_pipeline = False
+        self.current_action = None
+        self.active_project_id = None
+        self.add_log("[PROJECT WIZARD] 🚀 Started New Project Deployment session. Pipeline wizard reset for new project configuration.", stage="SYSTEM")
+
+    def switch_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+        target = next((p for p in self.projects if p["id"] == project_id), None)
+        if not target:
+            return None
+        self.active_project_id = project_id
+        self.infrastructure["public_ip"] = target.get("public_ip")
+        self.infrastructure["instance_id"] = target.get("instance_id")
+        self.infrastructure["app_url"] = target.get("app_url")
+        self.infrastructure["status"] = "ready"
+        if "stack" in target and isinstance(target["stack"], dict):
+            self.stack = dict(target["stack"])
+        if target.get("chaos_fault"):
+            self.chaos["active_fault"] = target["chaos_fault"]
+        else:
+            self.chaos["active_fault"] = None
+            self.chaos["description"] = None
+        self.add_log(f"[CHAOS MONITOR] 🎯 Switched active target node to {target['name']} ({target.get('public_ip')}).", stage="CHAOS")
+        return target
 
 # Global singleton
 state = PlatformState()

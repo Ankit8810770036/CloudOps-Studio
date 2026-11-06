@@ -93,9 +93,17 @@ class WebAppContentRequest(BaseModel):
 class ChaosRequest(BaseModel):
     fault_type: str # 'http_down', 'cpu_spike', 'config_tamper'
 
+class NewProjectRequest(BaseModel):
+    name: Optional[str] = None
+
+class SwitchProjectRequest(BaseModel):
+    project_id: str
+
 # 1. State & Status
 @app.get("/api/status")
 async def get_status():
+    if state.infrastructure.get("public_ip") and not state.projects:
+        state.save_current_project()
     return {
         "mode": state.mode,
         "is_running_pipeline": state.is_running_pipeline,
@@ -106,7 +114,45 @@ async def get_status():
         "compliance": state.compliance,
         "telemetry": state.telemetry,
         "chaos": state.chaos,
-        "custom_code": state.custom_code
+        "custom_code": state.custom_code,
+        "projects": state.projects,
+        "active_project_id": state.active_project_id
+    }
+
+# 1.1 Multi-Project Registry & Switching Endpoints
+@app.get("/api/projects")
+async def list_projects():
+    if state.infrastructure.get("public_ip") and not state.projects:
+        state.save_current_project()
+    return {
+        "projects": state.projects,
+        "active_project_id": state.active_project_id
+    }
+
+@app.post("/api/project/new")
+async def create_new_project(req: Optional[NewProjectRequest] = None):
+    name = req.name if req else None
+    state.reset_for_new_project(project_name=name)
+    return {
+        "status": "ok",
+        "message": "Deployment wizard reset for new project",
+        "projects": state.projects,
+        "active_project_id": state.active_project_id
+    }
+
+@app.post("/api/projects/switch")
+async def switch_project_endpoint(req: SwitchProjectRequest):
+    target = state.switch_project(req.project_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Project not found in deployed registry")
+
+    engine = simulator if state.mode == "simulation" else live_engine
+    await engine.run_nagios_probe()
+    return {
+        "status": "ok",
+        "active_project_id": state.active_project_id,
+        "project": target,
+        "telemetry": state.telemetry
     }
 
 # 2. Toggle Mode (Live AWS vs Simulation)

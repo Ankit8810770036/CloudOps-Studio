@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { ChaosState, InfrastructureState, ExecutionMode } from '../types';
+import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle, Layers, PlusCircle } from 'lucide-react';
+import { ChaosState, InfrastructureState, ExecutionMode, DeployedProject } from '../types';
 
 interface ChaosPanelProps {
   chaos: ChaosState;
@@ -10,6 +10,10 @@ interface ChaosPanelProps {
   isRunning: boolean;
   mode?: ExecutionMode;
   onNavigate?: (tabId: string) => void;
+  projects?: DeployedProject[];
+  activeProjectId?: string | null;
+  onSwitchProject?: (projectId: string) => Promise<void> | void;
+  onNewProject?: () => void;
 }
 
 export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
@@ -20,12 +24,44 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
   isRunning,
   mode = 'simulation',
   onNavigate,
+  projects = [],
+  activeProjectId,
+  onSwitchProject,
+  onNewProject,
 }) => {
   const [isHealing, setIsHealing] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const isInfraReady = infra.status === 'ready';
   const hasFault = Boolean(chaos.active_fault);
   const isDriftFault = chaos.active_fault === 'config_tamper';
-  const canInject = (mode === 'simulation' || isInfraReady) && !isRunning && !isHealing && !hasFault;
+  const canInject = (mode === 'simulation' || isInfraReady) && !isRunning && !isHealing && !hasFault && !isSwitching;
+
+  const deployedList: DeployedProject[] = React.useMemo(() => {
+    const list = [...(projects || [])];
+    if (infra.public_ip && !list.some(p => p.public_ip === infra.public_ip)) {
+      list.unshift({
+        id: 'proj-current',
+        name: 'Current Deployment',
+        created_at: infra.provisioned_at || 'Just now',
+        region: 'AWS Region',
+        public_ip: infra.public_ip,
+        instance_id: infra.instance_id || undefined,
+        app_url: infra.app_url || `http://${infra.public_ip}`,
+        status: 'ready'
+      });
+    }
+    return list;
+  }, [projects, infra.public_ip, infra.provisioned_at, infra.instance_id, infra.app_url]);
+
+  const handleSwitch = async (projId: string) => {
+    if (isSwitching || isRunning || !onSwitchProject) return;
+    setIsSwitching(true);
+    try {
+      await onSwitchProject(projId);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
 
   const handleHealClick = async () => {
     if (isHealing || isRunning) return;
@@ -100,6 +136,122 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
           )}
           <span>{isHealing ? 'Remediating...' : isDriftFault ? 'Puppet Reconcile & Heal' : 'Auto-Remediate'}</span>
         </button>
+      </div>
+
+      {/* Multi-Project Target Node Switcher */}
+      <div
+        style={{
+          background: 'var(--bg-card-subtle)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+          padding: '0.65rem 0.85rem',
+          marginBottom: '0.85rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.45rem'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <Layers size={14} color="var(--aws-orange)" />
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Monitored Target Project:
+            </span>
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              background: 'rgba(255, 153, 0, 0.12)',
+              color: 'var(--aws-orange)',
+              padding: '0.1rem 0.45rem',
+              borderRadius: '10px'
+            }}>
+              {deployedList.length} AWS {deployedList.length === 1 ? 'Node' : 'Nodes'}
+            </span>
+          </div>
+
+          {onNewProject && (
+            <button
+              onClick={onNewProject}
+              className="btn-secondary"
+              style={{
+                padding: '0.25rem 0.6rem',
+                fontSize: '0.74rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                borderRadius: '4px'
+              }}
+              title="Deploy a new project stack on AWS"
+            >
+              <PlusCircle size={12} color="var(--aws-orange)" />
+              <span>+ Deploy New Project</span>
+            </button>
+          )}
+        </div>
+
+        {deployedList.length === 0 ? (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic', padding: '0.2rem 0' }}>
+            No AWS projects deployed yet. Complete Step 1 (Terraform) and Step 2 (Ansible) to deploy a target node.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', alignItems: 'center' }}>
+            {deployedList.map((proj) => {
+              const isSelected = activeProjectId === proj.id || (!activeProjectId && proj.public_ip === infra.public_ip);
+              const hasProjectFault = Boolean(proj.chaos_fault || (isSelected && chaos.active_fault));
+              return (
+                <button
+                  key={proj.id}
+                  onClick={() => handleSwitch(proj.id)}
+                  disabled={isSwitching || isRunning}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.35rem 0.7rem',
+                    borderRadius: '6px',
+                    border: isSelected ? '1.5px solid var(--aws-orange)' : '1px solid var(--border-color)',
+                    background: isSelected ? 'rgba(255, 153, 0, 0.14)' : 'var(--bg-card)',
+                    color: isSelected ? 'var(--text-primary)' : 'var(--text-dim)',
+                    fontWeight: isSelected ? 800 : 500,
+                    fontSize: '0.76rem',
+                    cursor: (isSwitching || isRunning) ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={`Switch monitoring & chaos injection to ${proj.name} (${proj.public_ip})`}
+                >
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: hasProjectFault ? 'var(--status-danger)' : 'var(--status-success)',
+                      flexShrink: 0
+                    }}
+                  />
+                  <span>{proj.name}</span>
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', Consolas, monospace",
+                      fontSize: '0.7rem',
+                      opacity: 0.85,
+                      background: 'var(--bg-card-subtle)',
+                      padding: '0.05rem 0.35rem',
+                      borderRadius: '3px',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    {proj.public_ip}
+                  </span>
+                  {isSelected && (
+                    <span style={{ fontSize: '0.66rem', color: 'var(--aws-orange)', fontWeight: 800 }}>
+                      [ACTIVE]
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Live Mode Missing Infra Banner */}
