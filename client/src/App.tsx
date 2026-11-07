@@ -19,6 +19,7 @@ import { ConsoleOverview } from './components/ConsoleOverview';
 import {
   fetchStatus,
   fetchConfig,
+  updateConfig,
   setExecutionMode,
   applyTerraform,
   destroyTerraform,
@@ -228,6 +229,17 @@ export function App() {
     localStorage.setItem('cloudops_theme', theme);
   }, [theme]);
 
+  // Fetch initial cloud config on mount to synchronize default region
+  useEffect(() => {
+    fetchConfig()
+      .then(cfg => {
+        if (cfg?.aws_region) {
+          setSelectedRegion(cfg.aws_region);
+        }
+      })
+      .catch(err => console.error('Failed to load initial AWS config', err));
+  }, []);
+
   // Poll status periodically
   useEffect(() => {
     const update = () => {
@@ -373,6 +385,15 @@ export function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
 
+  const handleSelectRegion = useCallback(async (reg: string) => {
+    setSelectedRegion(reg);
+    try {
+      await updateConfig({ aws_region: reg });
+    } catch (e) {
+      console.warn('Failed to persist aws_region to backend config', e);
+    }
+  }, []);
+
   const handleToggleMode = useCallback(async () => {
     if (!status) return;
 
@@ -447,6 +468,7 @@ export function App() {
   }, [status]);
 
   const handleApplyTerraform = useCallback(async (region: string, instanceType: string) => {
+    setSelectedRegion(region);
     await applyTerraform(region, instanceType);
     const updated = await fetchStatus();
     setStatus(updated);
@@ -660,6 +682,8 @@ export function App() {
         onOpenConfig={() => setIsConfigOpen(true)}
         onOpenViva={() => setIsVivaOpen(true)}
         status={status}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* 2. Main Wrapper */}
@@ -672,7 +696,7 @@ export function App() {
           onToggleTheme={handleToggleTheme}
           status={status}
           selectedRegion={selectedRegion}
-          onSelectRegion={setSelectedRegion}
+          onSelectRegion={handleSelectRegion}
           onNavigate={handleSelectTab}
           onOpenConfig={() => setIsConfigOpen(true)}
           onOpenViva={() => setIsVivaOpen(true)}
@@ -727,6 +751,8 @@ export function App() {
                 onApply={handleApplyTerraform}
                 onDestroy={handleDestroyTerraform}
                 isRunning={isRunning}
+                selectedRegion={selectedRegion}
+                onSelectRegion={handleSelectRegion}
               />
               <Terminal logs={logs.filter(l => l.stage === 'TERRAFORM' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
             </div>
@@ -840,6 +866,15 @@ export function App() {
         }}
         isLiveModeRequired={isLiveModeRequired}
         onSuccess={async () => {
+          try {
+            const cfg = await fetchConfig();
+            if (cfg?.aws_region) {
+              setSelectedRegion(cfg.aws_region);
+            }
+          } catch (e) {
+            console.error('Failed to sync updated config region', e);
+          }
+
           if (isLiveModeRequired) {
             try {
               await setExecutionMode('live');

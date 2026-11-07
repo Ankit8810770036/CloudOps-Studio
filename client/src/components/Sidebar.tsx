@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { FullStatus } from '../types';
 
@@ -24,6 +26,8 @@ interface SidebarProps {
   onOpenConfig: () => void;
   onOpenViva: () => void;
   status: FullStatus;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = React.memo(({
@@ -34,6 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   onOpenConfig,
   onOpenViva,
   status,
+  theme,
+  onToggleTheme,
 }) => {
   const isHealthy = status.telemetry.overall_health === 'HEALTHY';
   const isCritical = status.telemetry.overall_health === 'CRITICAL';
@@ -184,6 +190,20 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         >
           <Settings size={17} className="sidebar-nav-icon" />
           {!collapsed && <span>AWS Cloud Settings</span>}
+        </button>
+
+        <button
+          type="button"
+          className="sidebar-nav-item"
+          onClick={onToggleTheme}
+          title={collapsed ? (theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode") : undefined}
+        >
+          {theme === 'dark' ? (
+            <Sun size={17} className="sidebar-nav-icon" color="var(--aws-orange)" />
+          ) : (
+            <Moon size={17} className="sidebar-nav-icon" color="var(--aws-blue)" />
+          )}
+          {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
       </nav>
 

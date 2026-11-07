@@ -302,30 +302,15 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
             className="navbar-new-project-btn"
             onClick={onOpenNewProject}
             title="Deploy a new project (archives current deployment and resets wizard for fresh configuration)"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              height: '32px',
-              padding: '0 0.8rem',
-              borderRadius: '6px',
-              border: '1px solid rgba(255, 153, 0, 0.45)',
-              background: 'rgba(255, 153, 0, 0.12)',
-              color: 'var(--aws-orange)',
-              fontWeight: 700,
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap'
-            }}
           >
-            <PlusCircle size={14} />
-            <span>+ New Project Deployment</span>
+            <PlusCircle size={14} style={{ flexShrink: 0 }} />
+            <span className="navbar-new-project-text">+ New Project</span>
           </button>
         )}
 
         {/* Mode Toggle Button */}
         <button
+          type="button"
           className="navbar-mode-btn"
           onClick={onToggleMode}
           title={mode === 'simulation' ? "Click to switch to Live AWS Mode (requires AWS Region, Access Key, and Secret Key)" : "Click to switch to Simulation Demo Mode"}
@@ -336,9 +321,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
 
         {/* Theme Toggle Button */}
         <button
+          type="button"
           className="navbar-theme-btn"
           onClick={onToggleTheme}
           title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
           {theme === 'dark' ? (
             <Sun size={15} color="var(--aws-orange)" />

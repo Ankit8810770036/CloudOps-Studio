@@ -7,6 +7,8 @@ interface TerraformStepProps {
   onApply: (region: string, instanceType: string) => void;
   onDestroy: () => void;
   isRunning: boolean;
+  selectedRegion?: string;
+  onSelectRegion?: (region: string) => void;
 }
 
 export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
@@ -14,11 +16,22 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
   onApply,
   onDestroy,
   isRunning,
+  selectedRegion,
+  onSelectRegion,
 }) => {
-  const [region, setRegion] = useState('us-east-1');
-  const [instanceType, setInstanceType] = useState('t2.micro');
+  const [localRegion, setLocalRegion] = useState('ap-south-1');
+  const [instanceType, setInstanceType] = useState('t3.micro');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState('');
+
+  const activeRegion = selectedRegion ?? localRegion;
+
+  const handleRegionChange = (newRegion: string) => {
+    setLocalRegion(newRegion);
+    if (onSelectRegion) {
+      onSelectRegion(newRegion);
+    }
+  };
 
   const handleCloseConfirm = () => {
     setIsConfirmOpen(false);
@@ -74,14 +87,14 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
             <label className="form-label">AWS Region</label>
             <select
               className="form-select"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
+              value={activeRegion}
+              onChange={(e) => handleRegionChange(e.target.value)}
               disabled={isRunning || isProvisioned}
             >
+              <option value="ap-south-1">ap-south-1 (Mumbai)</option>
               <option value="us-east-1">us-east-1 (N. Virginia)</option>
               <option value="us-west-2">us-west-2 (Oregon)</option>
               <option value="eu-west-1">eu-west-1 (Ireland)</option>
-              <option value="ap-south-1">ap-south-1 (Mumbai)</option>
             </select>
           </div>
 
@@ -153,7 +166,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
             color: isProvisioned ? 'var(--text-muted)' : '#FFFFFF',
             border: isProvisioned ? '1px solid var(--border-color)' : '1px solid var(--accent-terraform)'
           }}
-          onClick={() => onApply(region, instanceType)}
+          onClick={() => onApply(activeRegion, instanceType)}
           disabled={isRunning || isProvisioned}
         >
           <Play size={14} />
