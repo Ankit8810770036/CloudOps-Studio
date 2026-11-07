@@ -681,8 +681,8 @@ export function App() {
 
         {/* Main Content Area */}
         <main className="content-container" ref={mainContentRef}>
-          {/* Global Pipeline Stepper Progress (Hidden in Chaos Lab and Live Terminal) */}
-          {activeTab !== 'chaos' && activeTab !== 'term' && (
+          {/* Global Pipeline Stepper Progress (Hidden in Console Overview, Chaos Lab, and Live Terminal) */}
+          {activeTab !== 'all' && activeTab !== 'chaos' && activeTab !== 'term' && (
             <PipelineStepper
               status={status}
               activeTab={activeTab}
