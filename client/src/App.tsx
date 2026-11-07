@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopNavbar } from './components/TopNavbar';
-import { TopStats } from './components/TopStats';
 import { MetricCharts } from './components/MetricCharts';
 import { TerraformStep } from './components/TerraformStep';
 import { AnsibleStep } from './components/AnsibleStep';
@@ -15,6 +14,7 @@ import { NewProjectModal } from './components/NewProjectModal';
 import { PipelineStepper } from './components/PipelineStepper';
 import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
 import { PreDeploymentChecklist } from './components/PreDeploymentChecklist';
+import { ConsoleOverview } from './components/ConsoleOverview';
 
 import {
   fetchStatus,
@@ -33,7 +33,7 @@ import {
   switchProject,
 } from './services/api';
 import { FullStatus, LogEntry } from './types';
-import { Terminal as TerminalIcon, LayoutDashboard, AlertTriangle, Key, X } from 'lucide-react';
+import { Terminal as TerminalIcon, AlertTriangle, Key, X } from 'lucide-react';
 
 export interface ModeAlertData {
   title: string;
@@ -690,76 +690,15 @@ export function App() {
             />
           )}
 
-          {/* SECTION 1: CONSOLE OVERVIEW (ALL) */}
+          {/* SECTION 1: CONSOLE OVERVIEW (PLATFORM INSTRUCTIONS & DEPLOYMENT GUIDE) */}
           {activeTab === 'all' && (
-            <div>
-              <div className="section-banner-header">
-                <div>
-                  <div className="section-banner-title">
-                    <LayoutDashboard size={18} color="var(--aws-orange)" />
-                    <span>Console Overview</span>
-                  </div>
-                  <div className="section-banner-sub">
-                    Infrastructure, deployment, compliance, and observability.
-                  </div>
-                </div>
-              </div>
-
-              {/* Executive Metric Cards */}
-              <TopStats status={status} />
-
-              {/* Real-time Bezier Telemetry Charts */}
-              <MetricCharts telemetry={status.telemetry} />
-
-              {/* Chaos Engineering Panel */}
-              <ChaosPanel
-                chaos={status.chaos}
-                infra={status.infrastructure}
-                onInject={handleInjectChaos}
-                onHeal={handleHealChaos}
-                isRunning={isRunning}
-                mode={status.mode}
-                onNavigate={handleSelectTab}
-                projects={status.projects}
-                activeProjectId={status.active_project_id}
-                onSwitchProject={handleSwitchProject}
-                onNewProject={() => setIsNewProjectOpen(true)}
-              />
-
-              {/* 4 Pipeline Steps Grid (Equal Stretch Alignment) */}
-              <div className="main-grid">
-                <TerraformStep
-                  infra={status.infrastructure}
-                  onApply={handleApplyTerraform}
-                  onDestroy={handleDestroyTerraform}
-                  isRunning={isRunning}
-                />
-                <PuppetStep
-                  compliance={status.compliance}
-                  infra={status.infrastructure}
-                  onEnforce={handleEnforcePuppet}
-                  isRunning={isRunning}
-                />
-                <AnsibleStep
-                  deployment={status.deployment}
-                  infra={status.infrastructure}
-                  stack={status.stack}
-                  customCode={status.custom_code}
-                  onDeploy={handleDeployAnsible}
-                  isRunning={isRunning}
-                  onRefreshStatus={() => fetchStatus().then(setStatus)}
-                />
-                <NagiosStep
-                  telemetry={status.telemetry}
-                  infra={status.infrastructure}
-                  onProbe={handleProbeNagios}
-                  isRunning={isRunning}
-                />
-              </div>
-
-              {/* Live Terminal */}
-              <Terminal logs={logs} onClear={handleClearLogs} />
-            </div>
+            <ConsoleOverview
+              status={status}
+              mode={status.mode}
+              onNavigate={handleSelectTab}
+              onOpenConfig={() => setIsConfigOpen(true)}
+              onNewProject={() => setIsNewProjectOpen(true)}
+            />
           )}
 
           {/* SECTION 0: PRE-DEPLOYMENT PROJECT READINESS DEDICATED VIEW */}
