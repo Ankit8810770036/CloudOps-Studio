@@ -13,7 +13,6 @@ import {
   Code2,
   ShieldCheck,
   FileText,
-  AlertCircle,
   ArrowRight
 } from 'lucide-react';
 import { CustomCodeState } from '../types';
@@ -156,9 +155,6 @@ CMD ["./app"]`
             <div className="pre-deploy-title">
               <span>{titlePrefix ? `${titlePrefix} ` : ''}Pre-Deployment Checklist</span>
             </div>
-            <div className="pre-deploy-sub">
-              Verify manifests, host binding, and health route before deploy.
-            </div>
           </div>
         </div>
 
@@ -188,23 +184,6 @@ CMD ["./app"]`
 
       {isOpen && (
         <div className="pre-deploy-body">
-          {/* Minimalist Action Callout */}
-          <div style={{
-            background: 'rgba(255, 153, 0, 0.08)',
-            border: '1px solid rgba(255, 153, 0, 0.25)',
-            borderRadius: '6px',
-            padding: '0.55rem 0.85rem',
-            marginBottom: '0.75rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.55rem'
-          }}>
-            <AlertCircle size={15} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Check before deploy:</strong> Ensure dependency manifest is included, binds to <code>0.0.0.0</code>, and <code>.venv/node_modules</code> are excluded.
-            </div>
-          </div>
-
           {/* Framework Tabs */}
           <div className="pre-deploy-tabs">
             {[
