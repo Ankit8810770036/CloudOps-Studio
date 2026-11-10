@@ -1,6 +1,6 @@
 # CloudOps Studio &bull; Enterprise DevOps Automation & Cloud Orchestration Platform
 
-[![DevOps Capstone](https://img.shields.io/badge/DevOps-Capstone%20Project-0284c7?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+[![DevOps Platform](https://img.shields.io/badge/DevOps-CloudOps%20Studio-0284c7?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC%20Provisioner-844fba?style=for-the-badge&logo=terraform&logoColor=white)](https://terraform.io/)
 [![Ansible](https://img.shields.io/badge/Ansible-Configuration%20Engine-ee0000?style=for-the-badge&logo=ansible&logoColor=white)](https://ansible.com/)
 [![Puppet](https://img.shields.io/badge/Puppet-Policy%20%26%20Compliance-f59e0b?style=for-the-badge&logo=puppet&logoColor=black)](https://puppet.com/)
@@ -8,7 +8,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%26%20WebSockets-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/React%2019-Vite%20UI-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 
-An enterprise-grade, end-to-end DevOps automation, infrastructure orchestration, and observability platform. Designed for capstone demonstrations, technical portfolios, and enterprise cloud operations, CloudOps Studio integrates the entire modern DevOps lifecycle into a cohesive, interactive control plane.
+An enterprise-grade, end-to-end DevOps automation, infrastructure orchestration, and observability platform. Designed for production-grade cloud management, technical demonstrations, and enterprise DevOps operations, CloudOps Studio integrates the entire modern DevOps lifecycle into a cohesive, interactive control plane.
 
 The platform orchestrates **Terraform** (Infrastructure as Code), **Ansible** (Application & Web Server Provisioning), **Puppet** (Security & Policy Enforcement), and **Nagios Core** (Telemetry & Health Probes) through an asynchronous **FastAPI Orchestrator** and a modern, responsive **React Web Console**.
 
@@ -48,18 +48,18 @@ The platform orchestrates **Terraform** (Infrastructure as Code), **Ansible** (A
 ## 🏗️ System Architecture
 
 ```mermaid
-graph TD
-    User["DevOps Engineer / Operator"] -->|HTTP / WebSocket| UI["React 19 Frontend (Vite, TypeScript, Tailwind)"]
+flowchart TD
+    User["DevOps Engineer / Operator"] -->|"HTTP & WebSocket"| UI["React 19 Frontend (Vite & TypeScript)"]
     
     subgraph ControlPlane["FastAPI Orchestrator (Port 8000)"]
         API["REST API Router & State Manager"]
         WS["WebSocket Streaming Engine (60fps batching)"]
-        LiveRunner["Live Runner (Terraform CLI + Paramiko SSH)"]
+        LiveRunner["Live Runner (Terraform CLI & Paramiko SSH)"]
         Simulator["Realistic Sandbox Simulator"]
     end
     
-    UI -->|API Requests| API
-    UI <-->|Live Log Streams| WS
+    UI -->|"API Requests"| API
+    WS -->|"Real-Time Log Stream"| UI
     
     API --> LiveRunner
     API --> Simulator
@@ -74,10 +74,10 @@ graph TD
         PuppetAgent["Puppet Security Baseline Agent"]
     end
     
-    LiveRunner -->|Terraform Apply / Destroy| VPC
-    LiveRunner -->|Paramiko SSH (Ansible Playbooks)| Nginx
-    LiveRunner -->|Paramiko SSH (Puppet Manifests)| PuppetAgent
-    LiveRunner -->|Socket & HTTP Probes| NRPE
+    LiveRunner -->|"Terraform Apply & Destroy"| VPC
+    LiveRunner -->|"Paramiko SSH (Ansible Playbooks)"| Nginx
+    LiveRunner -->|"Paramiko SSH (Puppet Manifests)"| PuppetAgent
+    LiveRunner -->|"Socket & HTTP Probes"| NRPE
 ```
 
 ---
@@ -237,7 +237,7 @@ Comprehensive exam preparation and demonstration guides are included in the [`do
 
 * **[Architecture Deep-Dive](docs/ARCHITECTURE.md)**: Network topology, security groups, data pipelines, and sequence diagrams.
 * **[Viva & Examiner Q&A Guide](docs/VIVA_QA.md)**: 20+ commonly asked questions covering IaC, configuration idempotency, desired-state convergence, and monitoring thresholds.
-* **[5-Minute Examiner Walkthrough](docs/LAB_MANUAL.md)**: Scripted walkthrough for lab examiners and capstone evaluators.
+* **[5-Minute Examiner Walkthrough](docs/LAB_MANUAL.md)**: Scripted walkthrough for technical evaluation and project demonstrations.
 
 ---
 
