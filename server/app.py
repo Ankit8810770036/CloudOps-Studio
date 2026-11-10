@@ -447,6 +447,50 @@ async def upload_code(
             stage="ANSIBLE"
         )
 
+    # For frontend uploads: auto-flatten nested build/ or dist/ directories
+    if target_tier == "frontend":
+        for subfolder in ["dist", "build", "out"]:
+            sub = target_dir / subfolder
+            if sub.exists() and (sub / "index.html").exists():
+                state.add_log(f"[Auto-Detection] Found compiled React/Vite assets in '{subfolder}/'. Hoisting to web root...", stage="ANSIBLE")
+                for item in sub.iterdir():
+                    dest_item = target_dir / item.name
+                    if dest_item.exists():
+                        if dest_item.is_dir():
+                            shutil.rmtree(dest_item, ignore_errors=True)
+                        else:
+                            dest_item.unlink(missing_ok=True)
+                    if item.is_dir():
+                        shutil.copytree(item, dest_item)
+                    else:
+                        shutil.copy2(item, dest_item)
+                break
+
+        # Check if index.html is in a subfolder or raw React source files were uploaded
+        if not (target_dir / "index.html").exists():
+            found_html = [p for p in target_dir.glob("**/index.html") if not p.parent.samefile(target_dir)]
+            if found_html:
+                parent_dir = found_html[0].parent
+                state.add_log(f"[Auto-Detection] Found 'index.html' in '{parent_dir.name}/'. Hoisting assets to web root...", stage="ANSIBLE")
+                for item in parent_dir.iterdir():
+                    dest_item = target_dir / item.name
+                    if dest_item.exists():
+                        if dest_item.is_dir():
+                            shutil.rmtree(dest_item, ignore_errors=True)
+                        else:
+                            dest_item.unlink(missing_ok=True)
+                    if item.is_dir():
+                        shutil.copytree(item, dest_item)
+                    else:
+                        shutil.copy2(item, dest_item)
+            elif (target_dir / "package.json").exists() and (target_dir / "src").exists():
+                state.add_log(
+                    "[Build Notice] ⚠️ Uploaded React package contains raw source files ('src/'). "
+                    "React must be compiled before Nginx can serve it. Run 'npm run build' and upload the generated 'dist/' or 'build/' folder.",
+                    stream="stderr",
+                    stage="ANSIBLE"
+                )
+
     state.custom_code[target_tier] = {
         "framework": effective_framework,
         "has_dockerfile": has_dockerfile,

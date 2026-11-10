@@ -471,6 +471,11 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
               <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
                 or drag and drop your project folder, <code>.zip</code>, or <code>.jar</code> here
               </div>
+              {uploadTier === 'frontend' && (
+                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--aws-orange)' }}>
+                  💡 <strong>React Portfolio Tip:</strong> Upload the compiled <code>dist/</code> or <code>build/</code> folder (run <code>npm run build</code> first).
+                </div>
+              )}
 
               {isUploading && (
                 <div style={{ marginTop: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', color: 'var(--aws-orange)', fontSize: '0.78rem', fontWeight: 600 }}>
