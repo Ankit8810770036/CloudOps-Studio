@@ -243,8 +243,10 @@ async def apply_terraform(req: ProvisionRequest):
         raise HTTPException(status_code=409, detail=f"A pipeline step is already running: {state.current_action}")
 
     target_region = req.aws_region if (req.aws_region and req.aws_region != "us-east-1") else state.config.get("aws_region", "ap-south-1")
+    state.is_running_pipeline = True
+    state.current_action = "Terraform IaC Provisioning"
     engine = simulator if state.mode == "simulation" else live_engine
-    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t2.micro"))
+    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t3.micro"))
     return {"status": "started", "action": "terraform_apply", "region": target_region}
 
 @app.post("/api/terraform/destroy")
@@ -252,6 +254,8 @@ async def destroy_terraform():
     if state.is_running_pipeline:
         raise HTTPException(status_code=409, detail=f"A pipeline step is already running: {state.current_action}")
         
+    state.is_running_pipeline = True
+    state.current_action = "Terraform Infrastructure Teardown"
     engine = simulator if state.mode == "simulation" else live_engine
     asyncio.create_task(engine.run_terraform_destroy())
     return {"status": "started", "action": "terraform_destroy"}
@@ -266,6 +270,8 @@ async def deploy_ansible(req: DeployRequest):
         state.add_log(f"[GUARDRAIL] {err_msg}", stage="ANSIBLE", stream="stderr")
         raise HTTPException(status_code=400, detail=err_msg)
         
+    state.is_running_pipeline = True
+    state.current_action = f"Ansible Deployment [{req.frontend_type.upper()} + {req.backend_type.upper()} + {req.database_type.upper()}]"
     engine = simulator if state.mode == "simulation" else live_engine
     asyncio.create_task(engine.run_ansible_deploy(
         web_server=req.web_server,
@@ -557,6 +563,9 @@ async def enforce_puppet():
         state.add_log(f"[GUARDRAIL] {err_msg}", stage="PUPPET", stream="stderr")
         raise HTTPException(status_code=400, detail=err_msg)
         
+    state.is_running_pipeline = True
+    state.current_action = "Puppet Multi-Tier Compliance"
+    state.compliance["status"] = "enforcing"
     engine = simulator if state.mode == "simulation" else live_engine
     asyncio.create_task(engine.run_puppet_enforce())
     return {"status": "started", "action": "puppet_enforce"}

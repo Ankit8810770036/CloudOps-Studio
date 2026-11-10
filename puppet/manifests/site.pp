@@ -92,11 +92,29 @@ node default {
     require    => Package['nagios-nrpe-server'],
   }
 
-  # 6. UFW Firewall Baseline Rules
+  # 6. UFW Firewall Baseline Rules (Explicitly allow critical ingress before enabling)
+  exec { 'allow_ssh':
+    command => '/usr/sbin/ufw allow 22/tcp',
+    unless  => '/usr/sbin/ufw status | grep -q "22/tcp"',
+    require => Package['ufw'],
+  }
+
+  exec { 'allow_http':
+    command => '/usr/sbin/ufw allow 80/tcp',
+    unless  => '/usr/sbin/ufw status | grep -q "80/tcp"',
+    require => Package['ufw'],
+  }
+
+  exec { 'allow_nrpe':
+    command => '/usr/sbin/ufw allow 5666/tcp',
+    unless  => '/usr/sbin/ufw status | grep -q "5666/tcp"',
+    require => Package['ufw'],
+  }
+
   exec { 'enable_ufw':
     command => '/usr/sbin/ufw --force enable',
     unless  => '/usr/sbin/ufw status | grep -q "Status: active"',
-    require => Package['ufw'],
+    require => [Package['ufw'], Exec['allow_ssh'], Exec['allow_http'], Exec['allow_nrpe']],
   }
 }
 

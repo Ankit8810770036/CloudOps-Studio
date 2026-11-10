@@ -232,13 +232,22 @@ class LiveEngine:
         state.add_log(f"Connecting to AWS EC2 instance [{target_ip}] over SSH...", stage="ANSIBLE")
         
         # Test SSH readiness (EC2 can take 30-45s to boot)
+        ssh_ready = False
         for attempt in range(1, 15):
             success, _, err = self.execute_ssh_command(target_ip, "echo SSH_READY")
             if success:
                 state.add_log(f"SSH connection established on attempt {attempt}.", stage="ANSIBLE")
+                ssh_ready = True
                 break
             state.add_log(f"Waiting for EC2 SSH port to be ready... (Attempt {attempt}/15)", stage="ANSIBLE")
             await asyncio.sleep(5)
+
+        if not ssh_ready:
+            state.add_log(f"Error: Could not establish SSH connection to [{target_ip}] after 15 attempts. Aborting.", stream="stderr", stage="ANSIBLE")
+            state.deployment["status"] = "failed"
+            state.is_running_pipeline = False
+            state.current_action = None
+            return
 
         # 1. Base packages installation
         base_prep_cmd = f"""
@@ -351,7 +360,14 @@ class LiveEngine:
                     echo "Installing dependencies from requirements.txt..."
                     sudo /opt/devops_backend/venv/bin/pip install -r /opt/devops_backend/requirements.txt || true
                 fi
-                sudo bash -c 'cat << "EOF" > /etc/systemd/system/cloudops-app.service
+                # Detect Python entrypoint: main.py, app.py, or api.py
+                ENTRY_SCRIPT="main:app"
+                if [ -f /opt/devops_backend/app.py ] && [ ! -f /opt/devops_backend/main.py ]; then
+                    ENTRY_SCRIPT="app:app"
+                elif [ -f /opt/devops_backend/api.py ] && [ ! -f /opt/devops_backend/main.py ]; then
+                    ENTRY_SCRIPT="api:app"
+                fi
+                sudo bash -c "cat << 'EOF' > /etc/systemd/system/cloudops-app.service
 [Unit]
 Description=CloudOps Python FastAPI Application
 After=network.target nginx.service
@@ -360,7 +376,7 @@ After=network.target nginx.service
 Type=simple
 User=ubuntu
 WorkingDirectory=/opt/devops_backend
-ExecStart=/opt/devops_backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+ExecStart=/opt/devops_backend/venv/bin/uvicorn $ENTRY_SCRIPT --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=3
 Environment=PORT=8000
@@ -375,7 +391,7 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-EOF'
+EOF"
                 sudo systemctl daemon-reload
                 sudo systemctl enable cloudops-app.service
                 sudo systemctl restart cloudops-app.service || true
@@ -389,7 +405,14 @@ EOF'
                     echo "Installing npm dependencies..."
                     sudo npm install --production || sudo npm install || true
                 fi
-                sudo bash -c 'cat << "EOF" > /etc/systemd/system/cloudops-app.service
+                # Detect Node entrypoint: server.js, index.js, or app.js
+                NODE_ENTRY="server.js"
+                if [ -f /opt/devops_node/index.js ]; then
+                    NODE_ENTRY="index.js"
+                elif [ -f /opt/devops_node/app.js ]; then
+                    NODE_ENTRY="app.js"
+                fi
+                sudo bash -c "cat << 'EOF' > /etc/systemd/system/cloudops-app.service
 [Unit]
 Description=CloudOps Node.js Express Application
 After=network.target nginx.service
@@ -398,7 +421,7 @@ After=network.target nginx.service
 Type=simple
 User=ubuntu
 WorkingDirectory=/opt/devops_node
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node /opt/devops_node/$NODE_ENTRY
 Restart=always
 RestartSec=3
 Environment=PORT=5000
@@ -411,7 +434,7 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-EOF'
+EOF"
                 sudo systemctl daemon-reload
                 sudo systemctl enable cloudops-app.service
                 sudo systemctl restart cloudops-app.service || true
@@ -470,8 +493,8 @@ EOF"
 
         # 5. Production Nginx Reverse Proxy with /api/ Routing
         proxy_pass_block = f"""
-    location /api/ {{
-        proxy_pass http://127.0.0.1:{backend_port}/;
+    location /api {{
+        proxy_pass http://127.0.0.1:{backend_port};
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -565,6 +588,13 @@ EOF'
         sudo systemctl start nagios-nrpe-server
         sudo systemctl enable fail2ban
         sudo systemctl start fail2ban
+        sudo ufw allow 22/tcp
+        sudo ufw allow 80/tcp
+        sudo ufw allow 443/tcp
+        sudo ufw allow 5666/tcp
+        sudo ufw allow 8000/tcp
+        sudo ufw allow 5000/tcp
+        sudo ufw allow 8080/tcp
         sudo ufw --force enable || true
         """
         
