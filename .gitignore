@@ -30,9 +30,10 @@ credentials
 devops-key.pem
 terraform/devops-key.pem
 
-# IDE
+# IDE & Assistant
 .vscode/
 .idea/
+GEMINI.md
 
 # Uploaded User Code Packages
 ansible/roles/*/files/app/*
