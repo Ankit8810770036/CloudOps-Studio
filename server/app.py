@@ -45,6 +45,8 @@ async def nagios_background_poller():
 CREDENTIALS_FILE = Path(__file__).resolve().parent / ".credentials.json"
 
 def load_persisted_credentials():
+    if os.environ.get("TESTING") == "true":
+        return
     if CREDENTIALS_FILE.exists():
         try:
             with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
@@ -73,6 +75,8 @@ def load_persisted_credentials():
             pass
 
 def save_persisted_credentials():
+    if os.environ.get("TESTING") == "true":
+        return
     try:
         data = {
             "aws_access_key": state.config.get("aws_access_key", ""),

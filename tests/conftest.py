@@ -1,4 +1,5 @@
 import os
+os.environ["TESTING"] = "true"
 import sys
 from pathlib import Path
 import pytest
