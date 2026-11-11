@@ -40,6 +40,18 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
   };
 
   const isProvisioned = infra.status === 'ready';
+  const [isApplyingLocally, setIsApplyingLocally] = useState(false);
+  const isStepRunning = isRunning || isApplyingLocally;
+
+  const handleApplyClick = async () => {
+    if (isStepRunning || isProvisioned) return;
+    setIsApplyingLocally(true);
+    try {
+      await onApply(activeRegion, instanceType);
+    } finally {
+      setTimeout(() => setIsApplyingLocally(false), 3000);
+    }
+  };
 
   return (
     <div className="panel-card">
@@ -78,7 +90,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
         </div>
 
         {/* Active In-Card Processing Indicator */}
-        {isRunning && (
+        {isStepRunning && (
           <div className="step-card-running-overlay">
             <CircularLoader size={16} color="var(--accent-terraform)" />
             <span>
@@ -165,17 +177,17 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
       {/* Aligned Action Footer */}
       <div className="panel-footer-actions">
         <button
-          className={`btn-primary ${isRunning ? 'is-running' : ''}`}
+          className={`btn-primary ${isStepRunning ? 'is-running' : ''}`}
           style={{
             flex: '1 1 200px',
             background: isProvisioned ? 'var(--bg-card-subtle)' : 'var(--accent-terraform)',
             color: isProvisioned ? 'var(--text-muted)' : '#FFFFFF',
             border: isProvisioned ? '1px solid var(--border-color)' : '1px solid var(--accent-terraform)'
           }}
-          onClick={() => onApply(activeRegion, instanceType)}
-          disabled={isRunning || isProvisioned}
+          onClick={handleApplyClick}
+          disabled={isStepRunning || isProvisioned}
         >
-          {isRunning ? (
+          {isStepRunning ? (
             <>
               <CircularLoader size={14} color="#FFFFFF" />
               <span>Applying Terraform (Live)...</span>

@@ -170,6 +170,14 @@ class LiveEngine:
         except Exception as e:
             return False, "", str(e)
 
+    async def async_ssh(self, host: str, command: str, key_path: str = None):
+        """Asynchronously execute SSH command in threadpool to prevent blocking the event loop."""
+        return await asyncio.to_thread(self.execute_ssh_command, host, command, key_path)
+
+    async def async_sftp(self, host: str, local_dir: Path, remote_dir: str, key_path: str = None):
+        """Asynchronously upload directory via SFTP in threadpool to prevent blocking the event loop."""
+        return await asyncio.to_thread(self.sftp_upload_directory, host, local_dir, remote_dir, key_path)
+
     def sftp_upload_directory(self, host: str, local_dir: Path, remote_dir: str, key_path: str = None):
         """Recursively upload local directory to remote host via SFTP with binary safety."""
         key_path = key_path or str(KEY_FILE)
@@ -239,7 +247,7 @@ class LiveEngine:
         # Test SSH readiness (EC2 can take 30-45s to boot)
         ssh_ready = False
         for attempt in range(1, 15):
-            success, _, err = self.execute_ssh_command(target_ip, "echo SSH_READY")
+            success, _, err = await self.async_ssh(target_ip, "echo SSH_READY")
             if success:
                 state.add_log(f"SSH connection established on attempt {attempt}.", stage="ANSIBLE")
                 ssh_ready = True
@@ -264,7 +272,7 @@ class LiveEngine:
         sudo chown -R ubuntu:ubuntu /var/www/devops_app
         """
         state.add_log(f"Configuring base web server ({web_server.upper()}) and tools on EC2...", stage="ANSIBLE")
-        self.execute_ssh_command(target_ip, base_prep_cmd)
+        await self.async_ssh(target_ip, base_prep_cmd)
 
         # 2. Database Tier Setup
         db_install_cmd = ""
@@ -310,12 +318,12 @@ class LiveEngine:
 
         if db_install_cmd:
             state.add_log(f"Provisioning {database_type.upper()} database instance...", stage="ANSIBLE")
-            self.execute_ssh_command(target_ip, db_install_cmd)
+            await self.async_ssh(target_ip, db_install_cmd)
 
         # 3. Frontend Assets SFTP Sync
         webapp_dir = ANSIBLE_DIR / "roles" / "webapp" / "files" / "app"
         state.add_log("Transferring frontend application assets over SFTP with binary integrity...", stage="ANSIBLE")
-        f_ok, f_count = self.sftp_upload_directory(target_ip, webapp_dir, "/var/www/devops_app")
+        f_ok, f_count = await self.async_sftp(target_ip, webapp_dir, "/var/www/devops_app")
         if f_ok:
             state.add_log(f"✔ Uploaded {f_count} frontend asset files to /var/www/devops_app.", stage="ANSIBLE")
         else:
@@ -348,8 +356,8 @@ class LiveEngine:
         backend_runtime_cmd = ""
         if backend_type != "none":
             state.add_log(f"Transferring {backend_type.upper()} backend source files to {backend_remote_dir} over SFTP...", stage="ANSIBLE")
-            self.execute_ssh_command(target_ip, f"sudo mkdir -p {backend_remote_dir} && sudo chown -R ubuntu:ubuntu {backend_remote_dir}")
-            b_ok, b_count = self.sftp_upload_directory(target_ip, backend_local_dir, backend_remote_dir)
+            await self.async_ssh(target_ip, f"sudo mkdir -p {backend_remote_dir} && sudo chown -R ubuntu:ubuntu {backend_remote_dir}")
+            b_ok, b_count = await self.async_sftp(target_ip, backend_local_dir, backend_remote_dir)
             if b_ok:
                 state.add_log(f"✔ Uploaded {b_count} {backend_type.upper()} backend source files.", stage="ANSIBLE")
             else:
@@ -494,7 +502,7 @@ EOF"
                 """
 
             state.add_log(f"Compiling and activating {backend_type.upper()} Systemd microservice...", stage="ANSIBLE")
-            self.execute_ssh_command(target_ip, backend_runtime_cmd)
+            await self.async_ssh(target_ip, backend_runtime_cmd)
 
         # 5. Production Nginx Reverse Proxy with /api/ Routing
         proxy_pass_block = f"""
@@ -535,7 +543,7 @@ EOF'
         sudo ufw allow {backend_port}/tcp
         """
         state.add_log("Configuring Nginx reverse proxy with /api/ microservice routing...", stage="ANSIBLE")
-        self.execute_ssh_command(target_ip, nginx_conf_cmd)
+        await self.async_ssh(target_ip, nginx_conf_cmd)
 
         # 6. Update stack and deployment state
         state.stack["frontend"]["type"] = frontend_type
@@ -603,7 +611,7 @@ EOF'
         sudo ufw --force enable || true
         """
         
-        success, out, err = self.execute_ssh_command(target_ip, puppet_cmd)
+        success, out, err = await self.async_ssh(target_ip, puppet_cmd)
         if success:
             state.add_log("✔ Puppet: Security baseline, SSH hardening, and drift policies enforced successfully.", stage="PUPPET")
             state.compliance.update({
@@ -709,7 +717,7 @@ EOF'
         d_port = state.stack.get("database", {}).get("port", 5432)
         if d_type != "none":
             db_cmd = f"nc -z 127.0.0.1 {d_port} || (sudo systemctl is-active postgresql || sudo systemctl is-active mysql || sudo systemctl is-active mongod)"
-            db_ok, _, _ = self.execute_ssh_command(target_ip, db_cmd)
+            db_ok, _, _ = await self.async_ssh(target_ip, db_cmd)
             state.telemetry["checks"]["database"] = {
                 "name": f"Database ({d_type.upper()} - {d_port})",
                 "status": "OK" if db_ok else "CRITICAL",
@@ -757,7 +765,7 @@ EOF'
             state.telemetry["checks"]["ssh"] = {"name": "SSH Daemon (Port 22)", "status": "CRITICAL", "port_open": False}
             
         # 6. Remote Real Hardware Metrics via SSH
-        success, out, _ = self.execute_ssh_command(target_ip, "cat /proc/loadavg && free -m | grep Mem && df -h / | tail -n 1")
+        success, out, _ = await self.async_ssh(target_ip, "cat /proc/loadavg && free -m | grep Mem && df -h / | tail -n 1")
         if success and out:
             lines = out.strip().split("\n")
             if len(lines) >= 3:
@@ -803,7 +811,7 @@ EOF'
         
         if fault_type == "http_down":
             state.add_log(f"[Chaos] Stopping web service (sudo systemctl stop {server}) on EC2...", stream="stderr", stage="CHAOS")
-            self.execute_ssh_command(target_ip, f"sudo systemctl stop {server}")
+            await self.async_ssh(target_ip, f"sudo systemctl stop {server}")
             await self.run_nagios_probe()
             state.add_alert("CRITICAL", "Service Down: HTTP Stopped", f"{server.upper()} daemon stopped manually via chaos injector.", "http_service")
             
@@ -812,9 +820,9 @@ EOF'
             port = state.stack["backend"]["port"]
             state.add_log(f"[Chaos] Stopping backend {b_type.upper()} microservice on EC2...", stream="stderr", stage="CHAOS")
             if b_type == "docker":
-                self.execute_ssh_command(target_ip, "sudo docker stop cloudops-custom-app")
+                await self.async_ssh(target_ip, "sudo docker stop cloudops-custom-app")
             else:
-                self.execute_ssh_command(target_ip, "sudo systemctl stop cloudops-app.service || sudo systemctl stop devops-backend || sudo systemctl stop devops-node || sudo systemctl stop devops-springboot")
+                await self.async_ssh(target_ip, "sudo systemctl stop cloudops-app.service || sudo systemctl stop devops-backend || sudo systemctl stop devops-node || sudo systemctl stop devops-springboot")
             if "backend_api" in state.telemetry["checks"]:
                 state.telemetry["checks"]["backend_api"]["status"] = "CRITICAL"
                 state.telemetry["checks"]["backend_api"]["latency_ms"] = 0
@@ -825,7 +833,7 @@ EOF'
             d_type = state.stack["database"]["type"]
             port = state.stack["database"]["port"]
             state.add_log(f"[Chaos] Stopping database {d_type.upper()} daemon on EC2...", stream="stderr", stage="CHAOS")
-            self.execute_ssh_command(target_ip, "sudo systemctl stop postgresql || sudo systemctl stop mysql || sudo systemctl stop mongod")
+            await self.async_ssh(target_ip, "sudo systemctl stop postgresql || sudo systemctl stop mysql || sudo systemctl stop mongod")
             if "database" in state.telemetry["checks"]:
                 state.telemetry["checks"]["database"]["status"] = "CRITICAL"
             state.telemetry["overall_health"] = "CRITICAL"
@@ -833,7 +841,7 @@ EOF'
 
         elif fault_type == "cpu_spike":
             state.add_log("[Chaos] Spawning CPU stress workload on EC2...", stream="stderr", stage="CHAOS")
-            self.execute_ssh_command(target_ip, "nohup python3 -c 'import time; [sum(i*i for i in range(1000000)) for _ in range(300)]' > /dev/null 2>&1 &")
+            await self.async_ssh(target_ip, "nohup python3 -c 'import time; [sum(i*i for i in range(1000000)) for _ in range(300)]' > /dev/null 2>&1 &")
             state.telemetry["checks"]["cpu"]["value"] = 95.0
             state.telemetry["checks"]["cpu"]["status"] = "CRITICAL"
             state.telemetry["overall_health"] = "CRITICAL"
@@ -845,7 +853,7 @@ EOF'
             sudo bash -c 'echo "UNAUTHORIZED CONFIGURATION DRIFT - SYSTEM TAMPERED" > /etc/motd'
             sudo ufw disable || true
             """
-            self.execute_ssh_command(target_ip, tamper_cmd)
+            await self.async_ssh(target_ip, tamper_cmd)
             state.compliance["status"] = "drift_detected"
             state.compliance["drift_count"] = 2
             if len(state.compliance["rules_enforced"]) >= 2:
@@ -882,9 +890,9 @@ EOF'
                 b_type = state.stack["backend"]["type"]
                 state.add_log(f"[CHAOS] Restarting backend ({b_type.upper()}) on EC2...", stage="CHAOS")
                 if b_type == "docker":
-                    self.execute_ssh_command(target_ip, "sudo docker start cloudops-custom-app")
+                    await self.async_ssh(target_ip, "sudo docker start cloudops-custom-app")
                 else:
-                    self.execute_ssh_command(target_ip, "sudo systemctl restart cloudops-app.service || sudo systemctl restart devops-backend || sudo systemctl restart devops-node || sudo systemctl restart devops-springboot")
+                    await self.async_ssh(target_ip, "sudo systemctl restart cloudops-app.service || sudo systemctl restart devops-backend || sudo systemctl restart devops-node || sudo systemctl restart devops-springboot")
                 await asyncio.sleep(1.5)
                 state.clear_alerts_for_service("backend")
                 state.add_log(f"[CHAOS] ✔ Backend {b_type.upper()} restarted successfully.", stage="CHAOS")
@@ -892,21 +900,21 @@ EOF'
             elif fault == "db_down" or state.telemetry["checks"]["database"].get("status") != "OK":
                 d_type = state.stack["database"]["type"]
                 state.add_log(f"[CHAOS] Restarting database ({d_type.upper()}) on EC2...", stage="CHAOS")
-                self.execute_ssh_command(target_ip, "sudo systemctl restart postgresql || sudo systemctl restart mysql || sudo systemctl restart mongod")
+                await self.async_ssh(target_ip, "sudo systemctl restart postgresql || sudo systemctl restart mysql || sudo systemctl restart mongod")
                 await asyncio.sleep(1.5)
                 state.clear_alerts_for_service("database")
                 state.add_log(f"[CHAOS] ✔ Database {d_type.upper()} service restarted and verified.", stage="CHAOS")
 
             elif fault == "cpu_spike" or state.telemetry["checks"]["cpu"].get("status") != "OK":
                 state.add_log("[CHAOS] Terminating high CPU stress workloads on EC2...", stage="CHAOS")
-                self.execute_ssh_command(target_ip, "sudo pkill -f 'python3 -c'")
+                await self.async_ssh(target_ip, "sudo pkill -f 'python3 -c'")
                 await asyncio.sleep(1.5)
                 state.clear_alerts_for_service("cpu_utilization")
                 state.add_log("[CHAOS] ✔ CPU stress process terminated. Load normal.", stage="CHAOS")
 
             else:
                 state.add_log(f"[CHAOS] Restarting {server} and restoring baseline on EC2...", stage="CHAOS")
-                self.execute_ssh_command(target_ip, f"sudo systemctl restart {server} && sudo pkill -f 'python3 -c'")
+                await self.async_ssh(target_ip, f"sudo systemctl restart {server} && sudo pkill -f 'python3 -c'")
                 await asyncio.sleep(1.5)
                 state.clear_alerts_for_service("http_service")
                 state.clear_alerts_for_service("cpu_utilization")

@@ -72,6 +72,18 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
 
   const isInfraReady = infra.status === 'ready';
   const isDeployed = deployment.status === 'deployed';
+  const [isDeployingLocally, setIsDeployingLocally] = useState(false);
+  const isStepRunning = isRunning || isDeployingLocally;
+
+  const handleDeployClick = async () => {
+    if (isStepRunning || !isInfraReady) return;
+    setIsDeployingLocally(true);
+    try {
+      await onDeploy(selectedServer, frontendType, backendType, databaseType);
+    } finally {
+      setTimeout(() => setIsDeployingLocally(false), 3000);
+    }
+  };
 
   useEffect(() => {
     fetchWebappContent()
@@ -250,7 +262,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
         </div>
 
         {/* Active In-Card Processing Indicator */}
-        {isRunning && (
+        {isStepRunning && (
           <div className="step-card-running-overlay" style={{ borderColor: 'rgba(220, 38, 38, 0.35)', background: 'rgba(220, 38, 38, 0.08)' }}>
             <CircularLoader size={16} color="var(--accent-ansible)" />
             <span>
@@ -659,15 +671,8 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
                 href={previewUrl}
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: 'var(--aws-orange)',
-                  textDecoration: 'none'
-                }}
+                className="live-view-pill"
+                title={`Open ${previewUrl}`}
               >
                 <span>Live View</span>
                 <ExternalLink size={12} />
@@ -680,12 +685,12 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       {/* Aligned Action Footer */}
       <div className="panel-footer-actions">
         <button
-          className={`btn-primary ${isRunning ? 'is-running' : ''}`}
+          className={`btn-primary ${isStepRunning ? 'is-running' : ''}`}
           style={{ flex: '1 1 240px', background: 'var(--accent-ansible)', color: '#FFFFFF', border: '1px solid var(--accent-ansible)' }}
-          onClick={() => onDeploy(selectedServer, frontendType, backendType, databaseType)}
-          disabled={isRunning || !isInfraReady}
+          onClick={handleDeployClick}
+          disabled={isStepRunning || !isInfraReady}
         >
-          {isRunning ? (
+          {isStepRunning ? (
             <>
               <CircularLoader size={14} color="#FFFFFF" />
               <span>Deploying Stack (Live)...</span>

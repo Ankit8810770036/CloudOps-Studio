@@ -19,6 +19,24 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
   const isInfraReady = infra.status === 'ready';
   const isCompliant = compliance.status === 'compliant';
   const isDrift = compliance.status === 'drift_detected';
+  const [isEnforcingLocally, setIsEnforcingLocally] = React.useState(false);
+  const isStepRunning = isRunning || isEnforcingLocally;
+
+  React.useEffect(() => {
+    if (!isRunning) {
+      setIsEnforcingLocally(false);
+    }
+  }, [isRunning]);
+
+  const handleEnforceClick = async () => {
+    if (isStepRunning || !isInfraReady) return;
+    setIsEnforcingLocally(true);
+    try {
+      await onEnforce();
+    } finally {
+      setTimeout(() => setIsEnforcingLocally(false), 3000);
+    }
+  };
 
   return (
     <div className="panel-card">
@@ -59,7 +77,7 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
         </div>
 
         {/* Active In-Card Processing Indicator */}
-        {isRunning && (
+        {isStepRunning && (
           <div className="step-card-running-overlay" style={{ borderColor: 'rgba(217, 119, 6, 0.35)', background: 'rgba(217, 119, 6, 0.08)' }}>
             <CircularLoader size={16} color="var(--accent-puppet)" />
             <span>
@@ -137,18 +155,18 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
       {/* Aligned Action Footer */}
       <div className="panel-footer-actions">
         <button
-          className={`btn-primary ${isRunning ? 'is-running' : ''}`}
+          className={`btn-primary ${isStepRunning ? 'is-running' : ''}`}
           style={{
             flex: '1 1 200px',
             background: isCompliant ? 'var(--bg-card-subtle)' : isDrift ? 'var(--status-danger)' : 'var(--accent-puppet)',
             color: isCompliant ? 'var(--text-muted)' : '#FFFFFF',
             border: isCompliant ? '1px solid var(--border-color)' : isDrift ? '1px solid var(--status-danger)' : '1px solid var(--accent-puppet)'
           }}
-          onClick={onEnforce}
-          disabled={isRunning || !isInfraReady}
+          onClick={handleEnforceClick}
+          disabled={isStepRunning || !isInfraReady}
           title={isDrift ? "Reconcile drift back to baseline" : "Enforce Puppet security baseline"}
         >
-          {isRunning ? (
+          {isStepRunning ? (
             <>
               <CircularLoader size={14} color="#FFFFFF" />
               <span>Enforcing Compliance (Live)...</span>

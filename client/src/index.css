@@ -888,16 +888,23 @@ select option {
   font-weight: 700;
   font-size: 0.84rem;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.08s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, opacity 0.15s ease;
   flex-shrink: 0;
   white-space: nowrap;
   height: 36px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
+  user-select: none;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--aws-orange-hover);
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.25);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.96);
+  filter: brightness(0.9);
 }
 
 .btn-primary:disabled {
@@ -918,11 +925,22 @@ select option {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s ease, transform 0.08s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
   white-space: nowrap;
   height: 36px;
   box-sizing: border-box;
+  user-select: none;
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: scale(0.96);
+  filter: brightness(0.9);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: scale(0.96);
+  filter: brightness(0.9);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -1565,6 +1583,11 @@ select option {
   background: var(--bg-card-hover);
 }
 
+.chaos-btn:active:not(:disabled) {
+  transform: scale(0.96);
+  filter: brightness(0.9);
+}
+
 /* ==========================================================================
    STREAMING TERMINAL CONSOLE
    ========================================================================== */
@@ -2056,6 +2079,34 @@ html.modal-open {
   padding: 0.55rem 0.75rem;
   margin-top: 0.85rem;
   box-sizing: border-box;
+}
+
+.live-view-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #FFFFFF !important;
+  background: var(--aws-orange);
+  padding: 0.28rem 0.65rem;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: all 0.15s ease, transform 0.08s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(255, 153, 0, 0.3);
+  user-select: none;
+  cursor: pointer;
+}
+
+.live-view-pill:hover {
+  background: var(--aws-orange-hover);
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.live-view-pill:active {
+  transform: scale(0.94);
+  filter: brightness(0.9);
 }
 
 /* Sidebar step completion check badge */

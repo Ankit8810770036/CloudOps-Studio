@@ -18,6 +18,24 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
 }) => {
   const isInfraReady = infra.status === 'ready';
   const checks = telemetry.checks;
+  const [isProbingLocally, setIsProbingLocally] = React.useState(false);
+  const isStepRunning = isRunning || isProbingLocally;
+
+  React.useEffect(() => {
+    if (!isRunning) {
+      setIsProbingLocally(false);
+    }
+  }, [isRunning]);
+
+  const handleProbeClick = async () => {
+    if (isStepRunning || !isInfraReady) return;
+    setIsProbingLocally(true);
+    try {
+      await onProbe();
+    } finally {
+      setTimeout(() => setIsProbingLocally(false), 2500);
+    }
+  };
 
   const getStatusColor = (status: string | undefined) => {
     switch (status) {
@@ -61,12 +79,12 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
             <span>Step 4: Nagios Observability</span>
           </h3>
           <button
-            className={`btn-secondary ${isRunning ? 'is-running' : ''}`}
-            onClick={onProbe}
-            disabled={isRunning || !isInfraReady}
+            className={`btn-secondary ${isStepRunning ? 'is-running' : ''}`}
+            onClick={handleProbeClick}
+            disabled={isStepRunning || !isInfraReady}
             style={{ padding: '0 0.65rem', fontSize: '0.76rem', height: '30px' }}
           >
-            {isRunning ? (
+            {isStepRunning ? (
               <>
                 <CircularLoader size={12} color="var(--accent-nagios)" />
                 <span>Probing...</span>
