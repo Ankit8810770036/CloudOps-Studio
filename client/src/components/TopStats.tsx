@@ -37,15 +37,20 @@ export const TopStats: React.FC<TopStatsProps> = React.memo(({ status }) => {
         </div>
         <div className="stat-main">
           {isReady && status.infrastructure.public_ip ? (
-            <a
-              href={`http://${status.infrastructure.public_ip}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", color: 'inherit', textDecoration: 'none' }}
-              title={`Open http://${status.infrastructure.public_ip}`}
-            >
-              {ip}
-            </a>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <a
+                href={`http://${status.infrastructure.public_ip}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", color: 'inherit', textDecoration: 'none' }}
+                title={`Click to open http://${status.infrastructure.public_ip} (Inbound Port 80 Open)`}
+              >
+                {ip}
+              </a>
+              <span className="protocol-pill" title="Web traffic served over HTTP on port 80 (Inbound Port 80 Open)">
+                HTTP :80
+              </span>
+            </div>
           ) : (
             <span style={{ fontFamily: "'JetBrains Mono', Consolas, monospace" }}>{ip}</span>
           )}

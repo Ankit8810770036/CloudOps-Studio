@@ -166,7 +166,26 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
                   Step 1 Completed: Infrastructure Provisioned
                 </div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  Public IP: <strong style={{ color: 'var(--text-primary)' }}>{infra.public_ip || 'Assigned'}</strong> • VPC Subnets & Security Groups Configured
+                  Public IP:{' '}
+                  {infra.public_ip ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <a
+                        href={`http://${infra.public_ip}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: 'var(--text-primary)', fontWeight: 700, textDecoration: 'none' }}
+                        title={`Click to open http://${infra.public_ip} (Inbound Port 80 Open)`}
+                      >
+                        {infra.public_ip}
+                      </a>
+                      <span className="protocol-pill" style={{ fontSize: '0.6rem', padding: '0.08rem 0.3rem' }} title="Web traffic served over HTTP on port 80 (Inbound Port 80 Open)">
+                        HTTP :80
+                      </span>
+                    </span>
+                  ) : (
+                    <strong style={{ color: 'var(--text-primary)' }}>Assigned</strong>
+                  )}{' '}
+                  • VPC Subnets & Security Groups Configured
                 </div>
               </div>
             </div>

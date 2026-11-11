@@ -672,6 +672,29 @@ p, .section-banner-sub, .form-label, .spec-label {
   color: var(--text-dim);
 }
 
+.protocol-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.12rem 0.38rem;
+  border-radius: 4px;
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--aws-blue);
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  line-height: 1.1;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.protocol-pill:hover {
+  background: rgba(14, 165, 233, 0.2);
+  border-color: rgba(14, 165, 233, 0.45);
+}
+
 .navbar-icon-btn {
   background: transparent;
   border: none;
