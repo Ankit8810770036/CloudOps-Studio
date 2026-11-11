@@ -39,6 +39,7 @@ interface AnsibleStepProps {
 export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   deployment,
   infra,
+  stack,
   customCode,
   onDeploy,
   isRunning,
@@ -47,16 +48,29 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   const [selectedServer] = useState<'nginx' | 'apache'>('nginx');
   
   // 3-Tier Stack Selection State
-  const [frontendType, setFrontendType] = useState<string>('react');
-  const [backendType, setBackendType] = useState<string>('python');
-  const [databaseType, setDatabaseType] = useState<string>('postgresql');
-  
+  const [frontendType, setFrontendType] = useState<string>(stack?.frontend?.type || 'react');
+  const [backendType, setBackendType] = useState<string>(stack?.backend?.type || 'none');
+  const [databaseType, setDatabaseType] = useState<string>(stack?.database?.type || 'none');
+  const hasBackend = backendType !== 'none';
+
+  useEffect(() => {
+    if (stack?.frontend?.type) setFrontendType(stack.frontend.type);
+    if (stack?.backend?.type) setBackendType(stack.backend.type);
+    if (stack?.database?.type) setDatabaseType(stack.database.type);
+  }, [stack?.frontend?.type, stack?.backend?.type, stack?.database?.type]);
+
   // Panes toggle: 'upload' | 'editor' | null
   const [showUpload, setShowUpload] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
 
   // Upload Management State
   const [uploadTier, setUploadTier] = useState<'backend' | 'frontend'>('frontend');
+
+  useEffect(() => {
+    if (!hasBackend && uploadTier !== 'frontend') {
+      setUploadTier('frontend');
+    }
+  }, [hasBackend, uploadTier]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -351,7 +365,16 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
             <Layers size={14} color="var(--aws-blue)" style={{ flexShrink: 0 }} />
             <span style={{ fontSize: '0.8rem' }}>
-              <strong>Topology:</strong> Nginx (80) ➔ /api/ ➔ <span style={{ color: 'var(--aws-orange)', fontWeight: 700 }}>{backendType.toUpperCase()} ({getBackendPort()})</span> ➔ <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>{databaseType.toUpperCase()}</span>
+              <strong>Topology:</strong>{' '}
+              {hasBackend ? (
+                <>
+                  Nginx (80) ➔ /api/ ➔ <span style={{ color: 'var(--aws-orange)', fontWeight: 700 }}>{backendType.toUpperCase()} ({getBackendPort()})</span> ➔ <span style={{ color: 'var(--status-success)', fontWeight: 700 }}>{databaseType.toUpperCase()}</span>
+                </>
+              ) : (
+                <>
+                  Nginx (Port 80) ➔ <span style={{ color: 'var(--aws-orange)', fontWeight: 700 }}>{getFrontendLabel(frontendType)}</span> (Static Web Tier)
+                </>
+              )}
             </span>
           </div>
 
@@ -419,44 +442,65 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
                   Upload Custom Code Package
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '0.15rem' }}>
-                  Deploy custom source files, directory, or archive for the selected architecture tier.
+                  {hasBackend
+                    ? 'Deploy custom source files, directory, or archive for the selected architecture tier.'
+                    : 'Deploy your compiled React build files or directory (dist/ folder) directly to Nginx.'}
                 </div>
               </div>
             </div>
 
-            {/* Target Tier Selector (Backend vs Frontend) */}
-            <div className="upload-framework-selector">
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', marginRight: '0.2rem' }}>
-                Target Tier:
-              </span>
-              <button
-                type="button"
-                className={`upload-framework-btn ${uploadTier === 'backend' ? 'active' : ''}`}
-                onClick={() => setUploadTier('backend')}
-              >
-                <Server size={13} color={uploadTier === 'backend' ? 'var(--aws-orange)' : 'var(--text-dim)'} />
-                <span>Backend Service</span>
-                <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
-                  ({getBackendLabel(backendType)})
+            {/* Target Tier (Only show backend option if a backend service exists in your project) */}
+            {hasBackend ? (
+              <div className="upload-framework-selector">
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)', marginRight: '0.2rem' }}>
+                  Target Tier:
                 </span>
-              </button>
+                <button
+                  type="button"
+                  className={`upload-framework-btn ${uploadTier === 'backend' ? 'active' : ''}`}
+                  onClick={() => setUploadTier('backend')}
+                >
+                  <Server size={13} color={uploadTier === 'backend' ? 'var(--aws-orange)' : 'var(--text-dim)'} />
+                  <span>Backend Service</span>
+                  <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
+                    ({getBackendLabel(backendType)})
+                  </span>
+                </button>
 
-              <button
-                type="button"
-                className={`upload-framework-btn ${uploadTier === 'frontend' ? 'active' : ''}`}
-                onClick={() => setUploadTier('frontend')}
-              >
-                <Layout size={13} color={uploadTier === 'frontend' ? 'var(--aws-orange)' : 'var(--text-dim)'} />
-                <span>Frontend UI</span>
-                <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
-                  ({getFrontendLabel(frontendType)})
+                <button
+                  type="button"
+                  className={`upload-framework-btn ${uploadTier === 'frontend' ? 'active' : ''}`}
+                  onClick={() => setUploadTier('frontend')}
+                >
+                  <Layout size={13} color={uploadTier === 'frontend' ? 'var(--aws-orange)' : 'var(--text-dim)'} />
+                  <span>Frontend UI</span>
+                  <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
+                    ({getFrontendLabel(frontendType)})
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="upload-framework-selector" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-dim)' }}>
+                  Target Tier:
                 </span>
-              </button>
-
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginLeft: 'auto' }}>
-                🐳 Dockerfile auto-detected on upload
-              </span>
-            </div>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  color: 'var(--aws-orange)',
+                  background: 'rgba(255, 153, 0, 0.1)',
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 153, 0, 0.25)'
+                }}>
+                  <Layout size={13} />
+                  <span>Frontend UI ({getFrontendLabel(frontendType)})</span>
+                </span>
+              </div>
+            )}
 
             {/* Upload Action Zone & Drag-and-Drop */}
             <div
@@ -484,12 +528,12 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
                   disabled={isUploading}
                 >
                   <FileArchive size={14} />
-                  <span>Upload Files / .zip / .jar</span>
+                  <span>{hasBackend ? 'Upload Files / .zip / .jar' : 'Upload Files / .zip'}</span>
                 </button>
               </div>
 
               <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-                or drag and drop your project folder, <code>.zip</code>, or <code>.jar</code> here
+                or drag and drop your project folder {hasBackend ? ', .zip, or .jar' : 'or .zip'} here
               </div>
               {uploadTier === 'frontend' && (
                 <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: 'var(--aws-orange)' }}>
