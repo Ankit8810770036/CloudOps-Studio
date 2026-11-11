@@ -22,6 +22,7 @@ import {
   RefreshCw,
   CheckCircle2
 } from 'lucide-react';
+import { CircularLoader } from './CircularLoader';
 import { DeploymentState, InfrastructureState, StackConfig, CustomCodeState } from '../types';
 import { fetchWebappContent, saveWebappContent, uploadCustomCode, clearUploadedCode } from '../services/api';
 
@@ -247,6 +248,16 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
             </span>
           </div>
         </div>
+
+        {/* Active In-Card Processing Indicator */}
+        {isRunning && (
+          <div className="step-card-running-overlay" style={{ borderColor: 'rgba(220, 38, 38, 0.35)', background: 'rgba(220, 38, 38, 0.08)' }}>
+            <CircularLoader size={16} color="var(--accent-ansible)" />
+            <span>
+              <strong>Ansible Deployment Active:</strong> Configuring Nginx and deploying {frontendType.toUpperCase()} + {backendType.toUpperCase()} stack...
+            </span>
+          </div>
+        )}
 
         {/* 3-Tier Customization Selectors Grid (Non-Overflowing) */}
         <div className="tier-container-box">
@@ -669,13 +680,22 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       {/* Aligned Action Footer */}
       <div className="panel-footer-actions">
         <button
-          className="btn-primary"
+          className={`btn-primary ${isRunning ? 'is-running' : ''}`}
           style={{ flex: '1 1 240px', background: 'var(--accent-ansible)', color: '#FFFFFF', border: '1px solid var(--accent-ansible)' }}
           onClick={() => onDeploy(selectedServer, frontendType, backendType, databaseType)}
           disabled={isRunning || !isInfraReady}
         >
-          <Play size={14} />
-          <span>Deploy Stack (Ansible)</span>
+          {isRunning ? (
+            <>
+              <CircularLoader size={14} color="#FFFFFF" />
+              <span>Deploying Stack (Live)...</span>
+            </>
+          ) : (
+            <>
+              <Play size={14} />
+              <span>Deploy Stack (Ansible)</span>
+            </>
+          )}
         </button>
 
         <a

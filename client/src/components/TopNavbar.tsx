@@ -20,6 +20,7 @@ import {
   ChevronDown,
   PlusCircle
 } from 'lucide-react';
+import { CircularLoader } from './CircularLoader';
 import { ExecutionMode, FullStatus } from '../types';
 
 interface TopNavbarProps {
@@ -217,7 +218,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
         {/* Pipeline Status Badge */}
         {isRunning && (
           <div className="running-action-badge">
-            <RefreshCw size={12} className="animate-spin" />
+            <CircularLoader size={12} color="var(--aws-orange)" trackColor="rgba(255, 153, 0, 0.25)" />
             <span>{status.current_action || 'Processing...'}</span>
           </div>
         )}

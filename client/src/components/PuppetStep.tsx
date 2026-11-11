@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShieldCheck, Play, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { CircularLoader } from './CircularLoader';
 import { ComplianceState, InfrastructureState } from '../types';
 
 interface PuppetStepProps {
@@ -56,6 +57,16 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
             {compliance.status.toUpperCase()}
           </span>
         </div>
+
+        {/* Active In-Card Processing Indicator */}
+        {isRunning && (
+          <div className="step-card-running-overlay" style={{ borderColor: 'rgba(217, 119, 6, 0.35)', background: 'rgba(217, 119, 6, 0.08)' }}>
+            <CircularLoader size={16} color="var(--accent-puppet)" />
+            <span>
+              <strong>Puppet Active:</strong> Enforcing multi-tier compliance rules and drift remediation...
+            </span>
+          </div>
+        )}
 
         {/* Drift Alert Banner */}
         {isDrift && (
@@ -126,7 +137,7 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
       {/* Aligned Action Footer */}
       <div className="panel-footer-actions">
         <button
-          className="btn-primary"
+          className={`btn-primary ${isRunning ? 'is-running' : ''}`}
           style={{
             flex: '1 1 200px',
             background: isCompliant ? 'var(--bg-card-subtle)' : isDrift ? 'var(--status-danger)' : 'var(--accent-puppet)',
@@ -137,8 +148,22 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
           disabled={isRunning || !isInfraReady}
           title={isDrift ? "Reconcile drift back to baseline" : "Enforce Puppet security baseline"}
         >
-          {isDrift ? <RefreshCw size={14} /> : <Play size={14} />}
-          <span>{isCompliant ? 'Compliant (Zero Drift)' : isDrift ? 'Reconcile Drift (Puppet)' : 'Enforce (Puppet)'}</span>
+          {isRunning ? (
+            <>
+              <CircularLoader size={14} color="#FFFFFF" />
+              <span>Enforcing Compliance (Live)...</span>
+            </>
+          ) : isDrift ? (
+            <>
+              <RefreshCw size={14} />
+              <span>Reconcile Drift (Puppet)</span>
+            </>
+          ) : (
+            <>
+              <Play size={14} />
+              <span>{isCompliant ? 'Compliant (Zero Drift)' : 'Enforce (Puppet)'}</span>
+            </>
+          )}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Layers, Play, Trash2, Shield, HardDrive, Key, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { CircularLoader } from './CircularLoader';
 import { InfrastructureState } from '../types';
 
 interface TerraformStepProps {
@@ -75,6 +76,16 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
             {infra.status.toUpperCase()}
           </span>
         </div>
+
+        {/* Active In-Card Processing Indicator */}
+        {isRunning && (
+          <div className="step-card-running-overlay">
+            <CircularLoader size={16} color="var(--accent-terraform)" />
+            <span>
+              <strong>Terraform IaC Active:</strong> Communicating with AWS STS & EC2 API in {activeRegion}...
+            </span>
+          </div>
+        )}
 
         {/* Region & Instance Selectors (Never Overflow) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
@@ -154,7 +165,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
       {/* Aligned Action Footer */}
       <div className="panel-footer-actions">
         <button
-          className="btn-primary"
+          className={`btn-primary ${isRunning ? 'is-running' : ''}`}
           style={{
             flex: '1 1 200px',
             background: isProvisioned ? 'var(--bg-card-subtle)' : 'var(--accent-terraform)',
@@ -164,8 +175,17 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
           onClick={() => onApply(activeRegion, instanceType)}
           disabled={isRunning || isProvisioned}
         >
-          <Play size={14} />
-          <span>{isProvisioned ? 'Provisioned (Ready)' : 'Apply (Terraform)'}</span>
+          {isRunning ? (
+            <>
+              <CircularLoader size={14} color="#FFFFFF" />
+              <span>Applying Terraform (Live)...</span>
+            </>
+          ) : (
+            <>
+              <Play size={14} />
+              <span>{isProvisioned ? 'Provisioned (Ready)' : 'Apply (Terraform)'}</span>
+            </>
+          )}
         </button>
 
         {isProvisioned && (

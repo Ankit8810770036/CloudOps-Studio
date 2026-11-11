@@ -1,5 +1,6 @@
 import React from 'react';
 import { Activity, RefreshCw, CheckCircle, Server, Database, Globe, Cpu, HardDrive } from 'lucide-react';
+import { CircularLoader } from './CircularLoader';
 import { TelemetryState, InfrastructureState } from '../types';
 
 interface NagiosStepProps {
@@ -60,13 +61,22 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
             <span>Step 4: Nagios Observability</span>
           </h3>
           <button
-            className="btn-secondary"
+            className={`btn-secondary ${isRunning ? 'is-running' : ''}`}
             onClick={onProbe}
             disabled={isRunning || !isInfraReady}
             style={{ padding: '0 0.65rem', fontSize: '0.76rem', height: '30px' }}
           >
-            <RefreshCw size={12} />
-            <span>Probe Now</span>
+            {isRunning ? (
+              <>
+                <CircularLoader size={12} color="var(--accent-nagios)" />
+                <span>Probing...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw size={12} />
+                <span>Probe Now</span>
+              </>
+            )}
           </button>
         </div>
 

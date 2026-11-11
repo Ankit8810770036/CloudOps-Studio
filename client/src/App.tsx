@@ -15,6 +15,7 @@ import { PipelineStepper } from './components/PipelineStepper';
 import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
 import { PreDeploymentChecklist } from './components/PreDeploymentChecklist';
 import { ConsoleOverview } from './components/ConsoleOverview';
+import { LiveExecutionBanner } from './components/LiveExecutionBanner';
 
 import {
   fetchStatus,
@@ -718,6 +719,14 @@ export function App() {
 
         {/* Main Content Area */}
         <main className="content-container" ref={mainContentRef}>
+          {/* Active Process Execution Banner with Circular Loader & Elapsed Timer */}
+          <LiveExecutionBanner
+            isRunning={isRunning}
+            currentAction={status.current_action}
+            mode={status.mode}
+            latestLog={logs.length > 0 ? logs[logs.length - 1].text : undefined}
+          />
+
           {/* Global Pipeline Stepper Progress (Hidden in Console Overview, Chaos Lab, and Live Terminal) */}
           {activeTab !== 'all' && activeTab !== 'chaos' && activeTab !== 'term' && (
             <PipelineStepper
