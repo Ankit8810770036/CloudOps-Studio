@@ -278,7 +278,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
             </button>
             {status.infrastructure.app_url && (
               <a
-                href={status.infrastructure.app_url}
+                href={
+                  status.infrastructure.app_url.includes('54.210.88')
+                    ? 'http://127.0.0.1:8000/api/webapp/preview'
+                    : status.infrastructure.app_url
+                }
                 target="_blank"
                 rel="noreferrer"
                 className="navbar-icon-btn"

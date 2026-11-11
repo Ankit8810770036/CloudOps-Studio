@@ -48,7 +48,7 @@ class SimulationEngine:
             ("  public_ip         = \"54.210.88.142\"", 0.3),
             ("  public_dns        = \"ec2-54-210-88-142.compute-1.amazonaws.com\"", 0.3),
             ("  security_group_id = \"sg-07b9a4c09d4128f11\"", 0.3),
-            ("  app_url           = \"http://54.210.88.142\"", 0.3),
+            ("  app_url           = \"http://127.0.0.1:8000/api/webapp/preview (Local Simulation)\"", 0.3),
             ("  ssh_command       = \"ssh -i terraform/devops-key.pem ubuntu@54.210.88.142\"", 0.4)
         ]
         
@@ -67,7 +67,7 @@ class SimulationEngine:
             "public_dns": f"ec2-{sim_ip.replace('.', '-')}.compute-1.amazonaws.com",
             "security_group": "sg-07b9a4c09d4128f11",
             "vpc_id": "vpc-0a817f9b42c13d80a",
-            "app_url": f"http://{sim_ip}",
+            "app_url": "http://127.0.0.1:8000/api/webapp/preview",
             "ssh_command": f"ssh -i terraform/devops-key.pem ubuntu@{sim_ip}",
             "provisioned_at": time.strftime("%Y-%m-%d %H:%M:%S")
         })
@@ -257,7 +257,7 @@ class SimulationEngine:
             ("PLAY RECAP ********************************************************************", 0.5),
             (f"{target_ip}              : ok=14   changed=10   unreachable=0    failed=0", 0.6),
             ("", 0.2),
-            (f"✔ Full-Stack Success! [{frontend_type.upper()} Frontend | {backend_type.upper()} Backend | {database_type.upper()} DB] active at http://{target_ip}", 0.5)
+            (f"✔ Full-Stack Success! [{frontend_type.upper()} Frontend | {backend_type.upper()} Backend | {database_type.upper()} DB] active at http://127.0.0.1:8000/api/webapp/preview", 0.5)
         ])
         
         for text, delay in logs:
@@ -426,7 +426,7 @@ class SimulationEngine:
                 "public_dns": "ec2-54-210-88-142.compute-1.amazonaws.com",
                 "security_group": "sg-07b9a4c09d4128f11",
                 "vpc_id": "vpc-0a817f9b42c13d80a",
-                "app_url": "http://54.210.88.142",
+                "app_url": "http://127.0.0.1:8000/api/webapp/preview",
                 "ssh_command": "ssh -i terraform/devops-key.pem ubuntu@54.210.88.142",
                 "provisioned_at": time.strftime("%Y-%m-%d %H:%M:%S")
             })

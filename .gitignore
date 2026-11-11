@@ -43,4 +43,7 @@ ansible/roles/*/files/app/*
 !ansible/roles/webapp/files/app/index.html
 !ansible/roles/webapp/files/app/style.css
 !ansible/roles/webapp/files/app/app.js
+!ansible/roles/webapp/files/app/assets/
+!ansible/roles/webapp/files/app/assets/**
+!ansible/roles/webapp/files/app/*.pdf
 

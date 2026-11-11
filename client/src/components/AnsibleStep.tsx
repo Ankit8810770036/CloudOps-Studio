@@ -55,7 +55,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   const [showEditor, setShowEditor] = useState(false);
 
   // Upload Management State
-  const [uploadTier, setUploadTier] = useState<'backend' | 'frontend'>('backend');
+  const [uploadTier, setUploadTier] = useState<'backend' | 'frontend'>('frontend');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
@@ -114,7 +114,9 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
     return 'Frontend UI';
   };
 
-  const previewUrl = isDeployed && infra.app_url ? infra.app_url : 'http://127.0.0.1:8000/api/webapp/preview';
+  const previewUrl = (infra.app_url && !infra.app_url.includes('54.210.88')) 
+    ? infra.app_url 
+    : 'http://127.0.0.1:8000/api/webapp/preview';
 
   // Handle uploading files list
   const uploadFileList = async (files: File[]) => {
@@ -641,9 +643,9 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
                 </div>
               </div>
             </div>
-            {infra.app_url && (
+            {isDeployed && (
               <a
-                href={infra.app_url}
+                href={previewUrl}
                 target="_blank"
                 rel="noreferrer"
                 style={{
@@ -677,11 +679,11 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
         </button>
 
         <a
-          href={infra.app_url || '#'}
+          href={previewUrl}
           target="_blank"
           rel="noreferrer"
           className="btn-secondary"
-          style={{ flex: '0 0 auto', opacity: isDeployed && infra.app_url ? 1 : 0.4, pointerEvents: isDeployed && infra.app_url ? 'auto' : 'none' }}
+          style={{ flex: '0 0 auto', opacity: isDeployed ? 1 : 0.4, pointerEvents: isDeployed ? 'auto' : 'none' }}
         >
           <ExternalLink size={14} />
           <span>Open Live Site</span>

@@ -15,8 +15,10 @@ if server_dir not in sys.path:
     sys.path.insert(0, server_dir)
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.types import Scope
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -524,6 +526,39 @@ async def upload_code(
             stage="ANSIBLE"
         )
 
+    # Auto-detection: If files contain index.html and frontend assets (like Vite/React build),
+    # but target_tier was set to 'backend' without backend server files, automatically route to webapp role
+    is_frontend_bundle = any(Path(f).name.lower() == "index.html" for f in saved_files)
+    has_backend_indicators = any(
+        Path(f).name.lower() in ["dockerfile", "dockerfile.prod", "dockerfile.dev", "requirements.txt", "pom.xml", "go.mod", "cargo.toml"]
+        or Path(f).suffix.lower() in [".py", ".java", ".jar", ".go", ".rs"]
+        for f in saved_files
+    )
+    if target_tier == "backend" and is_frontend_bundle and not has_backend_indicators and not has_dockerfile:
+        webapp_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
+        webapp_dir.mkdir(parents=True, exist_ok=True)
+        for item in target_dir.rglob("*"):
+            if item.is_file():
+                rel = item.relative_to(target_dir)
+                w_dest = webapp_dir / rel
+                w_dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, w_dest)
+        target_dir = webapp_dir
+        target_tier = "frontend"
+        effective_framework = "react"
+        state.custom_code["frontend"] = {
+            "framework": "react",
+            "has_dockerfile": False,
+            "file_count": file_count,
+            "total_size_bytes": total_size,
+            "files": saved_files[:50],
+            "uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        state.add_log(
+            "[Auto-Detection] ⚛️ React/Static SPA bundle detected in upload package! Automatically routing to Webapp tier (ansible/roles/webapp/files/app).",
+            stage="ANSIBLE"
+        )
+
     # For frontend uploads: auto-flatten nested build/ or dist/ directories
     if target_tier == "frontend":
         for subfolder in ["dist", "build", "out"]:
@@ -600,6 +635,11 @@ async def get_upload_status():
 async def clear_uploaded_code(tier: str):
     if tier not in ["frontend", "backend"]:
         raise HTTPException(status_code=400, detail="Invalid tier")
+
+    if os.environ.get("TESTING") == "true":
+        state.custom_code[tier] = None
+        state.add_log(f"Cleared custom uploaded code for {tier.upper()}.", stage="ANSIBLE")
+        return {"status": "cleared", "tier": tier}
 
     if tier == "frontend":
         d = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
@@ -708,9 +748,38 @@ async def websocket_logs(websocket: WebSocket):
 
 from fastapi.staticfiles import StaticFiles
 
-client_dist = Path(__file__).resolve().parent.parent / "client" / "dist"
+class MergedStaticFiles(StaticFiles):
+    """
+    Dual-serving static handler:
+    1. Checks CloudOps Studio client UI build first (client/dist)
+    2. Transparently falls back to user deployed webapp assets (ansible/roles/webapp/files/app)
+       so custom React bundles, stylesheets, and media load with zero 404s.
+    """
+    def __init__(self, *args, fallback_dir: Optional[Path] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fallback_dir = fallback_dir
+
+    async def get_response(self, path: str, scope: Scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404 and self.fallback_dir:
+                try:
+                    full_path = (self.fallback_dir / path).resolve()
+                    if full_path.is_file() and full_path.is_relative_to(self.fallback_dir.resolve()):
+                        stat_result = os.stat(full_path)
+                        return self.file_response(str(full_path), stat_result, scope)
+                except Exception:
+                    pass
+            raise exc
+
+client_dist = BASE_PROJECT_DIR / "client" / "dist"
+webapp_app_dir = BASE_PROJECT_DIR / "ansible" / "roles" / "webapp" / "files" / "app"
+
 if client_dist.exists():
-    app.mount("/", StaticFiles(directory=str(client_dist), html=True), name="static_client")
+    app.mount("/", MergedStaticFiles(directory=str(client_dist), fallback_dir=webapp_app_dir, html=True), name="static_client")
+elif webapp_app_dir.exists():
+    app.mount("/", StaticFiles(directory=str(webapp_app_dir), html=True), name="static_client")
 
 if __name__ == "__main__":
     import uvicorn
