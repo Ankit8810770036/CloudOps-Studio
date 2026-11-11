@@ -42,8 +42,48 @@ async def nagios_background_poller():
             pass
         await asyncio.sleep(4)
 
+CREDENTIALS_FILE = Path(__file__).resolve().parent / ".credentials.json"
+
+def load_persisted_credentials():
+    if CREDENTIALS_FILE.exists():
+        try:
+            with open(CREDENTIALS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                access = (data.get("aws_access_key") or "").strip()
+                secret = (data.get("aws_secret_key") or "").strip()
+                region = (data.get("aws_region") or "").strip()
+                if access:
+                    state.config["aws_access_key"] = access
+                    os.environ["AWS_ACCESS_KEY_ID"] = access
+                if secret:
+                    state.config["aws_secret_key"] = secret
+                    os.environ["AWS_SECRET_ACCESS_KEY"] = secret
+                if region:
+                    state.config["aws_region"] = region
+                    os.environ["AWS_DEFAULT_REGION"] = region
+                is_dummy = access in ("AKIAIOSFODNN7EXAMPLE", "")
+                has_access = bool(access and not is_dummy)
+                has_secret = bool(secret and not is_dummy)
+                state.config["has_aws_keys"] = bool(has_access and has_secret)
+        except Exception:
+            pass
+
+def save_persisted_credentials():
+    try:
+        data = {
+            "aws_access_key": state.config.get("aws_access_key", ""),
+            "aws_secret_key": state.config.get("aws_secret_key", ""),
+            "aws_region": state.config.get("aws_region", "ap-south-1")
+        }
+        with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Load any saved credentials across server reboots
+    load_persisted_credentials()
     # Start background telemetry task
     poller_task = asyncio.create_task(nagios_background_poller())
     state.add_log("DevOps Platform Orchestration Server started on port 8000.", stage="SYSTEM")
@@ -71,11 +111,11 @@ class ModeRequest(BaseModel):
     mode: str # 'simulation' or 'live'
 
 class ConfigRequest(BaseModel):
-    aws_region: Optional[str] = "us-east-1"
-    instance_type: Optional[str] = "t2.micro"
-    environment: Optional[str] = "devops-production"
-    aws_access_key: Optional[str] = ""
-    aws_secret_key: Optional[str] = ""
+    aws_region: Optional[str] = None
+    instance_type: Optional[str] = None
+    environment: Optional[str] = None
+    aws_access_key: Optional[str] = None
+    aws_secret_key: Optional[str] = None
 
 class ProvisionRequest(BaseModel):
     aws_region: Optional[str] = "us-east-1"
@@ -199,11 +239,16 @@ async def get_config():
 
 @app.post("/api/config")
 async def update_config(req: ConfigRequest):
-    if req.aws_region: state.config["aws_region"] = req.aws_region.strip()
-    if req.instance_type: state.config["instance_type"] = req.instance_type.strip()
-    if req.environment: state.config["environment"] = req.environment.strip()
-    if req.aws_access_key is not None:
+    if req.aws_region and req.aws_region.strip():
+        state.config["aws_region"] = req.aws_region.strip()
+    if req.instance_type and req.instance_type.strip():
+        state.config["instance_type"] = req.instance_type.strip()
+    if req.environment and req.environment.strip():
+        state.config["environment"] = req.environment.strip()
+    # Only update access key if non-empty string provided, preventing inadvertent wipe
+    if req.aws_access_key is not None and req.aws_access_key.strip():
         state.config["aws_access_key"] = req.aws_access_key.strip()
+    # Only update secret key if non-empty string provided
     if req.aws_secret_key is not None and req.aws_secret_key.strip():
         state.config["aws_secret_key"] = req.aws_secret_key.strip()
         
@@ -218,6 +263,9 @@ async def update_config(req: ConfigRequest):
         os.environ["AWS_ACCESS_KEY_ID"] = access_key
         os.environ["AWS_SECRET_ACCESS_KEY"] = secret_key
         os.environ["AWS_DEFAULT_REGION"] = state.config.get("aws_region", "ap-south-1")
+    
+    # Persist credentials to disk so they survive server restarts
+    save_persisted_credentials()
     
     state.add_log(f"Cloud configuration updated: Region={state.config['aws_region']}, Type={state.config['instance_type']}", stage="SYSTEM")
 

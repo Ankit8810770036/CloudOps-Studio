@@ -29,6 +29,9 @@ id_rsa*
 credentials
 devops-key.pem
 terraform/devops-key.pem
+.credentials.json
+*.credentials.json
+server/.credentials.json
 
 # IDE & Assistant
 .vscode/

@@ -16,7 +16,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   onSuccess,
 }) => {
   const [region, setRegion] = useState('ap-south-1');
-  const [accessKey, setAccessKey] = useState('');
+  const [accessKey, setAccessKey] = useState<string>(() => {
+    return (typeof localStorage !== 'undefined' ? localStorage.getItem('cloudops_aws_access_key') : null) || '';
+  });
   const [secretKey, setSecretKey] = useState('');
   const [hasKeys, setHasKeys] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -33,7 +35,12 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       fetchConfig()
         .then(data => {
           setRegion(data.aws_region || 'ap-south-1');
-          setAccessKey(data.aws_access_key || '');
+          const cachedAccess = (typeof localStorage !== 'undefined' ? localStorage.getItem('cloudops_aws_access_key') : null) || '';
+          const finalAccess = data.aws_access_key || cachedAccess;
+          if (finalAccess) {
+            setAccessKey(finalAccess);
+            localStorage.setItem('cloudops_aws_access_key', finalAccess);
+          }
           setHasKeys(data.has_aws_keys);
         })
         .catch(err => {
@@ -66,11 +73,15 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
     setValidationError(null);
     try {
+      if (cleanAccess) {
+        localStorage.setItem('cloudops_aws_access_key', cleanAccess);
+      }
       await updateConfig({
         aws_region: region,
-        aws_access_key: cleanAccess,
+        ...(cleanAccess ? { aws_access_key: cleanAccess } : {}),
         ...(cleanSecret ? { aws_secret_key: cleanSecret } : {})
       });
+      // Secret key is masked/cleared from memory for safety, but access key stays preserved
       setSecretKey('');
       setSaved(true);
       if (onSuccess) {
@@ -185,18 +196,29 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               placeholder="AKIAIOSFODNN7EXAMPLE"
               value={accessKey}
               onChange={(e) => {
-                setAccessKey(e.target.value);
+                const val = e.target.value;
+                setAccessKey(val);
+                if (val.trim()) {
+                  localStorage.setItem('cloudops_aws_access_key', val.trim());
+                }
                 if (validationError) setValidationError(null);
               }}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">AWS Secret Access Key</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>AWS Secret Access Key</label>
+              {hasKeys && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--status-success)', fontWeight: 600 }}>
+                  ✓ Secret key active in backend
+                </span>
+              )}
+            </div>
             <input
               type="password"
               className="form-input"
-              placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+              placeholder={hasKeys ? "•••••••••••••••••••••••••••••••••••••••• (Secret Key Saved)" : "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}
               value={secretKey}
               onChange={(e) => {
                 setSecretKey(e.target.value);

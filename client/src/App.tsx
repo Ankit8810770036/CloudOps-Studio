@@ -406,8 +406,16 @@ export function App() {
       // Switching from SIMULATION MODE to LIVE MODE -> check credentials first!
       try {
         const config = await fetchConfig();
-        const hasAccess = Boolean(config.aws_access_key && config.aws_access_key.trim() && config.aws_access_key !== 'AKIAIOSFODNN7EXAMPLE');
+        const cachedAccess = (typeof localStorage !== 'undefined' ? localStorage.getItem('cloudops_aws_access_key') : null) || '';
+        const effectiveAccess = config.aws_access_key || cachedAccess;
+        const hasAccess = Boolean(effectiveAccess && effectiveAccess.trim() && effectiveAccess !== 'AKIAIOSFODNN7EXAMPLE');
         const hasSecret = Boolean(config.has_aws_keys || config.has_secret_key || (config.aws_secret_key_masked && config.aws_secret_key_masked.length > 0));
+
+        if (cachedAccess && !config.aws_access_key) {
+          try {
+            await updateConfig({ aws_access_key: cachedAccess });
+          } catch {}
+        }
 
         if (!hasAccess || !hasSecret) {
           // Explicitly inform the user WHY they are not able to switch

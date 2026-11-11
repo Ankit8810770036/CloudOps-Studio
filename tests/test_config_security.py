@@ -36,6 +36,19 @@ def test_live_mode_toggle_requires_credentials(client):
     assert res.status_code == 400
     assert "AWS Credentials Required" in res.json()["detail"]
 
+def test_partial_config_update_does_not_erase_access_key(client):
+    state.config["aws_access_key"] = "AKIAKEEPME12345678"
+    state.config["aws_secret_key"] = "SecretKeepMe12345678"
+    state.config["has_aws_keys"] = True
+
+    # User changes region only
+    res = client.post("/api/config", json={"aws_region": "us-west-2"})
+    assert res.status_code == 200
+    data = res.json()["config"]
+    assert data["aws_access_key"] == "AKIAKEEPME12345678"
+    assert state.config["aws_access_key"] == "AKIAKEEPME12345678"
+    assert state.config["has_aws_keys"] is True
+
 def test_log_sanitizer_redacts_secret_keys(client):
     state.config["aws_secret_key"] = "ACTUAL_SECRET_TOKEN_XYZ_99"
     state.add_log("Connecting using key ACTUAL_SECRET_TOKEN_XYZ_99 to AWS")
