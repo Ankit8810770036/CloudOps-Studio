@@ -19,7 +19,7 @@ export const TopStats: React.FC<TopStatsProps> = React.memo(({ status }) => {
 
   const handleCopyIp = () => {
     if (status.infrastructure.public_ip) {
-      navigator.clipboard.writeText(status.infrastructure.public_ip);
+      navigator.clipboard.writeText(`http://${status.infrastructure.public_ip}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -36,12 +36,24 @@ export const TopStats: React.FC<TopStatsProps> = React.memo(({ status }) => {
           </div>
         </div>
         <div className="stat-main">
-          <span style={{ fontFamily: "'JetBrains Mono', Consolas, monospace" }}>{ip}</span>
+          {isReady && status.infrastructure.public_ip ? (
+            <a
+              href={`http://${status.infrastructure.public_ip}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", color: 'inherit', textDecoration: 'none' }}
+              title={`Open http://${status.infrastructure.public_ip}`}
+            >
+              {ip}
+            </a>
+          ) : (
+            <span style={{ fontFamily: "'JetBrains Mono', Consolas, monospace" }}>{ip}</span>
+          )}
           {isReady && (
             <button
               onClick={handleCopyIp}
               className="stat-copy-btn"
-              title="Copy IP Address"
+              title="Copy Full URL (http://)"
             >
               {copied ? <Check size={13} color="var(--status-success)" /> : <Copy size={13} />}
             </button>

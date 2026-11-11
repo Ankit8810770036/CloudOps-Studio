@@ -73,7 +73,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
 
   const handleCopy = () => {
     if (status.infrastructure.public_ip) {
-      navigator.clipboard.writeText(status.infrastructure.public_ip);
+      navigator.clipboard.writeText(`http://${status.infrastructure.public_ip}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -271,10 +271,16 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
         {isReady && status.infrastructure.public_ip ? (
           <div className="navbar-node-pill">
             <span className="status-dot healthy" />
-            <span style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", fontWeight: 700 }}>
+            <a
+              href={`http://${status.infrastructure.public_ip}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", fontWeight: 700, color: 'inherit', textDecoration: 'none' }}
+              title={`Open http://${status.infrastructure.public_ip}`}
+            >
               {status.infrastructure.public_ip}
-            </span>
-            <button onClick={handleCopy} className="navbar-icon-btn" title="Copy Public IP">
+            </a>
+            <button onClick={handleCopy} className="navbar-icon-btn" title="Copy Full URL (http://)">
               {copied ? <Check size={12} color="var(--status-success)" /> : <Copy size={12} />}
             </button>
             {status.infrastructure.app_url && (
