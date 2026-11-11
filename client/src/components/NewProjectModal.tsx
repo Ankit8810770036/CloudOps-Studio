@@ -130,7 +130,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
             >
               <Layers size={16} color="var(--aws-orange)" />
               <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-                This will reset the deployment wizard to Step 0 (Pre-Flight) so you can choose a new stack or upload new code.
+                This will reset the deployment wizard to Step 0 (Pre-Flight) so you can configure a new application stack.
               </span>
             </div>
           )}

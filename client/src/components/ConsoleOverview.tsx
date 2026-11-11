@@ -457,10 +457,10 @@ export const ConsoleOverview: React.FC<ConsoleOverviewProps> = React.memo(({
           <FolderUp size={18} color="var(--accent-ansible)" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-              Bring Your Own Code
+              Polyglot Application Stacks
             </div>
             <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', lineHeight: 1.4 }}>
-              In Step 2, upload any repository or folder with a Dockerfile to containerize and deploy Go, Rust, Ruby, PHP, Python, Java, or Node apps.
+              In Step 2, configure and deploy Python FastAPI, Node.js Express, Java Spring Boot, or Docker containers via automated Ansible playbooks.
             </div>
           </div>
         </div>

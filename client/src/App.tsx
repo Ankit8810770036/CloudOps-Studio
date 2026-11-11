@@ -710,7 +710,7 @@ export function App() {
       setModeAlert({
         badge: 'NEW PROJECT SESSION',
         title: 'Project Workspace Reset Ready',
-        message: `Deployment wizard is reset for "${projectName}". Select your application stack or upload custom code to deploy.`,
+        message: `Deployment wizard is reset for "${projectName}". Select your application stack to deploy.`,
         type: 'success'
       });
     } catch (err: any) {
