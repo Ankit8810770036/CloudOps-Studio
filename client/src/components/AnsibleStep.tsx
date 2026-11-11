@@ -74,6 +74,11 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [preflightNotice, setPreflightNotice] = useState<{
+    type: 'success' | 'warning' | 'info';
+    message: string;
+    details?: string;
+  } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showFileList, setShowFileList] = useState(false);
 
@@ -148,9 +153,37 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
   // Handle uploading files list
   const uploadFileList = async (files: File[]) => {
     if (!files || files.length === 0) return;
-    setIsUploading(true);
     setUploadError(null);
     setUploadSuccess(null);
+    setPreflightNotice(null);
+
+    // Client-Side Pre-Flight Inspection
+    if (uploadTier === 'frontend') {
+      const filePaths = files.map(f => ((f as any).webkitRelativePath || f.name).toLowerCase());
+      const hasHtml = filePaths.some(p => p.endsWith('index.html'));
+      const hasSrcDir = filePaths.some(p => p.includes('/src/') || p.includes('\\src\\'));
+      const hasPackageJson = filePaths.some(p => p.endsWith('package.json'));
+      const totalMb = (files.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(1);
+
+      if (!hasHtml && (hasSrcDir || hasPackageJson)) {
+        setPreflightNotice({
+          type: 'warning',
+          message: 'Uncompiled React Source Detected',
+          details: "Uploaded package contains raw 'src/' files without 'index.html'. Nginx requires compiled static assets. Please run 'npm run build' first and upload the generated 'dist/' or 'build/' folder."
+        });
+        return;
+      }
+
+      if (hasHtml) {
+        setPreflightNotice({
+          type: 'success',
+          message: 'Pre-Flight Verified: Valid Web Asset Bundle',
+          details: `Found index.html and ${files.length} production asset(s) (${totalMb} MB). Uploading to /var/www/devops_app...`
+        });
+      }
+    }
+
+    setIsUploading(true);
 
     const effectiveFramework = uploadTier === 'frontend'
       ? (frontendType === 'html' ? 'html' : 'react')
@@ -548,6 +581,31 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
                 </div>
               )}
             </div>
+
+            {/* Pre-Flight Inspection Feedback Banner */}
+            {preflightNotice && (
+              <div
+                style={{
+                  marginTop: '0.65rem',
+                  padding: '0.6rem 0.8rem',
+                  background: preflightNotice.type === 'warning' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.1)',
+                  border: `1px solid ${preflightNotice.type === 'warning' ? 'var(--status-danger)' : 'var(--status-success)'}`,
+                  borderRadius: '5px',
+                  fontSize: '0.76rem',
+                  color: preflightNotice.type === 'warning' ? '#F87171' : 'var(--status-success)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}>
+                  {preflightNotice.type === 'warning' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                  <span>{preflightNotice.message}</span>
+                </div>
+                {preflightNotice.details && (
+                  <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    {preflightNotice.details}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Success / Error Messages */}
             {uploadSuccess && (

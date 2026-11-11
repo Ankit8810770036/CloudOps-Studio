@@ -20,12 +20,42 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
   const checks = telemetry.checks;
   const [isProbingLocally, setIsProbingLocally] = React.useState(false);
   const isStepRunning = isRunning || isProbingLocally;
+  const [relativeTime, setRelativeTime] = React.useState<string>('');
 
   React.useEffect(() => {
     if (!isRunning) {
       setIsProbingLocally(false);
     }
   }, [isRunning]);
+
+  React.useEffect(() => {
+    const updateRelative = () => {
+      if (!telemetry.last_check) {
+        setRelativeTime('Pending Probe');
+        return;
+      }
+      const now = new Date();
+      const parts = telemetry.last_check.split(':');
+      if (parts.length >= 3) {
+        const checkTime = new Date();
+        checkTime.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10), 0);
+        const diffSec = Math.max(0, Math.floor((now.getTime() - checkTime.getTime()) / 1000));
+        if (diffSec < 4) {
+          setRelativeTime('Checked just now');
+        } else if (diffSec < 60) {
+          setRelativeTime(`Checked ${diffSec}s ago`);
+        } else {
+          setRelativeTime(`Checked ${Math.floor(diffSec / 60)}m ago`);
+        }
+      } else {
+        setRelativeTime(`Checked at ${telemetry.last_check}`);
+      }
+    };
+
+    updateRelative();
+    const interval = setInterval(updateRelative, 1000);
+    return () => clearInterval(interval);
+  }, [telemetry.last_check]);
 
   const handleProbeClick = async () => {
     if (isStepRunning || !isInfraReady) return;
@@ -78,24 +108,32 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
             </div>
             <span>Step 4: Nagios Observability</span>
           </h3>
-          <button
-            className={`btn-secondary ${isStepRunning ? 'is-running' : ''}`}
-            onClick={handleProbeClick}
-            disabled={isStepRunning || !isInfraReady}
-            style={{ padding: '0 0.65rem', fontSize: '0.76rem', height: '30px' }}
-          >
-            {isStepRunning ? (
-              <>
-                <CircularLoader size={12} color="var(--accent-nagios)" />
-                <span>Probing...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw size={12} />
-                <span>Probe Now</span>
-              </>
-            )}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', padding: '0.2rem 0.55rem', borderRadius: '4px' }}>
+              <span className={`status-dot ${telemetry.overall_health === 'HEALTHY' ? 'healthy pulse' : telemetry.overall_health === 'CRITICAL' ? 'critical' : 'pending'}`} />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', fontWeight: 500, fontFamily: 'monospace' }}>
+                {relativeTime || 'Active'}
+              </span>
+            </div>
+            <button
+              className={`btn-secondary ${isStepRunning ? 'is-running' : ''}`}
+              onClick={handleProbeClick}
+              disabled={isStepRunning || !isInfraReady}
+              style={{ padding: '0 0.65rem', fontSize: '0.76rem', height: '30px' }}
+            >
+              {isStepRunning ? (
+                <>
+                  <CircularLoader size={12} color="var(--accent-nagios)" />
+                  <span>Probing...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={12} />
+                  <span>Probe Now</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* 6 Multi-Tier Telemetry Gauges Grid */}

@@ -46,6 +46,46 @@ export interface ModeAlertData {
   badge?: string;
   actionLabel?: string;
   onAction?: () => void;
+  tip?: string;
+}
+
+export function parseActionableError(rawMsg: string, defaultTitle = 'Execution Blocked'): { title: string; message: string; tip?: string } {
+  const msg = rawMsg || '';
+  const lower = msg.toLowerCase();
+
+  if (lower.includes('signaturedoesnotmatch')) {
+    return {
+      title: 'AWS Credential Signature Mismatch',
+      message: 'The cryptographic signature AWS calculated did not match your Secret Access Key.',
+      tip: '💡 Troubleshooting Tip: Check for trailing spaces in your Secret Access Key, or generate a fresh IAM access key pair in the AWS Console.'
+    };
+  }
+  if (lower.includes('invalidclienttokenid') || lower.includes('security token included in the request is invalid')) {
+    return {
+      title: 'Invalid AWS Access Key ID',
+      message: 'The security token / Access Key ID provided was not recognized by AWS STS.',
+      tip: '💡 Troubleshooting Tip: Confirm the Access Key ID is active in IAM and belongs to region ap-south-1.'
+    };
+  }
+  if (lower.includes('timed out') || lower.includes('connection refused') || (lower.includes('ssh') && lower.includes('fail'))) {
+    return {
+      title: 'Target Node Connection Timeout',
+      message: msg,
+      tip: '💡 Troubleshooting Tip: Verify that your EC2 instance is in "Running" state and its AWS Security Group allows inbound SSH (Port 22) and HTTP (Port 80).'
+    };
+  }
+  if (lower.includes('already running')) {
+    return {
+      title: 'Pipeline Step In Progress',
+      message: msg,
+      tip: '💡 Tip: Orchestration runs sequentially. Wait for the active step to finish before starting the next.'
+    };
+  }
+  return {
+    title: defaultTitle,
+    message: msg,
+    tip: undefined
+  };
 }
 
 export function App() {
@@ -483,16 +523,38 @@ export function App() {
   }, [status]);
 
   const handleApplyTerraform = useCallback(async (region: string, instanceType: string) => {
-    setSelectedRegion(region);
-    await applyTerraform(region, instanceType);
-    const updated = await fetchStatus();
-    setStatus(updated);
+    try {
+      setSelectedRegion(region);
+      await applyTerraform(region, instanceType);
+      const updated = await fetchStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      const actionable = parseActionableError(err.message, 'Terraform Provisioning Error');
+      setModeAlert({
+        badge: 'IAC ERROR',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
+        type: 'error'
+      });
+    }
   }, []);
 
   const handleDestroyTerraform = useCallback(async () => {
-    await destroyTerraform();
-    const updated = await fetchStatus();
-    setStatus(updated);
+    try {
+      await destroyTerraform();
+      const updated = await fetchStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      const actionable = parseActionableError(err.message, 'Terraform Teardown Error');
+      setModeAlert({
+        badge: 'IAC ERROR',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
+        type: 'error'
+      });
+    }
   }, []);
 
   const handleDeployAnsible = useCallback(async (webServer: 'nginx' | 'apache', frontend: string, backend: string, database: string) => {
@@ -518,10 +580,12 @@ export function App() {
       const updated = await fetchStatus();
       setStatus(updated);
     } catch (err: any) {
+      const actionable = parseActionableError(err.message, 'Ansible Deployment Error');
       setModeAlert({
         badge: 'DEPLOYMENT BLOCKED',
-        title: 'Ansible Deployment Error',
-        message: err.message || 'Complete previous steps first (manually).',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
         type: 'error'
       });
     }
@@ -550,10 +614,12 @@ export function App() {
       const updated = await fetchStatus();
       setStatus(updated);
     } catch (err: any) {
+      const actionable = parseActionableError(err.message, 'Puppet Compliance Error');
       setModeAlert({
         badge: 'COMPLIANCE BLOCKED',
-        title: 'Puppet Compliance Error',
-        message: err.message || 'Complete previous steps first (manually).',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
         type: 'error'
       });
     }
@@ -582,10 +648,12 @@ export function App() {
       const updated = await fetchStatus();
       setStatus(updated);
     } catch (err: any) {
+      const actionable = parseActionableError(err.message, 'Nagios Probing Error');
       setModeAlert({
         badge: 'OBSERVABILITY BLOCKED',
-        title: 'Nagios Probing Error',
-        message: err.message || 'Complete previous steps first (manually).',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
         type: 'error'
       });
     }
@@ -1022,9 +1090,24 @@ export function App() {
             {modeAlert.title}
           </div>
 
-          <p style={{ fontSize: '0.81rem', color: 'var(--text-muted)', lineHeight: 1.45, margin: '0 0 0.85rem 0' }}>
+          <p style={{ fontSize: '0.81rem', color: 'var(--text-muted)', lineHeight: 1.45, margin: modeAlert.tip ? '0 0 0.55rem 0' : '0 0 0.85rem 0' }}>
             {modeAlert.message}
           </p>
+
+          {modeAlert.tip && (
+            <div style={{
+              margin: '0 0 0.85rem 0',
+              padding: '0.55rem 0.75rem',
+              borderRadius: '5px',
+              background: 'rgba(255, 153, 0, 0.08)',
+              border: '1px solid rgba(255, 153, 0, 0.25)',
+              fontSize: '0.76rem',
+              color: 'var(--text-primary)',
+              lineHeight: 1.45
+            }}>
+              {modeAlert.tip}
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.55rem' }}>
             <button
