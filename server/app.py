@@ -207,6 +207,19 @@ async def switch_project_endpoint(req: SwitchProjectRequest):
         "telemetry": state.telemetry
     }
 
+@app.delete("/api/projects/{project_id}")
+async def delete_project_endpoint(project_id: str):
+    deleted = state.delete_project(project_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Project not found in deployed registry")
+    return {
+        "status": "ok",
+        "message": f"Project {project_id} deleted successfully",
+        "deleted_project": deleted,
+        "projects": state.projects,
+        "active_project_id": state.active_project_id
+    }
+
 # 2. Toggle Mode (Live AWS vs Simulation)
 @app.post("/api/mode")
 async def set_mode(req: ModeRequest):

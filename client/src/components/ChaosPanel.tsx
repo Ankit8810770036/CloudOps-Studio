@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle, Layers, PlusCircle } from 'lucide-react';
+import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle, Layers, PlusCircle, Trash2 } from 'lucide-react';
+import { CircularLoader } from './CircularLoader';
 import { ChaosState, InfrastructureState, ExecutionMode, DeployedProject } from '../types';
 
 interface ChaosPanelProps {
@@ -14,6 +15,7 @@ interface ChaosPanelProps {
   activeProjectId?: string | null;
   onSwitchProject?: (projectId: string) => Promise<void> | void;
   onNewProject?: () => void;
+  onDeleteProject?: (projectId: string) => Promise<void> | void;
 }
 
 export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
@@ -28,9 +30,12 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
   activeProjectId,
   onSwitchProject,
   onNewProject,
+  onDeleteProject,
 }) => {
   const [isHealing, setIsHealing] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<DeployedProject | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const isInfraReady = infra.status === 'ready';
   const hasFault = Boolean(chaos.active_fault);
   const isDriftFault = chaos.active_fault === 'config_tamper';
@@ -70,6 +75,21 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
       await onHeal();
     } finally {
       setIsHealing(false);
+    }
+  };
+
+  const handleDeleteClick = (proj: DeployedProject) => {
+    setProjectToDelete(proj);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete || !onDeleteProject) return;
+    setDeletingId(projectToDelete.id);
+    try {
+      await onDeleteProject(projectToDelete.id);
+      setProjectToDelete(null);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -196,55 +216,102 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
               const isSelected = activeProjectId === proj.id || (!activeProjectId && proj.public_ip === infra.public_ip);
               const hasProjectFault = Boolean(proj.chaos_fault || (isSelected && chaos.active_fault));
               return (
-                <button
+                <div
                   key={proj.id}
-                  onClick={() => handleSwitch(proj.id)}
-                  disabled={isSwitching || isRunning}
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.35rem 0.7rem',
+                    gap: '0.35rem',
                     borderRadius: '6px',
                     border: isSelected ? '1.5px solid var(--aws-orange)' : '1px solid var(--border-color)',
                     background: isSelected ? 'rgba(255, 153, 0, 0.14)' : 'var(--bg-card)',
-                    color: isSelected ? 'var(--text-primary)' : 'var(--text-dim)',
-                    fontWeight: isSelected ? 800 : 500,
-                    fontSize: '0.76rem',
-                    cursor: (isSwitching || isRunning) ? 'not-allowed' : 'pointer',
+                    padding: '0.15rem 0.3rem 0.15rem 0.65rem',
                     transition: 'all 0.15s ease'
                   }}
-                  title={`Switch monitoring & chaos injection to ${proj.name} (${proj.public_ip})`}
                 >
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => handleSwitch(proj.id)}
+                    disabled={isSwitching || isRunning || deletingId === proj.id}
                     style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      background: hasProjectFault ? 'var(--status-danger)' : 'var(--status-success)',
-                      flexShrink: 0
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.2rem 0',
+                      border: 'none',
+                      background: 'none',
+                      color: isSelected ? 'var(--text-primary)' : 'var(--text-dim)',
+                      fontWeight: isSelected ? 800 : 500,
+                      fontSize: '0.76rem',
+                      cursor: (isSwitching || isRunning) ? 'not-allowed' : 'pointer',
+                      textAlign: 'left'
                     }}
-                  />
-                  <span>{proj.name}</span>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', Consolas, monospace",
-                      fontSize: '0.7rem',
-                      opacity: 0.85,
-                      background: 'var(--bg-card-subtle)',
-                      padding: '0.05rem 0.35rem',
-                      borderRadius: '3px',
-                      border: '1px solid var(--border-color)'
-                    }}
+                    title={`Switch monitoring & chaos injection to ${proj.name} (${proj.public_ip})`}
                   >
-                    {proj.public_ip}
-                  </span>
-                  {isSelected && (
-                    <span style={{ fontSize: '0.66rem', color: 'var(--aws-orange)', fontWeight: 800 }}>
-                      [ACTIVE]
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: hasProjectFault ? 'var(--status-danger)' : 'var(--status-success)',
+                        flexShrink: 0
+                      }}
+                    />
+                    <span>{proj.name}</span>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', Consolas, monospace",
+                        fontSize: '0.7rem',
+                        opacity: 0.85,
+                        background: 'var(--bg-card-subtle)',
+                        padding: '0.05rem 0.35rem',
+                        borderRadius: '3px',
+                        border: '1px solid var(--border-color)'
+                      }}
+                    >
+                      {proj.public_ip}
                     </span>
+                    {isSelected && (
+                      <span style={{ fontSize: '0.66rem', color: 'var(--aws-orange)', fontWeight: 800 }}>
+                        [ACTIVE]
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Direct Delete Project Button */}
+                  {onDeleteProject && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(proj);
+                      }}
+                      disabled={isRunning || deletingId === proj.id}
+                      title={`Delete & terminate ${proj.name} (${proj.public_ip}) directly`}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--status-danger)',
+                        borderRadius: '4px',
+                        padding: '0.2rem 0.3rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: (isRunning || deletingId === proj.id) ? 'not-allowed' : 'pointer',
+                        opacity: 0.75,
+                        transition: 'opacity 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.75')}
+                    >
+                      {deletingId === proj.id ? (
+                        <CircularLoader size={12} color="var(--status-danger)" />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -409,6 +476,79 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
             : 'Auto-Remediate & Heal All (Verify Desired State)'}
         </span>
       </button>
+
+      {/* Direct Project Deletion Confirmation Modal */}
+      {projectToDelete && (
+        <div className="modal-overlay" onClick={() => setProjectToDelete(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '440px', padding: '1.25rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  background: 'var(--status-danger-bg)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--status-danger)',
+                  flexShrink: 0
+                }}
+              >
+                <Trash2 size={16} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                  Delete Hosted Project
+                </h3>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', marginTop: '2px' }}>
+                  Direct Project Teardown from Chaos Lab
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.5, margin: '0 0 1rem 0' }}>
+              Are you sure you want to delete and terminate <strong style={{ color: 'var(--aws-orange)' }}>{projectToDelete.name}</strong> ({projectToDelete.public_ip})?
+              This will remove the project from the active cloud registry and release its allocated resources.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setProjectToDelete(null)}
+                disabled={deletingId === projectToDelete.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={handleConfirmDelete}
+                disabled={deletingId === projectToDelete.id}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                {deletingId === projectToDelete.id ? (
+                  <>
+                    <CircularLoader size={12} color="#FFFFFF" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} />
+                    <span>Confirm Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

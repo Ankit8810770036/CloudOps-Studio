@@ -324,5 +324,62 @@ class PlatformState:
         self.add_log(f"[CHAOS MONITOR] 🎯 Switched active target node to {target['name']} ({target.get('public_ip')}).", stage="CHAOS")
         return target
 
+    def delete_project(self, project_id: str) -> Optional[Dict[str, Any]]:
+        target = next((p for p in self.projects if p["id"] == project_id or p.get("public_ip") == project_id), None)
+        if not target:
+            if (project_id == "proj-current" or project_id == self.infrastructure.get("public_ip")) and self.infrastructure.get("public_ip"):
+                target = {
+                    "id": "proj-current",
+                    "name": "Current Deployment",
+                    "public_ip": self.infrastructure.get("public_ip"),
+                    "instance_id": self.infrastructure.get("instance_id")
+                }
+            else:
+                return None
+
+        # Remove from projects array if present
+        self.projects = [p for p in self.projects if p["id"] != target.get("id") and p.get("public_ip") != target.get("public_ip")]
+
+        # If deleted project was the currently active one
+        is_active = (self.active_project_id == target.get("id")) or (self.infrastructure.get("public_ip") == target.get("public_ip"))
+        if is_active:
+            if self.projects:
+                next_proj = self.projects[0]
+                self.switch_project(next_proj["id"])
+            else:
+                self.active_project_id = None
+                self.infrastructure.update({
+                    "status": "not_provisioned",
+                    "instance_id": None,
+                    "public_ip": None,
+                    "public_dns": None,
+                    "security_group": None,
+                    "vpc_id": None,
+                    "app_url": None,
+                    "ssh_command": None,
+                    "provisioned_at": None
+                })
+                self.deployment.update({
+                    "status": "not_deployed",
+                    "web_server": "nginx",
+                    "deployed_app": "Full-Stack Web Application",
+                    "deployed_at": None,
+                    "response_code": None
+                })
+                self.compliance.update({
+                    "status": "pending",
+                    "last_enforced": None,
+                    "drift_count": 0
+                })
+                self.telemetry["overall_health"] = "UNKNOWN"
+                self.chaos = {
+                    "active_fault": None,
+                    "description": None,
+                    "injected_at": None
+                }
+
+        self.add_log(f"[PROJECT REGISTRY] 🗑️ Project '{target.get('name')}' ({target.get('public_ip')}) deleted.", stage="SYSTEM")
+        return target
+
 # Global singleton
 state = PlatformState()

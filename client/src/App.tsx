@@ -34,6 +34,7 @@ import {
   connectLogWebSocket,
   createNewProject,
   switchProject,
+  deleteProject,
 } from './services/api';
 import { FullStatus, LogEntry } from './types';
 import { Terminal as TerminalIcon, AlertTriangle, Key, X } from 'lucide-react';
@@ -654,6 +655,27 @@ export function App() {
     }
   }, []);
 
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    try {
+      await deleteProject(projectId);
+      const updated = await fetchStatus();
+      setStatus(updated);
+      setModeAlert({
+        badge: 'REGISTRY UPDATED',
+        title: 'Project Deleted',
+        message: 'Hosted project was successfully terminated and removed from the active cloud registry.',
+        type: 'success'
+      });
+    } catch (err: any) {
+      setModeAlert({
+        badge: 'ERROR',
+        title: 'Deletion Failed',
+        message: err.message || 'Could not delete project.',
+        type: 'error'
+      });
+    }
+  }, []);
+
   if (!status) {
     return (
       <div style={{
@@ -840,6 +862,7 @@ export function App() {
                 activeProjectId={status.active_project_id}
                 onSwitchProject={handleSwitchProject}
                 onNewProject={() => setIsNewProjectOpen(true)}
+                onDeleteProject={handleDeleteProject}
               />
               <NagiosStep
                 telemetry={status.telemetry}

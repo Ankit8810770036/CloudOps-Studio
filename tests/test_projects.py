@@ -69,3 +69,26 @@ def test_switch_project_not_found(client):
     res = client.post("/api/projects/switch", json={"project_id": "non-existent-proj"})
     assert res.status_code == 404
 
+def test_delete_project_endpoint(client):
+    state.projects = [
+        {"id": "proj-1", "name": "Node Service", "public_ip": "13.232.10.50", "status": "ready"},
+        {"id": "proj-2", "name": "Python Service", "public_ip": "13.232.10.51", "status": "ready"}
+    ]
+    state.active_project_id = "proj-1"
+    state.infrastructure["public_ip"] = "13.232.10.50"
+
+    res = client.delete("/api/projects/proj-1")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert len(data["projects"]) == 1
+    # Auto-switches to remaining project
+    assert data["active_project_id"] == "proj-2"
+    assert state.infrastructure["public_ip"] == "13.232.10.51"
+
+    # Delete last project
+    res2 = client.delete("/api/projects/proj-2")
+    assert res2.status_code == 200
+    assert len(res2.json()["projects"]) == 0
+    assert state.infrastructure["status"] == "not_provisioned"
+

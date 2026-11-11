@@ -58,3 +58,4 @@ export const CircularLoader: React.FC<CircularLoaderProps> = ({
     </svg>
   );
 };
+

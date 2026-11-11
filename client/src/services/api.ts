@@ -205,6 +205,14 @@ export async function switchProject(projectId: string) {
   return res.json();
 }
 
+export async function deleteProject(projectId: string) {
+  const res = await fetch(`${API_BASE}/api/projects/${projectId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete project');
+  return res.json();
+}
+
 export function connectLogWebSocket(onLog: (entry: LogEntry) => void): () => void {
   let ws: WebSocket | null = null;
   let isClosed = false;
