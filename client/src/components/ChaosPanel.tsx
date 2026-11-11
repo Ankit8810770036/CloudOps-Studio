@@ -103,9 +103,6 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
             <h4 style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               Chaos Engineering Lab
             </h4>
-            <p style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-              Inject outages and configuration drift to test automated detection and Puppet self-healing.
-            </p>
           </div>
         </div>
 

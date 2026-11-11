@@ -1,7 +1,20 @@
 import { FullStatus, LogEntry, CloudConfig } from '../types';
 
-const API_BASE = 'http://127.0.0.1:8000';
-const WS_BASE = 'ws://127.0.0.1:8000';
+const isBrowser = typeof window !== 'undefined';
+const protocol = isBrowser && window.location.protocol === 'https:' ? 'https:' : 'http:';
+const wsProtocol = isBrowser && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const hostname = isBrowser ? window.location.hostname : '127.0.0.1';
+
+// In Vite dev server mode (port 5173 or 3000), target backend at port 8000 on the same host
+const isDev = isBrowser && (window.location.port === '5173' || window.location.port === '3000');
+
+export const API_BASE = isBrowser
+  ? (isDev ? `${protocol}//${hostname}:8000` : '')
+  : 'http://127.0.0.1:8000';
+
+export const WS_BASE = isBrowser
+  ? (isDev ? `${wsProtocol}//${hostname}:8000` : `${wsProtocol}//${window.location.host}`)
+  : 'ws://127.0.0.1:8000';
 
 export async function fetchStatus(): Promise<FullStatus> {
   const res = await fetch(`${API_BASE}/api/status`);
@@ -153,6 +166,12 @@ export async function fetchUploadStatus() {
   return res.json();
 }
 
+export async function fetchLogs(): Promise<{ logs: LogEntry[] }> {
+  const res = await fetch(`${API_BASE}/api/logs`);
+  if (!res.ok) throw new Error('Failed to fetch logs');
+  return res.json();
+}
+
 export async function clearLogs() {
   const res = await fetch(`${API_BASE}/api/logs/clear`, {
     method: 'POST',
@@ -186,16 +205,48 @@ export async function switchProject(projectId: string) {
   return res.json();
 }
 
-export function connectLogWebSocket(onLog: (entry: LogEntry) => void): WebSocket {
-  const ws = new WebSocket(`${WS_BASE}/ws/logs`);
-  ws.onmessage = (event) => {
+export function connectLogWebSocket(onLog: (entry: LogEntry) => void): () => void {
+  let ws: WebSocket | null = null;
+  let isClosed = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const connect = () => {
+    if (isClosed) return;
     try {
-      const entry: LogEntry = JSON.parse(event.data);
-      onLog(entry);
-    } catch (e) {
-      console.error('Failed to parse WS log', e);
+      ws = new WebSocket(`${WS_BASE}/ws/logs`);
+      ws.onmessage = (event) => {
+        try {
+          const entry: LogEntry = JSON.parse(event.data);
+          onLog(entry);
+        } catch (e) {
+          console.error('Failed to parse WS log', e);
+        }
+      };
+      ws.onerror = () => {
+        try {
+          ws?.close();
+        } catch {}
+      };
+      ws.onclose = () => {
+        if (!isClosed) {
+          reconnectTimer = setTimeout(connect, 2000);
+        }
+      };
+    } catch {
+      if (!isClosed) {
+        reconnectTimer = setTimeout(connect, 2000);
+      }
     }
   };
-  return ws;
+
+  connect();
+
+  return () => {
+    isClosed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    try {
+      ws?.close();
+    } catch {}
+  };
 }
 

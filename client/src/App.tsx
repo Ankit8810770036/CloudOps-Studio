@@ -19,6 +19,7 @@ import { ConsoleOverview } from './components/ConsoleOverview';
 import {
   fetchStatus,
   fetchConfig,
+  fetchLogs,
   updateConfig,
   setExecutionMode,
   applyTerraform,
@@ -240,11 +241,21 @@ export function App() {
       .catch(err => console.error('Failed to load initial AWS config', err));
   }, []);
 
-  // Poll status periodically
+  // Poll status periodically and sync logs if pipeline is running
   useEffect(() => {
     const update = () => {
       fetchStatus()
-        .then(setStatus)
+        .then(newStatus => {
+          setStatus(newStatus);
+          // Fallback sync for logs during active pipelines
+          if (newStatus.is_running_pipeline) {
+            fetchLogs().then(data => {
+              if (data?.logs?.length) {
+                setLogs(data.logs);
+              }
+            }).catch(() => {});
+          }
+        })
         .catch(err => console.error('Status fetch error', err));
     };
     update();
@@ -252,33 +263,27 @@ export function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Connect WebSocket for streaming logs with requestAnimationFrame batching (60fps smooth scroll protection)
+  // Connect WebSocket for streaming logs & load initial logs
   useEffect(() => {
-    let frameId: number | null = null;
-    let pendingBatch: LogEntry[] = [];
+    // 1. Immediately fetch existing logs so the terminal is never blank on mount/refresh
+    fetchLogs()
+      .then(data => {
+        if (data?.logs?.length) {
+          setLogs(data.logs);
+        }
+      })
+      .catch(err => console.warn('Initial logs fetch error:', err));
 
-    const ws = connectLogWebSocket((entry) => {
-      pendingBatch.push(entry);
-
-      if (frameId === null) {
-        frameId = requestAnimationFrame(() => {
-          if (pendingBatch.length > 0) {
-            const incoming = pendingBatch;
-            pendingBatch = [];
-            setLogs(prev => {
-              const merged = [...prev, ...incoming];
-              // Cap at 200 lines to prevent DOM bloat and scroll stutter
-              return merged.length > 200 ? merged.slice(merged.length - 200) : merged;
-            });
-          }
-          frameId = null;
-        });
-      }
+    // 2. Real-time streaming via resilient WebSocket with auto-reconnect
+    const disconnect = connectLogWebSocket((entry) => {
+      setLogs(prev => {
+        const next = [...prev, entry];
+        return next.length > 300 ? next.slice(next.length - 300) : next;
+      });
     });
 
     return () => {
-      if (frameId !== null) cancelAnimationFrame(frameId);
-      ws.close();
+      disconnect();
     };
   }, []);
 
@@ -799,7 +804,7 @@ export function App() {
                 onProbe={handleProbeNagios}
                 isRunning={isRunning}
               />
-              <Terminal logs={logs.filter(l => l.stage === 'NAGIOS' || l.stage === 'CHAOS')} onClear={handleClearLogs} />
+              <Terminal logs={logs.filter(l => l.stage === 'NAGIOS' || l.stage === 'CHAOS' || l.stage === 'SYSTEM')} onClear={handleClearLogs} />
             </div>
           )}
 

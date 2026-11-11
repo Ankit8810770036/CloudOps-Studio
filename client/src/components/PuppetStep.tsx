@@ -57,11 +57,6 @@ export const PuppetStep: React.FC<PuppetStepProps> = React.memo(({
           </span>
         </div>
 
-        {/* Minimal Subtitle */}
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.85rem' }}>
-          Desired-state security baseline and drift self-healing.
-        </p>
-
         {/* Drift Alert Banner */}
         {isDrift && (
           <div className="chaos-banner" style={{ marginBottom: '0.85rem', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid var(--status-danger)', color: 'var(--text-primary)' }}>

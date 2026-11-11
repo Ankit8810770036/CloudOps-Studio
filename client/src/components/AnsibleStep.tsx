@@ -246,11 +246,6 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
           </div>
         </div>
 
-        {/* Minimal Subtitle */}
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.85rem' }}>
-          Configures Frontend, Backend runtime, Database, and Nginx reverse proxy.
-        </p>
-
         {/* 3-Tier Customization Selectors Grid (Non-Overflowing) */}
         <div className="tier-container-box">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '0.75rem' }}>

@@ -76,11 +76,6 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
           </span>
         </div>
 
-        {/* Minimal Subtitle */}
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.85rem' }}>
-          AWS VPC, Subnets, Security Groups & Ubuntu 22.04 EC2 compute.
-        </p>
-
         {/* Region & Instance Selectors (Never Overflow) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>

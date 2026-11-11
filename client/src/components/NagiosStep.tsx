@@ -70,11 +70,6 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
           </button>
         </div>
 
-        {/* Minimal Subtitle */}
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.85rem' }}>
-          Active service health probes and host telemetry.
-        </p>
-
         {/* 6 Multi-Tier Telemetry Gauges Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.65rem', marginBottom: '0.85rem' }}>
           {/* 1. Frontend */}
