@@ -216,6 +216,8 @@ class LiveEngine:
                                 pass
                     for f in files:
                         local_f = Path(root) / f
+                        if f.startswith('.') or local_f.suffix.lower() in {'.py', '.pyc', '.map', '.bak', '.tmp'}:
+                            continue
                         remote_f = f"{target_remote_root}/{f}"
                         try:
                             sftp.put(str(local_f), remote_f)
