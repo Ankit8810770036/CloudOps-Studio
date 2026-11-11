@@ -44,6 +44,7 @@ export const Terminal: React.FC<TerminalProps> = React.memo(({ logs, onClear, fu
   }, [filteredLogs, autoScroll]);
 
   const handleCopy = () => {
+    if (filteredLogs.length === 0) return;
     const text = filteredLogs.map(l => `[${l.timestamp}] [${l.stage}] ${l.text}`).join('\n');
     navigator.clipboard.writeText(text);
     setCopied(true);

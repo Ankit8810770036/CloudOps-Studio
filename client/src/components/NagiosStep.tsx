@@ -39,7 +39,11 @@ export const NagiosStep: React.FC<NagiosStepProps> = React.memo(({
       if (parts.length >= 3) {
         const checkTime = new Date();
         checkTime.setHours(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10), 0);
-        const diffSec = Math.max(0, Math.floor((now.getTime() - checkTime.getTime()) / 1000));
+        let diffMs = now.getTime() - checkTime.getTime();
+        if (diffMs < 0) {
+          diffMs += 86400000;
+        }
+        const diffSec = Math.floor(diffMs / 1000);
         if (diffSec < 4) {
           setRelativeTime('Checked just now');
         } else if (diffSec < 60) {

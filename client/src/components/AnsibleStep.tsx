@@ -204,6 +204,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       formData.append('paths', JSON.stringify(paths));
 
       const res = await uploadCustomCode(formData);
+      setPreflightNotice(null);
       if (res.has_dockerfile) {
         setBackendType('docker');
         setUploadSuccess(`🐳 Dockerfile Auto-Detected! Switched to Universal Docker container. Uploaded ${res.file_count} files!`);
@@ -214,6 +215,7 @@ export const AnsibleStep: React.FC<AnsibleStepProps> = React.memo(({
       if (onRefreshStatus) onRefreshStatus();
       setTimeout(() => setUploadSuccess(null), 4000);
     } catch (err: any) {
+      setPreflightNotice(null);
       setUploadError(err.message || 'Failed to upload code package');
     } finally {
       setIsUploading(false);

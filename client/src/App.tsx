@@ -660,16 +660,35 @@ export function App() {
   }, [checkPipelinePrerequisite]);
 
   const handleInjectChaos = useCallback(async (faultType: string) => {
-    await injectChaos(faultType);
-    const updated = await fetchStatus();
-    setStatus(updated);
+    try {
+      await injectChaos(faultType);
+      const updated = await fetchStatus();
+      setStatus(updated);
+    } catch (err: any) {
+      const actionable = parseActionableError(err?.message, 'Chaos Injection Error');
+      setModeAlert({
+        badge: 'CHAOS ERROR',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
+        type: 'error'
+      });
+    }
   }, []);
 
   const handleHealChaos = useCallback(async () => {
     try {
       await healChaos();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Remediation error:', err);
+      const actionable = parseActionableError(err?.message, 'Auto-Remediation Error');
+      setModeAlert({
+        badge: 'HEALING ERROR',
+        title: actionable.title,
+        message: actionable.message,
+        tip: actionable.tip,
+        type: 'error'
+      });
     } finally {
       const updated = await fetchStatus();
       setStatus(updated);
