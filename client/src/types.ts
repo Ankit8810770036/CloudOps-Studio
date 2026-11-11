@@ -96,8 +96,11 @@ export interface CloudConfig {
   has_aws_keys: boolean;
   has_access_key?: boolean;
   has_secret_key?: boolean;
+  has_session_token?: boolean;
   aws_access_key: string;
   aws_secret_key_masked: string;
+  aws_session_token?: string;
+  is_temporary_key?: boolean;
 }
 
 export interface UploadedCodePackage {

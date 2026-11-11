@@ -20,6 +20,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     return (typeof localStorage !== 'undefined' ? localStorage.getItem('cloudops_aws_access_key') : null) || '';
   });
   const [secretKey, setSecretKey] = useState('');
+  const [sessionToken, setSessionToken] = useState('');
+  const [hasSessionToken, setHasSessionToken] = useState(false);
+  const [showSessionToken, setShowSessionToken] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
   const [saved, setSaved] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -27,6 +30,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const handleClose = () => {
     setValidationError(null);
     setSecretKey('');
+    setSessionToken('');
     onClose();
   };
 
@@ -40,8 +44,12 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           if (finalAccess) {
             setAccessKey(finalAccess);
             localStorage.setItem('cloudops_aws_access_key', finalAccess);
+            if (finalAccess.startsWith('ASIA')) {
+              setShowSessionToken(true);
+            }
           }
           setHasKeys(data.has_aws_keys);
+          setHasSessionToken(Boolean(data.has_session_token));
         })
         .catch(err => {
           console.error('Failed to load cloud config', err);
@@ -55,6 +63,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     e.preventDefault();
     const cleanAccess = accessKey.trim();
     const cleanSecret = secretKey.trim();
+    const cleanSession = sessionToken.trim();
 
     if (isLiveModeRequired || cleanAccess || cleanSecret) {
       if (!cleanAccess) {
@@ -63,6 +72,19 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       }
       if (cleanAccess === 'AKIAIOSFODNN7EXAMPLE') {
         setValidationError('Please enter your actual AWS Access Key ID (not the sample placeholder).');
+        return;
+      }
+      if (cleanAccess.length !== 20) {
+        setValidationError(`Invalid AWS Access Key ID length: Standard AWS Access Keys are exactly 20 characters long (you entered ${cleanAccess.length} characters). Please check for missing or truncated characters.`);
+        return;
+      }
+      if (!cleanAccess.startsWith('AKIA') && !cleanAccess.startsWith('ASIA')) {
+        setValidationError(`Invalid AWS Access Key ID prefix: Must begin with 'AKIA' (IAM User) or 'ASIA' (temporary session).`);
+        return;
+      }
+      if (cleanAccess.startsWith('ASIA') && !cleanSession && !hasSessionToken) {
+        setValidationError(`AWS Temporary Credentials ('ASIA...') require an AWS Session Token. Please paste your session token below.`);
+        setShowSessionToken(true);
         return;
       }
       if (!cleanSecret && !hasKeys) {
@@ -79,10 +101,12 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       await updateConfig({
         aws_region: region,
         ...(cleanAccess ? { aws_access_key: cleanAccess } : {}),
-        ...(cleanSecret ? { aws_secret_key: cleanSecret } : {})
+        ...(cleanSecret ? { aws_secret_key: cleanSecret } : {}),
+        ...(cleanSession ? { aws_session_token: cleanSession } : {})
       });
       // Secret key is masked/cleared from memory for safety, but access key stays preserved
       setSecretKey('');
+      setSessionToken('');
       setSaved(true);
       if (onSuccess) {
         await onSuccess();
@@ -189,7 +213,16 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">AWS Access Key ID</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>AWS Access Key ID</label>
+              <span style={{
+                fontSize: '0.72rem',
+                color: accessKey.trim().length === 20 ? 'var(--status-success)' : (accessKey.trim().length > 0 ? 'var(--aws-orange)' : 'var(--text-muted)'),
+                fontWeight: 600
+              }}>
+                {accessKey.trim().length > 0 ? `${accessKey.trim().length}/20 characters` : '20 chars required'}
+              </span>
+            </div>
             <input
               type="text"
               className="form-input"
@@ -200,6 +233,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                 setAccessKey(val);
                 if (val.trim()) {
                   localStorage.setItem('cloudops_aws_access_key', val.trim());
+                  if (val.trim().startsWith('ASIA')) {
+                    setShowSessionToken(true);
+                  }
                 }
                 if (validationError) setValidationError(null);
               }}
@@ -227,6 +263,53 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             />
           </div>
 
+          {/* Optional Session Token (For AWS Academy, Learner Lab, or ASIA... keys) */}
+          {(showSessionToken || accessKey.trim().startsWith('ASIA') || hasSessionToken) && (
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>
+                  AWS Session Token <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>(Required for ASIA temporary keys)</span>
+                </label>
+                {hasSessionToken && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--status-success)', fontWeight: 600 }}>
+                    ✓ Active session token
+                  </span>
+                )}
+              </div>
+              <textarea
+                className="form-input"
+                rows={3}
+                placeholder="IQoJb3JpZ2luX2VjEPH//////////wEaCXVzLWVhc3QtMS..."
+                value={sessionToken}
+                onChange={(e) => {
+                  setSessionToken(e.target.value);
+                  if (validationError) setValidationError(null);
+                }}
+                style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: '0.76rem' }}
+              />
+            </div>
+          )}
+
+          {!showSessionToken && !accessKey.trim().startsWith('ASIA') && (
+            <div style={{ marginBottom: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowSessionToken(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--aws-blue)',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline'
+                }}
+              >
+                + Using AWS Academy, Learner Lab, or SSO? Add AWS Session Token
+              </button>
+            </div>
+          )}
+
           <div style={{
             background: 'var(--bg-card-subtle)',
             border: '1px solid var(--border-color)',
@@ -240,7 +323,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             gap: '0.65rem'
           }}>
             <Shield size={18} color="var(--aws-blue)" />
-            <span>Keys are securely stored in the local FastAPI orchestrator environment memory only.</span>
+            <span>Access keys are preserved locally; secret keys are encrypted in-memory and never exposed in the browser.</span>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>

@@ -51,6 +51,7 @@ def load_persisted_credentials():
                 data = json.load(f)
                 access = (data.get("aws_access_key") or "").strip()
                 secret = (data.get("aws_secret_key") or "").strip()
+                token = (data.get("aws_session_token") or "").strip()
                 region = (data.get("aws_region") or "").strip()
                 if access:
                     state.config["aws_access_key"] = access
@@ -58,6 +59,9 @@ def load_persisted_credentials():
                 if secret:
                     state.config["aws_secret_key"] = secret
                     os.environ["AWS_SECRET_ACCESS_KEY"] = secret
+                if token:
+                    state.config["aws_session_token"] = token
+                    os.environ["AWS_SESSION_TOKEN"] = token
                 if region:
                     state.config["aws_region"] = region
                     os.environ["AWS_DEFAULT_REGION"] = region
@@ -73,6 +77,7 @@ def save_persisted_credentials():
         data = {
             "aws_access_key": state.config.get("aws_access_key", ""),
             "aws_secret_key": state.config.get("aws_secret_key", ""),
+            "aws_session_token": state.config.get("aws_session_token", ""),
             "aws_region": state.config.get("aws_region", "ap-south-1")
         }
         with open(CREDENTIALS_FILE, "w", encoding="utf-8") as f:
@@ -116,6 +121,7 @@ class ConfigRequest(BaseModel):
     environment: Optional[str] = None
     aws_access_key: Optional[str] = None
     aws_secret_key: Optional[str] = None
+    aws_session_token: Optional[str] = None
 
 class ProvisionRequest(BaseModel):
     aws_region: Optional[str] = "us-east-1"
@@ -222,6 +228,7 @@ async def set_mode(req: ModeRequest):
 async def get_config():
     access_key = state.config.get("aws_access_key", "")
     secret_key = state.config.get("aws_secret_key", "")
+    session_token = state.config.get("aws_session_token", "")
     is_dummy = access_key == "AKIAIOSFODNN7EXAMPLE"
     has_access = bool(access_key and not is_dummy)
     has_secret = bool(secret_key and not is_dummy)
@@ -233,8 +240,10 @@ async def get_config():
         "has_aws_keys": bool(has_access and has_secret),
         "has_access_key": has_access,
         "has_secret_key": has_secret,
+        "has_session_token": bool(session_token),
         "aws_access_key": access_key if not is_dummy else "",
-        "aws_secret_key_masked": masked_secret
+        "aws_secret_key_masked": masked_secret,
+        "is_temporary_key": access_key.startswith("ASIA")
     }
 
 @app.post("/api/config")
@@ -251,9 +260,13 @@ async def update_config(req: ConfigRequest):
     # Only update secret key if non-empty string provided
     if req.aws_secret_key is not None and req.aws_secret_key.strip():
         state.config["aws_secret_key"] = req.aws_secret_key.strip()
+    # Only update session token if non-empty string provided
+    if req.aws_session_token is not None and req.aws_session_token.strip():
+        state.config["aws_session_token"] = req.aws_session_token.strip()
         
     access_key = state.config.get("aws_access_key", "")
     secret_key = state.config.get("aws_secret_key", "")
+    session_token = state.config.get("aws_session_token", "")
     is_dummy = access_key in ("AKIAIOSFODNN7EXAMPLE", "")
     has_access = bool(access_key and not is_dummy)
     has_secret = bool(secret_key and not is_dummy)
@@ -262,6 +275,10 @@ async def update_config(req: ConfigRequest):
     if state.config["has_aws_keys"]:
         os.environ["AWS_ACCESS_KEY_ID"] = access_key
         os.environ["AWS_SECRET_ACCESS_KEY"] = secret_key
+        if session_token:
+            os.environ["AWS_SESSION_TOKEN"] = session_token
+        else:
+            os.environ.pop("AWS_SESSION_TOKEN", None)
         os.environ["AWS_DEFAULT_REGION"] = state.config.get("aws_region", "ap-south-1")
     
     # Persist credentials to disk so they survive server restarts
@@ -279,8 +296,10 @@ async def update_config(req: ConfigRequest):
             "has_aws_keys": bool(has_access and has_secret),
             "has_access_key": has_access,
             "has_secret_key": has_secret,
+            "has_session_token": bool(session_token),
             "aws_access_key": access_key if not is_dummy else "",
-            "aws_secret_key_masked": masked_secret
+            "aws_secret_key_masked": masked_secret,
+            "is_temporary_key": access_key.startswith("ASIA")
         }
     }
 

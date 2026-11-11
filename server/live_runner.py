@@ -20,9 +20,14 @@ class LiveEngine:
     def get_aws_env(self):
         env = os.environ.copy()
         if state.config.get("aws_access_key"):
-            env["AWS_ACCESS_KEY_ID"] = state.config["aws_access_key"]
+            env["AWS_ACCESS_KEY_ID"] = state.config["aws_access_key"].strip()
         if state.config.get("aws_secret_key"):
-            env["AWS_SECRET_ACCESS_KEY"] = state.config["aws_secret_key"]
+            env["AWS_SECRET_ACCESS_KEY"] = state.config["aws_secret_key"].strip()
+        if state.config.get("aws_session_token"):
+            env["AWS_SESSION_TOKEN"] = state.config["aws_session_token"].strip()
+        else:
+            env.pop("AWS_SESSION_TOKEN", None)
+            env.pop("AWS_SECURITY_TOKEN", None)
         region = state.config.get("aws_region", "ap-south-1")
         env["AWS_DEFAULT_REGION"] = region
         env["AWS_REGION"] = region
