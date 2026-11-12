@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Layers, Play, Trash2, Shield, HardDrive, Key, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { CircularLoader } from './CircularLoader';
 import { InfrastructureState } from '../types';
@@ -237,11 +238,21 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
       </div>
 
       {/* Safety Guardrail Confirmation Modal */}
-      {isConfirmOpen && (
-        <div className="modal-overlay" onClick={handleCloseConfirm}>
+      {isConfirmOpen && createPortal(
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 100000 }}
+          onClick={handleCloseConfirm}
+        >
           <div
             className="modal-content"
-            style={{ maxWidth: '440px', padding: '1.25rem' }}
+            style={{
+              maxWidth: '440px',
+              padding: '1.35rem',
+              position: 'relative',
+              zIndex: 100001,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border-bright)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
@@ -311,7 +322,8 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

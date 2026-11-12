@@ -1138,8 +1138,6 @@ select option {
 /* --- GPU-Accelerated Layer Promotion for 60fps Smooth Scroll --- */
 .stat-card,
 .telemetry-chart-card,
-.panel-card,
-.chaos-lab-container,
 .terminal-card,
 .pipeline-stepper-box {
   transform: translateZ(0);
@@ -1788,12 +1786,12 @@ html.modal-open {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100000;
   padding: 1.25rem;
   box-sizing: border-box;
   overscroll-behavior: contain;
@@ -1802,7 +1800,7 @@ html.modal-open {
 
 .modal-content {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-bright);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 680px;
@@ -1810,7 +1808,7 @@ html.modal-open {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 1.35rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--border-bright);
   color: var(--text-primary);
   box-sizing: border-box;
   touch-action: auto;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Flame, Server, Zap, Wrench, AlertOctagon, Cpu, Database, ShieldCheck, AlertTriangle, Layers, PlusCircle, Trash2 } from 'lucide-react';
 import { CircularLoader } from './CircularLoader';
 import { ChaosState, InfrastructureState, ExecutionMode, DeployedProject } from '../types';
@@ -478,11 +479,21 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
       </button>
 
       {/* Direct Project Deletion Confirmation Modal */}
-      {projectToDelete && (
-        <div className="modal-overlay" onClick={() => setProjectToDelete(null)}>
+      {projectToDelete && createPortal(
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 100000 }}
+          onClick={() => setProjectToDelete(null)}
+        >
           <div
             className="modal-content"
-            style={{ maxWidth: '440px', padding: '1.25rem' }}
+            style={{
+              maxWidth: '440px',
+              padding: '1.35rem',
+              position: 'relative',
+              zIndex: 100001,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border-bright)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
@@ -547,7 +558,8 @@ export const ChaosPanel: React.FC<ChaosPanelProps> = React.memo(({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
