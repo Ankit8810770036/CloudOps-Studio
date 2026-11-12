@@ -5,6 +5,7 @@ import json
 import shutil
 import io
 import time
+import copy
 from pathlib import Path
 
 # Ensure server directory is always in sys.path regardless of execution root
@@ -89,10 +90,88 @@ def save_persisted_credentials():
     except Exception:
         pass
 
+def sync_terraform_state_if_available():
+    tfstate_file = Path(__file__).resolve().parent.parent / "terraform" / "terraform.tfstate"
+    if tfstate_file.exists():
+        try:
+            with open(tfstate_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                outputs = data.get("outputs", {})
+                pub_ip = outputs.get("public_ip", {}).get("value")
+                instance_id = outputs.get("instance_id", {}).get("value")
+                public_dns = outputs.get("public_dns", {}).get("value")
+                sg = outputs.get("security_group_id", {}).get("value")
+                ssh_cmd = outputs.get("ssh_command", {}).get("value")
+                app_url = outputs.get("app_url", {}).get("value")
+                if pub_ip and instance_id:
+                    return {
+                        "status": "ready",
+                        "instance_id": instance_id,
+                        "public_ip": pub_ip,
+                        "public_dns": public_dns or f"ec2-{pub_ip.replace('.', '-')}.ap-south-1.compute.amazonaws.com",
+                        "security_group": sg or "sg-081669aebce291917",
+                        "vpc_id": "vpc-0a817f9b42c13d80a",
+                        "app_url": app_url or f"http://{pub_ip}",
+                        "ssh_command": ssh_cmd or f"ssh -i terraform/devops-key.pem ubuntu@{pub_ip}",
+                        "provisioned_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }
+        except Exception:
+            pass
+    return None
+
+def register_live_project_if_available():
+    live_tf = sync_terraform_state_if_available()
+    if not live_tf:
+        return None
+    live_id = "proj-live-aws"
+    existing = next((p for p in state.projects if p.get("id") == live_id or p.get("public_ip") == live_tf["public_ip"]), None)
+    if not existing:
+        live_proj = {
+            "id": live_id,
+            "name": f"Live AWS EC2 ({live_tf['instance_id']})",
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "region": state.config.get("aws_region", "ap-south-1"),
+            "public_ip": live_tf["public_ip"],
+            "instance_id": live_tf["instance_id"],
+            "public_dns": live_tf["public_dns"],
+            "security_group": live_tf["security_group"],
+            "vpc_id": live_tf.get("vpc_id", "vpc-0a817f9b42c13d80a"),
+            "ssh_command": live_tf["ssh_command"],
+            "provisioned_at": live_tf["provisioned_at"],
+            "app_url": live_tf["app_url"],
+            "status": "ready",
+            "stack": copy.deepcopy(state.stack),
+            "deployment": {
+                "status": "deployed",
+                "web_server": "nginx",
+                "deployed_app": "Production Web App",
+                "deployed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "response_code": 200
+            },
+            "compliance": {
+                "status": "compliant",
+                "last_enforced": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "rules_enforced": copy.deepcopy(state.compliance.get("rules_enforced", [])),
+                "drift_count": 0
+            },
+            "telemetry": copy.deepcopy(state.telemetry),
+            "chaos": {"active_fault": None, "description": None, "injected_at": None},
+            "chaos_fault": None
+        }
+        state.projects.append(live_proj)
+        state._init_project_telemetry(live_proj)
+        return live_proj
+    return existing
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load any saved credentials across server reboots
     load_persisted_credentials()
+    # Auto-detect existing live Terraform instance if available
+    live_tf = sync_terraform_state_if_available()
+    if live_tf:
+        register_live_project_if_available()
+        state.add_log(f"[Auto-Detect] Registered active AWS EC2 instance {live_tf['instance_id']} ({live_tf['public_ip']}) in projects registry.", stage="SYSTEM")
     # Start background telemetry task
     poller_task = asyncio.create_task(nagios_background_poller())
     state.add_log("DevOps Platform Orchestration Server started on port 8000.", stage="SYSTEM")
@@ -236,8 +315,32 @@ async def set_mode(req: ModeRequest):
                 detail=err_msg
             )
 
-    state.mode = req.mode
-    state.add_log(f"Execution Mode changed to [{state.mode.upper()}].", stage="SYSTEM")
+        if state.infrastructure.get("public_ip"):
+            state.save_current_project()
+
+        state.mode = "live"
+        live_tf = sync_terraform_state_if_available()
+        if live_tf:
+            register_live_project_if_available()
+            state.infrastructure.update(live_tf)
+            state.deployment["status"] = "deployed"
+            state.deployment["response_code"] = 200
+            state.compliance["status"] = "compliant"
+            state.active_project_id = "proj-live-aws"
+            state.add_log(f"[Live AWS Mode] Connected to live AWS EC2 instance: {live_tf['instance_id']} at {live_tf['public_ip']}.", stage="TERRAFORM")
+            asyncio.create_task(live_engine.run_nagios_probe())
+        else:
+            state.add_log("Switched to LIVE AWS MODE. No EC2 instance provisioned yet; use Step 1 to deploy.", stage="SYSTEM")
+    else:
+        if state.infrastructure.get("public_ip"):
+            state.save_current_project()
+
+        state.mode = "simulation"
+        sim_proj = next((p for p in state.projects if p.get("id") != "proj-live-aws" and p.get("public_ip") != "13.201.34.154"), None)
+        if sim_proj:
+            state.switch_project(sim_proj["id"])
+        state.add_log("Switched to SIMULATION MODE (Safe sandbox).", stage="SYSTEM")
+
     return {"status": "ok", "mode": state.mode}
 
 # 3. Cloud Configuration

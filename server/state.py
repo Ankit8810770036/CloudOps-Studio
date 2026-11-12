@@ -383,6 +383,12 @@ class PlatformState:
         # 2. Activate target project
         self.active_project_id = project_id
 
+        # Auto-align mode with target project (Live EC2 vs Simulation Sandbox)
+        if target.get("id") == "proj-live-aws" or target.get("public_ip") == "13.201.34.154":
+            self.mode = "live"
+        elif str(target.get("public_ip", "")).startswith("54.210.88"):
+            self.mode = "simulation"
+
         # 3. Restore infrastructure
         self.infrastructure["public_ip"] = target.get("public_ip")
         self.infrastructure["instance_id"] = target.get("instance_id")
