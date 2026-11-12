@@ -9,7 +9,6 @@ import { NagiosStep } from './components/NagiosStep';
 import { ChaosPanel } from './components/ChaosPanel';
 import { Terminal } from './components/Terminal';
 import { ConfigModal } from './components/ConfigModal';
-import { VivaModal } from './components/VivaModal';
 import { NewProjectModal } from './components/NewProjectModal';
 import { PipelineStepper } from './components/PipelineStepper';
 import { StepCompletionNotification, StepCompletionData } from './components/StepCompletionNotification';
@@ -102,7 +101,6 @@ export function App() {
 
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isLiveModeRequired, setIsLiveModeRequired] = useState(false);
-  const [isVivaOpen, setIsVivaOpen] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [modeAlert, setModeAlert] = useState<ModeAlertData | null>(null);
 
@@ -241,7 +239,7 @@ export function App() {
 
   // Lock background scroll whenever any dialog card or form modal is open
   useEffect(() => {
-    const isAnyModalOpen = isConfigOpen || isVivaOpen;
+    const isAnyModalOpen = isConfigOpen;
     if (isAnyModalOpen) {
       const originalBodyOverflow = document.body.style.overflow;
       const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -264,7 +262,7 @@ export function App() {
         document.body.classList.remove('modal-open');
       };
     }
-  }, [isConfigOpen, isVivaOpen]);
+  }, [isConfigOpen]);
 
   // Apply theme to document element
   useEffect(() => {
@@ -803,15 +801,12 @@ export function App() {
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         onOpenConfig={() => setIsConfigOpen(true)}
-        onOpenViva={() => setIsVivaOpen(true)}
         status={status}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
       />
 
       {/* 2. Main Wrapper */}
       <div className="main-wrapper">
-        {/* Top Navbar with In-Place Search */}
+        {/* Top Navbar */}
         <TopNavbar
           mode={status.mode}
           onToggleMode={handleToggleMode}
@@ -822,7 +817,6 @@ export function App() {
           onSelectRegion={handleSelectRegion}
           onNavigate={handleSelectTab}
           onOpenConfig={() => setIsConfigOpen(true)}
-          onOpenViva={() => setIsVivaOpen(true)}
           onOpenNewProject={() => setIsNewProjectOpen(true)}
           onSwitchProject={handleSwitchProject}
         />
@@ -1030,7 +1024,6 @@ export function App() {
           }
         }}
       />
-      <VivaModal isOpen={isVivaOpen} onClose={() => setIsVivaOpen(false)} />
       <NewProjectModal
         isOpen={isNewProjectOpen}
         onClose={() => setIsNewProjectOpen(false)}

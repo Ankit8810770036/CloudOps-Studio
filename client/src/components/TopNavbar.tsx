@@ -23,7 +23,6 @@ interface TopNavbarProps {
   onSelectRegion: (reg: string) => void;
   onNavigate?: (tabId: string) => void;
   onOpenConfig?: () => void;
-  onOpenViva?: () => void;
   onOpenNewProject?: () => void;
   onSwitchProject?: (projectId: string) => Promise<void> | void;
 }

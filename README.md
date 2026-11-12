@@ -142,7 +142,6 @@ Devops331/
 │   └── test_chaos_simulator.py     # Chaos injection and auto-healing verification
 ├── docs/                           # Academic & Technical Documentation
 │   ├── ARCHITECTURE.md             # In-depth architectural specification
-│   ├── VIVA_QA.md                  # Comprehensive viva questions and model answers
 │   └── LAB_MANUAL.md               # 5-minute practical demonstration walkthrough
 ├── start.bat                       # One-click Windows launcher
 ├── start.sh                        # One-click Linux / macOS launcher
@@ -236,8 +235,7 @@ npm --prefix client run build
 Comprehensive exam preparation and demonstration guides are included in the [`docs/`](docs/) directory:
 
 * **[Architecture Deep-Dive](docs/ARCHITECTURE.md)**: Network topology, security groups, data pipelines, and sequence diagrams.
-* **[Viva & Examiner Q&A Guide](docs/VIVA_QA.md)**: 20+ commonly asked questions covering IaC, configuration idempotency, desired-state convergence, and monitoring thresholds.
-* **[5-Minute Examiner Walkthrough](docs/LAB_MANUAL.md)**: Scripted walkthrough for technical evaluation and project demonstrations.
+* **[5-Minute Technical Walkthrough](docs/LAB_MANUAL.md)**: Scripted walkthrough for technical evaluation and project demonstrations.
 
 ---
 

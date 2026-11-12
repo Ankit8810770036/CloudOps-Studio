@@ -8,13 +8,10 @@ import {
   Activity,
   Flame,
   Terminal,
-  HelpCircle,
   Settings,
   ChevronLeft,
   ChevronRight,
   Check,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { FullStatus } from '../types';
 
@@ -24,10 +21,7 @@ interface SidebarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   onOpenConfig: () => void;
-  onOpenViva: () => void;
   status: FullStatus;
-  theme: 'dark' | 'light';
-  onToggleTheme: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = React.memo(({
@@ -36,10 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
   activeTab,
   onSelectTab,
   onOpenConfig,
-  onOpenViva,
   status,
-  theme,
-  onToggleTheme,
 }) => {
   const isHealthy = status.telemetry.overall_health === 'HEALTHY';
   const isCritical = status.telemetry.overall_health === 'CRITICAL';
@@ -171,17 +162,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         })}
 
         <div className="sidebar-section-title" style={{ marginTop: '0.85rem' }}>
-          {!collapsed && <span>RESOURCES & DOCS</span>}
+          {!collapsed && <span>CONFIGURATION</span>}
         </div>
-
-        <button
-          className="sidebar-nav-item"
-          onClick={onOpenViva}
-          title={collapsed ? "DevOps Viva Q&A Guide" : undefined}
-        >
-          <HelpCircle size={17} className="sidebar-nav-icon" />
-          {!collapsed && <span>Viva & Examiner Q&A</span>}
-        </button>
 
         <button
           className="sidebar-nav-item"
@@ -190,20 +172,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         >
           <Settings size={17} className="sidebar-nav-icon" />
           {!collapsed && <span>AWS Cloud Settings</span>}
-        </button>
-
-        <button
-          type="button"
-          className="sidebar-nav-item"
-          onClick={onToggleTheme}
-          title={collapsed ? (theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode") : undefined}
-        >
-          {theme === 'dark' ? (
-            <Sun size={17} className="sidebar-nav-icon" color="var(--aws-orange)" />
-          ) : (
-            <Moon size={17} className="sidebar-nav-icon" color="var(--aws-blue)" />
-          )}
-          {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
       </nav>
 
