@@ -788,7 +788,44 @@ EOF'
                 disk_parts = lines[2].split()
                 disk_percent = float(disk_parts[4].replace("%", ""))
                 state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "OK", "value": disk_percent, "unit": "%"}
-                
+        else:
+            state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
+            state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
+            state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "CRITICAL", "value": 0, "unit": "%"}
+
+        # Host connectivity assessment
+        is_ping_dead = state.telemetry["checks"]["ping"]["status"] == "CRITICAL"
+        is_ssh_dead = not state.telemetry["checks"]["ssh"].get("port_open", False)
+        is_http_dead = state.telemetry["checks"]["http"]["status"] == "CRITICAL"
+
+        if is_ping_dead and is_ssh_dead:
+            # Entire EC2 instance is terminated or unreachable
+            state.infrastructure["status"] = "down"
+            if not any(a.get("service") == "host" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "EC2 Node Unreachable", f"Target node {target_ip} is unresponsive (100% packet loss, SSH closed).", "host")
+        else:
+            state.clear_alerts_for_service("host")
+            if state.infrastructure.get("status") == "down":
+                state.infrastructure["status"] = "ready"
+
+        if is_http_dead:
+            if not any(a.get("service") == "frontend" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Frontend Web Tier Down", f"Port 80 unreachable or returned non-200 response on {target_ip}.", "frontend")
+        else:
+            state.clear_alerts_for_service("frontend")
+
+        if state.telemetry["checks"]["backend_api"]["status"] == "CRITICAL" and b_type != "none":
+            if not any(a.get("service") == "backend" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Backend API Down", f"Backend service unreachable on {target_ip}:{b_port}.", "backend")
+        else:
+            state.clear_alerts_for_service("backend")
+
+        if state.telemetry["checks"]["database"]["status"] == "CRITICAL" and d_type != "none":
+            if not any(a.get("service") == "database" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Database Down", f"Database engine {d_type.upper()} failed socket check on port {d_port}.", "database")
+        else:
+            state.clear_alerts_for_service("database")
+
         # Overall health calculation
         if any(c.get("status") == "CRITICAL" for c in state.telemetry["checks"].values()):
             state.telemetry["overall_health"] = "CRITICAL"
@@ -871,12 +908,9 @@ EOF'
         state.is_running_pipeline = True
         state.current_action = "Auto-Remediation (Live EC2 Node)"
         try:
-            if not target_ip:
-                state.chaos["active_fault"] = None
-                state.chaos["description"] = None
-                state.telemetry["alerts"] = [a for a in state.telemetry["alerts"] if a.get("severity") not in ("CRITICAL", "WARNING")]
-                state.telemetry["overall_health"] = "HEALTHY"
-                state.add_log("[CHAOS] Local test state reset to HEALTHY baseline.", stage="CHAOS")
+            is_host_dead = state.telemetry["checks"]["ping"]["status"] == "CRITICAL" and not state.telemetry["checks"]["ssh"].get("port_open", False)
+            if not target_ip or is_host_dead:
+                state.add_log(f"[CHAOS WARNING] Cannot auto-remediate live node: EC2 instance ({target_ip}) is terminated or unreachable. Re-provision with Step 1 (Terraform IaC) first.", stage="CHAOS", stream="stderr")
                 return
             
             server = state.deployment.get("web_server", "nginx")

@@ -346,8 +346,16 @@ class SimulationEngine:
     async def run_nagios_probe(self):
         state.telemetry["last_check"] = time.strftime("%H:%M:%S")
         
-        # Check active fault
+        # If infra is not provisioned and no fault is active, keep telemetry UNKNOWN
         fault = state.chaos["active_fault"]
+        if not fault and state.infrastructure.get("status") in ("not_provisioned", "destroyed"):
+            state.telemetry["overall_health"] = "UNKNOWN"
+            for k in state.telemetry["checks"]:
+                state.telemetry["checks"][k]["status"] = "UNKNOWN"
+            state.telemetry["alerts"] = []
+            return
+
+        # Check active fault
         if fault == "http_down":
             state.telemetry["checks"]["http"]["status"] = "CRITICAL"
             state.telemetry["checks"]["http"]["code"] = 502
