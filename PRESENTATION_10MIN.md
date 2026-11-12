@@ -152,23 +152,3 @@
 > *Thank you very much. I am now happy to answer any questions!"*
 
 ---
-
-## 🙋‍♂️ Simple Q&A Cheat Sheet (If Teacher or Students Ask)
-
-### Q1: "Why use both Ansible and Puppet? Don't they do the same thing?"
-> **Simple Answer:**  
-> *"They have two different jobs. Think of **Ansible** like a worker who comes once to install our app and turn it on. Think of **Puppet** like a 24/7 security guard who stays there permanently to make sure nobody changes our security rules."*
-
-### Q2: "Did this project cost you money on AWS?"
-> **Simple Answer:**  
-> *"No, sir/ma'am. We configured Terraform to use AWS Free Tier instances (`t3.micro`). Also, we added a 'Destroy' button to delete resources when finished, and a 'Simulation Mode' so anyone can test it offline for free."*
-
-### Q3: "What happens if a hacker tries to attack your server?"
-> **Simple Answer:**  
-> *"Puppet installed a tool called `fail2ban`. If someone tries to guess the password multiple times, the server automatically blocks their IP address. Direct root login is also completely disabled."*
-
-### Q4: "What is Chaos Engineering?"
-> **Simple Answer:**  
-> *"Chaos Engineering is testing our system by breaking things on purpose before real users experience an outage. It proves that our auto-healing features actually work."*
-
----
