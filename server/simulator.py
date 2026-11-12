@@ -373,12 +373,24 @@ class SimulationEngine:
             
         else:
             # Normal healthy baseline/fluctuation
-            b_type = state.stack["backend"]["type"]
-            d_type = state.stack["database"]["type"]
+            b_type = state.stack.get("backend", {}).get("type", "python")
+            d_type = state.stack.get("database", {}).get("type", "postgresql")
             
-            cpu_val = round(random.uniform(16.0, 28.0), 1)
-            mem_val = round(random.uniform(38.0, 44.0), 1)
-            lat = round(random.uniform(24.0, 42.0), 1)
+            # Framework-aware CPU & RAM profiling for dynamic multi-project distinction
+            if b_type == "java_springboot":
+                cpu_base, mem_base, lat_base = (34.0, 48.0), (58.0, 66.0), (65.0, 90.0)
+            elif b_type == "nodejs":
+                cpu_base, mem_base, lat_base = (20.0, 28.0), (39.0, 46.0), (35.0, 50.0)
+            elif b_type == "docker":
+                cpu_base, mem_base, lat_base = (28.0, 38.0), (45.0, 54.0), (45.0, 70.0)
+            elif b_type == "none":
+                cpu_base, mem_base, lat_base = (5.0, 10.0), (16.0, 22.0), (20.0, 35.0)
+            else: # python
+                cpu_base, mem_base, lat_base = (16.0, 24.0), (32.0, 39.0), (55.0, 75.0)
+
+            cpu_val = round(random.uniform(*cpu_base), 1)
+            mem_val = round(random.uniform(*mem_base), 1)
+            lat = round(random.uniform(*lat_base), 1)
             b_lat = round(random.uniform(12.0, 24.0), 1)
             
             state.telemetry["checks"]["ping"]["latency_ms"] = round(random.uniform(20.0, 28.0), 1)

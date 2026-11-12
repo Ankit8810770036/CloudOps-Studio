@@ -18,10 +18,11 @@ import {
   Settings,
   X,
   ChevronDown,
-  PlusCircle
+  PlusCircle,
+  FolderGit2
 } from 'lucide-react';
 import { CircularLoader } from './CircularLoader';
-import { ExecutionMode, FullStatus } from '../types';
+import { ExecutionMode, FullStatus, DeployedProject } from '../types';
 
 interface TopNavbarProps {
   mode: ExecutionMode;
@@ -35,6 +36,7 @@ interface TopNavbarProps {
   onOpenConfig: () => void;
   onOpenViva: () => void;
   onOpenNewProject?: () => void;
+  onSwitchProject?: (projectId: string) => Promise<void> | void;
 }
 
 const AWS_REGIONS = [
@@ -56,6 +58,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
   onOpenConfig,
   onOpenViva,
   onOpenNewProject,
+  onSwitchProject,
 }) => {
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,7 +69,29 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
   const [isRegionOpen, setIsRegionOpen] = useState(false);
   const regionDropdownRef = useRef<HTMLDivElement>(null);
 
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
+
   const currentRegion = AWS_REGIONS.find(r => r.id === selectedRegion) || AWS_REGIONS[0];
+
+  const projectsList: DeployedProject[] = React.useMemo(() => {
+    const list = [...(status.projects || [])];
+    if (status.infrastructure.public_ip && !list.some(p => p.public_ip === status.infrastructure.public_ip)) {
+      list.unshift({
+        id: 'proj-current',
+        name: `Current Project (${status.stack?.backend?.framework || status.stack?.backend?.type || 'Web App'})`,
+        created_at: status.infrastructure.provisioned_at || 'Just now',
+        region: selectedRegion,
+        public_ip: status.infrastructure.public_ip,
+        instance_id: status.infrastructure.instance_id || undefined,
+        app_url: status.infrastructure.app_url || `http://${status.infrastructure.public_ip}`,
+        status: status.infrastructure.status === 'ready' ? 'ready' : 'provisioning'
+      });
+    }
+    return list;
+  }, [status.projects, status.infrastructure.public_ip, status.infrastructure.instance_id, status.infrastructure.app_url, status.infrastructure.provisioned_at, status.infrastructure.status, status.stack, selectedRegion]);
+
+  const activeProj = projectsList.find(p => p.id === status.active_project_id || (p.public_ip && p.public_ip === status.infrastructure.public_ip)) || projectsList[0];
 
   const isReady = status.infrastructure.status === 'ready';
   const isRunning = status.is_running_pipeline;
@@ -105,6 +130,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
       }
       if (regionDropdownRef.current && !regionDropdownRef.current.contains(e.target as Node)) {
         setIsRegionOpen(false);
+      }
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(e.target as Node)) {
+        setIsProjectDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -266,6 +294,76 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
             </div>
           )}
         </div>
+
+        {/* Active Project Switcher Dropdown */}
+        {activeProj && (
+          <div className="navbar-project-wrapper" ref={projectDropdownRef}>
+            <button
+              type="button"
+              className={`navbar-project-btn ${isProjectDropdownOpen ? 'open' : ''}`}
+              onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+              title="Active Cloud Project - Click to switch between deployed projects"
+            >
+              <FolderGit2 size={13} color="var(--aws-orange)" style={{ flexShrink: 0 }} />
+              <span className="navbar-project-label">
+                {activeProj.name || `Project: ${activeProj.public_ip}`}
+              </span>
+              <ChevronDown size={12} className={`navbar-project-arrow ${isProjectDropdownOpen ? 'open' : ''}`} style={{ flexShrink: 0 }} />
+            </button>
+
+            {isProjectDropdownOpen && (
+              <div className="navbar-project-dropdown-menu">
+                <div className="navbar-project-dropdown-header">
+                  <span>Hosted Cloud Projects</span>
+                  <span className="badge-count" style={{ background: 'var(--aws-orange)', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '10px', fontWeight: 700 }}>
+                    {projectsList.length}
+                  </span>
+                </div>
+                <div className="navbar-project-list">
+                  {projectsList.map((proj) => {
+                    const isSelected = (status.active_project_id === proj.id) || (!status.active_project_id && proj.public_ip === status.infrastructure.public_ip);
+                    const isHealthy = proj.status === 'ready' && !proj.chaos_fault;
+                    return (
+                      <button
+                        key={proj.id}
+                        type="button"
+                        className={`navbar-project-item ${isSelected ? 'active' : ''}`}
+                        onClick={() => {
+                          if (onSwitchProject) onSwitchProject(proj.id);
+                          setIsProjectDropdownOpen(false);
+                        }}
+                      >
+                        <span className={`status-dot ${isHealthy ? 'healthy' : 'critical'}`} style={{ flexShrink: 0 }} />
+                        <div className="navbar-project-item-text">
+                          <div className="navbar-project-item-name">{proj.name}</div>
+                          <div className="navbar-project-item-meta">
+                            <span>{proj.public_ip}</span> &bull; <span>{proj.region || 'ap-south-1'}</span> &bull; <span>{proj.deployed_app || proj.stack?.backend?.type || 'App'}</span>
+                          </div>
+                        </div>
+                        {isSelected && <Check size={13} color="var(--aws-orange)" style={{ flexShrink: 0, marginLeft: 'auto' }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {onOpenNewProject && (
+                  <div className="navbar-project-dropdown-footer">
+                    <button
+                      type="button"
+                      className="navbar-dropdown-action-btn"
+                      onClick={() => {
+                        setIsProjectDropdownOpen(false);
+                        onOpenNewProject();
+                      }}
+                    >
+                      <PlusCircle size={13} />
+                      <span>+ Deploy Another Project</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Target Node Connection Pill */}
         {isReady && status.infrastructure.public_ip ? (

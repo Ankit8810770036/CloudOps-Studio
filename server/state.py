@@ -1,6 +1,8 @@
 import asyncio
 import os
 import time
+import copy
+import random
 from typing import List, Dict, Any, Optional
 
 class PlatformState:
@@ -182,6 +184,14 @@ class PlatformState:
         if len(self.telemetry["history"]) > 20:
             self.telemetry["history"].pop(0)
 
+        # Synchronize live telemetry to active project in projects registry
+        if self.active_project_id:
+            active_p = next((p for p in self.projects if p["id"] == self.active_project_id), None)
+            if active_p:
+                active_p["telemetry"] = copy.deepcopy(self.telemetry)
+                active_p["chaos_fault"] = self.chaos.get("active_fault")
+                active_p["status"] = "ready" if self.infrastructure.get("status") == "ready" else "provisioning"
+
     def reset_on_destroy(self):
         self.infrastructure.update({
             "status": "destroyed",
@@ -212,22 +222,85 @@ class PlatformState:
             "injected_at": None
         }
 
+    def _init_project_telemetry(self, project: Dict[str, Any]):
+        backend = (project.get("stack") or {}).get("backend", {}).get("type", "python")
+        # Give each framework a distinct realistic CPU, RAM, and Latency profile
+        if backend == "java_springboot":
+            base_cpu, base_mem, base_lat = 38.5, 62.0, 78.0
+        elif backend == "nodejs":
+            base_cpu, base_mem, base_lat = 24.0, 44.0, 42.0
+        elif backend == "docker":
+            base_cpu, base_mem, base_lat = 31.0, 49.0, 55.0
+        elif backend == "none":
+            base_cpu, base_mem, base_lat = 8.5, 21.0, 32.0
+        else: # python
+            base_cpu, base_mem, base_lat = 19.5, 34.0, 68.0
+
+        if project.get("chaos_fault") == "cpu_spike":
+            base_cpu = 96.8
+            overall = "CRITICAL"
+        elif project.get("chaos_fault") == "http_down":
+            overall = "CRITICAL"
+        else:
+            overall = "HEALTHY"
+
+        history = []
+        now_ts = int(time.time()) - 38
+        for i in range(20):
+            t_str = time.strftime("%H:%M:%S", time.localtime(now_ts + i * 2))
+            c = round(base_cpu + random.uniform(-2.5, 2.5), 1)
+            m = round(base_mem + random.uniform(-1.5, 1.5), 1)
+            l = round(base_lat + random.uniform(-5.0, 5.0), 1)
+            history.append({"time": t_str, "cpu": max(1.0, c), "memory": m, "latency": max(10.0, l)})
+
+        self.telemetry = {
+            "overall_health": overall,
+            "last_check": time.strftime("%H:%M:%S"),
+            "checks": {
+                "ping": {"name": "Host Ping (Network)", "status": "OK", "latency_ms": round(base_lat * 0.8, 1), "packet_loss": "0%"},
+                "http": {"name": "Frontend Web Tier (Port 80)", "status": "OK" if project.get("chaos_fault") != "http_down" else "CRITICAL", "code": 200 if project.get("chaos_fault") != "http_down" else 502, "response_time_ms": base_lat},
+                "backend_api": {"name": f"Backend API ({backend.upper()})", "status": "OK" if backend != "none" else "DISABLED", "port": 8000, "latency_ms": 18.0},
+                "database": {"name": "Database Tier", "status": "OK", "engine": "PostgreSQL", "port": 5432},
+                "ssh": {"name": "SSH Daemon (Port 22)", "status": "OK", "port_open": True},
+                "cpu": {"name": "CPU Utilization", "status": "OK" if base_cpu < 85 else "CRITICAL", "value": round(base_cpu, 1), "unit": "%"},
+                "memory": {"name": "RAM Utilization", "status": "OK", "value": round(base_mem, 1), "unit": "%"},
+                "disk": {"name": "Disk Usage (/)", "status": "OK", "value": 14.5, "unit": "%"}
+            },
+            "alerts": [] if overall == "HEALTHY" else [{"id": "alt-1", "service": "Chaos Fault", "level": "CRITICAL", "message": f"Active fault: {project.get('chaos_fault')}", "timestamp": time.strftime("%H:%M:%S")}],
+            "history": history
+        }
+        project["telemetry"] = copy.deepcopy(self.telemetry)
+
     def save_current_project(self, name: Optional[str] = None) -> Optional[Dict[str, Any]]:
         ip = self.infrastructure.get("public_ip")
         if not ip:
             return None
 
         instance_id = self.infrastructure.get("instance_id") or f"i-{abs(hash(ip)) % 10000000:07d}"
-        existing = next((p for p in self.projects if p.get("public_ip") == ip), None)
+        existing = next((p for p in self.projects if p.get("id") == self.active_project_id or p.get("public_ip") == ip), None)
+        
+        project_snapshot = {
+            "region": self.config.get("aws_region", "ap-south-1"),
+            "public_ip": ip,
+            "instance_id": instance_id,
+            "public_dns": self.infrastructure.get("public_dns") or f"ec2-{ip.replace('.', '-')}.compute.amazonaws.com",
+            "security_group": self.infrastructure.get("security_group") or "sg-07b9a4c09d4128f11",
+            "vpc_id": self.infrastructure.get("vpc_id"),
+            "ssh_command": self.infrastructure.get("ssh_command") or f"ssh -i terraform/devops-key.pem ubuntu@{ip}",
+            "provisioned_at": self.infrastructure.get("provisioned_at") or time.strftime("%Y-%m-%d %H:%M:%S"),
+            "app_url": self.infrastructure.get("app_url") or f"http://{ip}",
+            "status": "ready" if self.infrastructure.get("status") == "ready" else "provisioning",
+            "stack": copy.deepcopy(self.stack),
+            "deployment": copy.deepcopy(self.deployment),
+            "deployed_app": self.deployment.get("deployed_app", "Full-Stack Web Application"),
+            "compliance": copy.deepcopy(self.compliance),
+            "telemetry": copy.deepcopy(self.telemetry),
+            "chaos": copy.deepcopy(self.chaos),
+            "chaos_fault": self.chaos.get("active_fault")
+        }
+
         if existing:
-            existing.update({
-                "region": self.config.get("aws_region", "ap-south-1"),
-                "app_url": self.infrastructure.get("app_url") or f"http://{ip}",
-                "stack": dict(self.stack),
-                "deployed_app": self.deployment.get("deployed_app", "Full-Stack Web Application"),
-                "status": "ready" if self.infrastructure.get("status") == "ready" else "degraded",
-                "chaos_fault": self.chaos.get("active_fault")
-            })
+            existing.update(project_snapshot)
             if name:
                 existing["name"] = name
             return existing
@@ -240,14 +313,7 @@ class PlatformState:
             "id": proj_id,
             "name": name or default_name,
             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "region": self.config.get("aws_region", "ap-south-1"),
-            "public_ip": ip,
-            "instance_id": instance_id,
-            "app_url": self.infrastructure.get("app_url") or f"http://{ip}",
-            "stack": dict(self.stack),
-            "deployed_app": self.deployment.get("deployed_app", "Full-Stack Web Application"),
-            "status": "ready" if self.infrastructure.get("status") == "ready" else "provisioning",
-            "chaos_fault": self.chaos.get("active_fault")
+            **project_snapshot
         }
         self.projects.append(new_project)
         self.active_project_id = proj_id
@@ -309,19 +375,61 @@ class PlatformState:
         target = next((p for p in self.projects if p["id"] == project_id), None)
         if not target:
             return None
+
+        # 1. Save currently active project before leaving it!
+        if self.infrastructure.get("public_ip"):
+            self.save_current_project()
+
+        # 2. Activate target project
         self.active_project_id = project_id
+
+        # 3. Restore infrastructure
         self.infrastructure["public_ip"] = target.get("public_ip")
         self.infrastructure["instance_id"] = target.get("instance_id")
-        self.infrastructure["app_url"] = target.get("app_url")
-        self.infrastructure["status"] = "ready"
+        self.infrastructure["public_dns"] = target.get("public_dns") or (f"ec2-{target.get('public_ip', '').replace('.', '-')}.compute.amazonaws.com" if target.get("public_ip") else None)
+        self.infrastructure["security_group"] = target.get("security_group") or "sg-07b9a4c09d4128f11"
+        self.infrastructure["vpc_id"] = target.get("vpc_id")
+        self.infrastructure["ssh_command"] = target.get("ssh_command") or (f"ssh -i terraform/devops-key.pem ubuntu@{target.get('public_ip')}" if target.get("public_ip") else None)
+        self.infrastructure["app_url"] = target.get("app_url") or (f"http://{target.get('public_ip')}" if target.get("public_ip") else None)
+        self.infrastructure["status"] = target.get("status", "ready")
+        self.infrastructure["provisioned_at"] = target.get("provisioned_at")
+
+        # 4. Restore AWS Region
+        if target.get("region"):
+            self.config["aws_region"] = target["region"]
+
+        # 5. Restore Stack configuration
         if "stack" in target and isinstance(target["stack"], dict):
-            self.stack = dict(target["stack"])
-        if target.get("chaos_fault"):
+            self.stack = copy.deepcopy(target["stack"])
+
+        # 6. Restore Deployment state
+        if "deployment" in target and isinstance(target["deployment"], dict):
+            self.deployment = copy.deepcopy(target["deployment"])
+        else:
+            self.deployment["status"] = "deployed"
+            self.deployment["deployed_app"] = target.get("deployed_app", "Full-Stack Web Application")
+            self.deployment["response_code"] = 200
+
+        # 7. Restore Compliance state
+        if "compliance" in target and isinstance(target["compliance"], dict):
+            self.compliance = copy.deepcopy(target["compliance"])
+
+        # 8. Restore Chaos state
+        if "chaos" in target and isinstance(target["chaos"], dict):
+            self.chaos = copy.deepcopy(target["chaos"])
+        elif target.get("chaos_fault"):
             self.chaos["active_fault"] = target["chaos_fault"]
         else:
             self.chaos["active_fault"] = None
             self.chaos["description"] = None
-        self.add_log(f"[CHAOS MONITOR] 🎯 Switched active target node to {target['name']} ({target.get('public_ip')}).", stage="CHAOS")
+
+        # 9. Restore Telemetry & Monitoring (CPU, RAM, Disk, Latency, History)
+        if "telemetry" in target and isinstance(target["telemetry"], dict) and target["telemetry"].get("checks"):
+            self.telemetry = copy.deepcopy(target["telemetry"])
+        else:
+            self._init_project_telemetry(target)
+
+        self.add_log(f"[PROJECT SWITCH] 🎯 Switched active target to '{target['name']}' (IP: {target.get('public_ip')}, Region: {target.get('region', 'ap-south-1')}).", stage="SYSTEM")
         return target
 
     def delete_project(self, project_id: str) -> Optional[Dict[str, Any]]:

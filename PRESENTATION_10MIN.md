@@ -1,26 +1,3 @@
-# ⏱️ 10-Minute Presentation Guide (Simple & Class-Friendly)
-
-> **Quick Tip:** Keep this open on your phone or a side window during your presentation. Speak naturally and follow the timeline below.
-
----
-
-## ⏰ Quick 10-Minute Roadmap
-
-| Time | Topic | What you show on screen |
-| :--- | :--- | :--- |
-| **0:00 – 1:30** | The Introduction & The Big Problem | Show the Dashboard & Live/Sim toggle |
-| **1:30 – 2:30** | The 4-Step Solution (The House Analogy) | Point to Step 1, 2, 3, 4 cards |
-| **2:30 – 3:30** | Step 0 (Safety Check) & Step 1 (AWS Server) | Show Public IP & AWS details in Step 1 |
-| **3:30 – 4:45** | Step 2 (Ansible) & Opening the Live Website | Click "Open Live Site" to show live project |
-| **4:45 – 5:45** | Step 3 (Puppet Security) | Point to the 6 green security checks |
-| **5:45 – 6:45** | Step 4 (Nagios Health Monitoring) | Show the live 75ms speed and CPU/RAM dials |
-| **6:45 – 8:00** | **The Big Highlight: Chaos Lab & Auto-Heal** | Crash Nginx (Turns Red) ➔ Auto-Heal (Turns Green) |
-| **8:00 – 8:45** | How We Built It (Tech Stack) | Point to the live black terminal at bottom |
-| **8:45 – 10:00** | Q&A with Teacher & Classmates | Answer using the simple cheat sheet below |
-
----
-
-## 🎤 Word-by-Word Speaking Script
 
 ### [0:00 – 1:30] 1. The Introduction & The Real-World Problem
 
@@ -195,8 +172,3 @@
 > *"Chaos Engineering is testing our system by breaking things on purpose before real users experience an outage. It proves that our auto-healing features actually work."*
 
 ---
-
-## 🌟 3 Golden Rules While Presenting
-1. **Don't rush.** Speak at a calm, conversational speed.
-2. **Point your mouse** at the button or metric you are talking about.
-3. **If you forget a line:** Just look at the screen and explain what the colors mean — Green means healthy, Red means alert, and Auto-Heal fixes it!

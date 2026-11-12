@@ -824,6 +824,7 @@ export function App() {
           onOpenConfig={() => setIsConfigOpen(true)}
           onOpenViva={() => setIsVivaOpen(true)}
           onOpenNewProject={() => setIsNewProjectOpen(true)}
+          onSwitchProject={handleSwitchProject}
         />
 
         {/* Main Content Area */}

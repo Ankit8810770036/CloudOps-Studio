@@ -670,6 +670,172 @@ p, .section-banner-sub, .form-label, .spec-label {
   opacity: 0.85;
 }
 
+/* --- MULTI-PROJECT SWITCHER DROPDOWN (Top Navigation Bar) --- */
+.navbar-project-wrapper {
+  position: relative;
+  display: inline-flex;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.navbar-project-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  height: 34px;
+  padding: 0 0.65rem;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.navbar-project-btn:hover,
+.navbar-project-btn.open {
+  border-color: var(--aws-orange);
+  background: var(--bg-card-hover);
+}
+
+.navbar-project-label {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-project-arrow {
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+  margin-left: 0.15rem;
+}
+
+.navbar-project-arrow.open {
+  transform: rotate(180deg);
+  color: var(--aws-orange);
+}
+
+.navbar-project-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 280px;
+  max-width: 340px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+  animation: navbarFadeIn 0.12s ease-out;
+}
+
+.navbar-project-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  background: var(--bg-card-subtle);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-project-list {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0.35rem;
+}
+
+.navbar-project-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.65rem;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.navbar-project-item:hover {
+  background: var(--bg-card-hover);
+}
+
+.navbar-project-item.active {
+  background: rgba(255, 153, 0, 0.12);
+}
+
+.navbar-project-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.navbar-project-item-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-project-item.active .navbar-project-item-name {
+  color: var(--aws-orange);
+}
+
+.navbar-project-item-meta {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.1rem;
+}
+
+.navbar-project-dropdown-footer {
+  padding: 0.4rem 0.65rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card-subtle);
+}
+
+.navbar-dropdown-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  border-radius: 5px;
+  color: var(--aws-orange);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.navbar-dropdown-action-btn:hover {
+  background: rgba(255, 153, 0, 0.1);
+  border-color: var(--aws-orange);
+}
+
 .navbar-node-pill {
   display: flex;
   align-items: center;
