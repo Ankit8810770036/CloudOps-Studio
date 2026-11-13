@@ -833,6 +833,13 @@ p, .section-banner-sub, .form-label, .spec-label {
   border-color: var(--aws-orange);
 }
 
+.navbar-mode-btn:disabled,
+.navbar-mode-btn.loading {
+  opacity: 0.85;
+  cursor: wait;
+  border-color: var(--aws-orange);
+}
+
 .mode-indicator-dot {
   width: 7px;
   height: 7px;

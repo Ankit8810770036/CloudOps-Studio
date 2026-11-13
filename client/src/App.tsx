@@ -102,6 +102,7 @@ export function App() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isLiveModeRequired, setIsLiveModeRequired] = useState(false);
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const [modeAlert, setModeAlert] = useState<ModeAlertData | null>(null);
 
   // Auto-dismiss mode alert after 10 seconds
@@ -440,11 +441,12 @@ export function App() {
   }, []);
 
   const handleToggleMode = useCallback(async () => {
-    if (!status) return;
+    if (!status || isSwitchingMode) return;
+    setIsSwitchingMode(true);
 
-    if (status.mode === 'simulation') {
-      // Switching from SIMULATION MODE to LIVE MODE -> check credentials first!
-      try {
+    try {
+      if (status.mode === 'simulation') {
+        // Switching from SIMULATION MODE to LIVE MODE -> check credentials first!
         const config = await fetchConfig();
         const cachedAccess = (typeof localStorage !== 'undefined' ? localStorage.getItem('cloudops_aws_access_key') : null) || '';
         const effectiveAccess = config.aws_access_key || cachedAccess;
@@ -496,29 +498,31 @@ export function App() {
           message: 'Execution mode successfully switched to LIVE MODE. Actions will provision real AWS infrastructure in Region ap-south-1.',
           type: 'success'
         });
-      } catch (err: any) {
-        console.error('Mode toggle check error', err);
-        const errMsg = err.message || 'AWS credentials verification failed.';
+      } else {
+        // Switching from LIVE MODE to SIMULATION MODE -> always allowed immediately
+        await setExecutionMode('simulation');
+        const updated = await fetchStatus();
+        setStatus(updated);
         setModeAlert({
-          title: 'Cannot Switch to Live Mode',
-          message: errMsg,
-          type: 'error'
+          title: 'Switched to Simulation Mode',
+          message: 'Execution mode changed to SIMULATION MODE. Safe sandbox environment with mock cloud telemetry.',
+          type: 'info'
         });
-        setIsLiveModeRequired(true);
-        setIsConfigOpen(true);
       }
-    } else {
-      // Switching from LIVE MODE to SIMULATION MODE -> always allowed immediately
-      await setExecutionMode('simulation');
-      const updated = await fetchStatus();
-      setStatus(updated);
+    } catch (err: any) {
+      console.error('Mode toggle check error', err);
+      const errMsg = err.message || 'AWS credentials verification failed.';
       setModeAlert({
-        title: 'Switched to Simulation Mode',
-        message: 'Execution mode changed to SIMULATION MODE. Safe sandbox environment with mock cloud telemetry.',
-        type: 'info'
+        title: 'Cannot Switch to Live Mode',
+        message: errMsg,
+        type: 'error'
       });
+      setIsLiveModeRequired(true);
+      setIsConfigOpen(true);
+    } finally {
+      setIsSwitchingMode(false);
     }
-  }, [status]);
+  }, [status, isSwitchingMode]);
 
   const handleApplyTerraform = useCallback(async (region: string, instanceType: string) => {
     try {
@@ -810,6 +814,7 @@ export function App() {
         <TopNavbar
           mode={status.mode}
           onToggleMode={handleToggleMode}
+          isSwitchingMode={isSwitchingMode}
           theme={theme}
           onToggleTheme={handleToggleTheme}
           status={status}

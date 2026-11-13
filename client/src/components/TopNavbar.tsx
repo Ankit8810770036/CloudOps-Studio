@@ -16,6 +16,7 @@ import { ExecutionMode, FullStatus, DeployedProject } from '../types';
 interface TopNavbarProps {
   mode: ExecutionMode;
   onToggleMode: () => void;
+  isSwitchingMode?: boolean;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   status: FullStatus;
@@ -37,6 +38,7 @@ const AWS_REGIONS = [
 export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
   mode,
   onToggleMode,
+  isSwitchingMode = false,
   theme,
   onToggleTheme,
   status,
@@ -296,12 +298,22 @@ export const TopNavbar: React.FC<TopNavbarProps> = React.memo(({
         {/* Mode Toggle Button */}
         <button
           type="button"
-          className="navbar-mode-btn"
+          className={`navbar-mode-btn ${isSwitchingMode ? 'loading' : ''}`}
           onClick={onToggleMode}
+          disabled={isSwitchingMode}
           title={mode === 'simulation' ? "Click to switch to Live AWS Mode (requires AWS Region, Access Key, and Secret Key)" : "Click to switch to Simulation Demo Mode"}
         >
-          <span className={`mode-indicator-dot ${mode}`} />
-          <span>{mode.toUpperCase()} MODE</span>
+          {isSwitchingMode ? (
+            <>
+              <CircularLoader size={11} color="var(--aws-orange)" trackColor="rgba(255, 153, 0, 0.2)" />
+              <span>SWITCHING...</span>
+            </>
+          ) : (
+            <>
+              <span className={`mode-indicator-dot ${mode}`} />
+              <span>{mode.toUpperCase()} MODE</span>
+            </>
+          )}
         </button>
 
         {/* Theme Toggle Button */}

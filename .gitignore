@@ -37,6 +37,7 @@ server/.credentials.json
 .vscode/
 .idea/
 GEMINI.md
+scratch/
 
 # Uploaded User Code Packages
 ansible/roles/*/files/app/*

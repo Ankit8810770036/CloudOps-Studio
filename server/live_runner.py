@@ -16,6 +16,29 @@ ANSIBLE_DIR = BASE_DIR / "ansible"
 PUPPET_DIR = BASE_DIR / "puppet"
 KEY_FILE = TF_DIR / "devops-key.pem"
 
+def probe_socket_connect(host: str, port: int, timeout: float = 1.0) -> tuple[bool, float]:
+    """Test TCP port connection in threadpool to prevent blocking the event loop."""
+    start_t = time.time()
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        s.connect((host, port))
+        s.close()
+        lat = round((time.time() - start_t) * 1000, 1)
+        return True, lat
+    except Exception:
+        return False, 0.0
+
+def probe_http_request(url: str, timeout: float = 1.5) -> tuple[int, float]:
+    """Test HTTP endpoint in threadpool to prevent blocking the event loop."""
+    start_t = time.time()
+    try:
+        resp = requests.get(url, timeout=timeout)
+        lat = round((time.time() - start_t) * 1000, 1)
+        return resp.status_code, lat
+    except Exception:
+        return 0, 0.0
+
 class LiveEngine:
     def get_aws_env(self):
         env = os.environ.copy()
@@ -100,6 +123,12 @@ class LiveEngine:
                     dns = data.get("public_dns", {}).get("value")
                     sg = data.get("security_group_id", {}).get("value")
                     
+                    if ip:
+                        state.deleted_project_ips.discard(ip)
+                    if instance_id:
+                        state.deleted_project_ids.discard(instance_id)
+                    state.deleted_project_ids.discard("proj-live-aws")
+                    
                     state.infrastructure.update({
                         "status": "ready",
                         "instance_id": instance_id,
@@ -154,15 +183,15 @@ class LiveEngine:
         state.is_running_pipeline = False
         state.current_action = None
 
-    def execute_ssh_command(self, host: str, command: str, key_path: str = None):
+    def execute_ssh_command(self, host: str, command: str, key_path: str = None, timeout: int = 15):
         key_path = key_path or str(KEY_FILE)
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
         try:
             k = paramiko.RSAKey.from_private_key_file(key_path)
-            ssh.connect(host, username="ubuntu", pkey=k, timeout=20)
-            stdin, stdout, stderr = ssh.exec_command(command)
+            ssh.connect(host, username="ubuntu", pkey=k, timeout=timeout)
+            stdin, stdout, stderr = ssh.exec_command(command, timeout=timeout)
             out = stdout.read().decode('utf-8', errors='replace')
             err = stderr.read().decode('utf-8', errors='replace')
             ssh.close()
@@ -170,9 +199,9 @@ class LiveEngine:
         except Exception as e:
             return False, "", str(e)
 
-    async def async_ssh(self, host: str, command: str, key_path: str = None):
+    async def async_ssh(self, host: str, command: str, key_path: str = None, timeout: int = 15):
         """Asynchronously execute SSH command in threadpool to prevent blocking the event loop."""
-        return await asyncio.to_thread(self.execute_ssh_command, host, command, key_path)
+        return await asyncio.to_thread(self.execute_ssh_command, host, command, key_path, timeout)
 
     async def async_sftp(self, host: str, local_dir: Path, remote_dir: str, key_path: str = None):
         """Asynchronously upload directory via SFTP in threadpool to prevent blocking the event loop."""
@@ -646,70 +675,153 @@ EOF'
             return
             
         state.telemetry["last_check"] = time.strftime("%H:%M:%S")
-        
-        # 1. Check HTTP Web Tier (Port 80)
-        try:
-            start_t = time.time()
-            resp = requests.get(f"http://{target_ip}/healthz.json", timeout=4)
-            lat = round((time.time() - start_t) * 1000, 1)
-            if resp.status_code == 200:
-                state.telemetry["checks"]["http"] = {
-                    "name": "Frontend Web Tier (Port 80)",
-                    "status": "OK",
-                    "code": 200,
-                    "response_time_ms": lat
-                }
-            else:
-                state.telemetry["checks"]["http"] = {
-                    "name": "Frontend Web Tier (Port 80)",
-                    "status": "CRITICAL",
-                    "code": resp.status_code,
-                    "response_time_ms": lat
-                }
-        except Exception:
+
+        b_type = state.stack.get("backend", {}).get("type", "python")
+        b_port = state.stack.get("backend", {}).get("port", 8000)
+        d_type = state.stack.get("database", {}).get("type", "postgresql")
+        d_port = state.stack.get("database", {}).get("port", 5432)
+
+        # 0. Fast pre-flight check in threadpool: is port 22 or 80 even reachable?
+        host_ssh_ok, ssh_lat = await asyncio.to_thread(probe_socket_connect, target_ip, 22, 1.0)
+        host_web_ok = False
+        if not host_ssh_ok:
+            host_web_ok, web_lat = await asyncio.to_thread(probe_socket_connect, target_ip, 80, 1.0)
+
+        if not host_ssh_ok and not host_web_ok:
+            # Entire EC2 instance is terminated or unreachable -> fast fail in <1.0 second without blocking event loop
+            state.telemetry["checks"]["ping"] = {
+                "name": "Host Ping (Network)",
+                "status": "CRITICAL",
+                "latency_ms": 0,
+                "packet_loss": "100%"
+            }
+            state.telemetry["checks"]["ssh"] = {
+                "name": "SSH Daemon (Port 22)",
+                "status": "CRITICAL",
+                "port_open": False
+            }
             state.telemetry["checks"]["http"] = {
                 "name": "Frontend Web Tier (Port 80)",
                 "status": "CRITICAL",
                 "code": 0,
                 "response_time_ms": 0
             }
-
-        # 2. Check Backend API Tier
-        b_type = state.stack.get("backend", {}).get("type", "python")
-        b_port = state.stack.get("backend", {}).get("port", 8000)
-        if b_type != "none":
-            try:
-                start_b = time.time()
-                b_resp = requests.get(f"http://{target_ip}/api/health", timeout=3)
-                if b_resp.status_code not in (200, 404):
-                    b_resp = requests.get(f"http://{target_ip}:{b_port}/", timeout=3)
-                b_lat = round((time.time() - start_b) * 1000, 1)
+            if b_type != "none":
                 state.telemetry["checks"]["backend_api"] = {
                     "name": f"Backend API ({b_type.upper()} - {b_port})",
-                    "status": "OK" if b_resp.status_code in (200, 404) else "CRITICAL",
+                    "status": "CRITICAL",
+                    "port": b_port,
+                    "latency_ms": 0
+                }
+            else:
+                state.telemetry["checks"]["backend_api"] = {
+                    "name": "Backend API (None)",
+                    "status": "DISABLED",
+                    "port": 0,
+                    "latency_ms": 0
+                }
+            if d_type != "none":
+                state.telemetry["checks"]["database"] = {
+                    "name": f"Database ({d_type.upper()} - {d_port})",
+                    "status": "CRITICAL",
+                    "engine": d_type.upper(),
+                    "port": d_port
+                }
+            else:
+                state.telemetry["checks"]["database"] = {
+                    "name": "Database (Stateless)",
+                    "status": "DISABLED",
+                    "engine": "NONE",
+                    "port": 0
+                }
+            state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
+            state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
+            state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "CRITICAL", "value": 0, "unit": "%"}
+
+            state.infrastructure["status"] = "down"
+            if not any(a.get("service") == "host" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "EC2 Node Unreachable", f"Target node {target_ip} is unresponsive (100% packet loss, SSH closed).", "host")
+            if not any(a.get("service") == "frontend" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Frontend Web Tier Down", f"Port 80 unreachable or returned non-200 response on {target_ip}.", "frontend")
+            if b_type != "none" and not any(a.get("service") == "backend" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Backend API Down", f"Backend service unreachable on {target_ip}:{b_port}.", "backend")
+            if d_type != "none" and not any(a.get("service") == "database" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Database Down", f"Database engine {d_type.upper()} failed socket check on port {d_port}.", "database")
+
+            state.telemetry["overall_health"] = "CRITICAL"
+            state.record_telemetry_point(cpu=0, memory=0, latency=0)
+            return
+
+        # If host is online:
+        state.clear_alerts_for_service("host")
+        if state.infrastructure.get("status") == "down":
+            state.infrastructure["status"] = "ready"
+
+        state.telemetry["checks"]["ping"] = {
+            "name": "Host Ping (Network)",
+            "status": "OK",
+            "latency_ms": ssh_lat if host_ssh_ok else 15.0,
+            "packet_loss": "0%"
+        }
+        state.telemetry["checks"]["ssh"] = {
+            "name": "SSH Daemon (Port 22)",
+            "status": "OK" if host_ssh_ok else "CRITICAL",
+            "port_open": host_ssh_ok
+        }
+
+        # 1. Check HTTP Web Tier (Port 80) in threadpool
+        http_code, http_lat = await asyncio.to_thread(probe_http_request, f"http://{target_ip}/healthz.json", 1.5)
+        if http_code == 200:
+            state.telemetry["checks"]["http"] = {
+                "name": "Frontend Web Tier (Port 80)",
+                "status": "OK",
+                "code": 200,
+                "response_time_ms": http_lat
+            }
+            state.clear_alerts_for_service("frontend")
+        else:
+            state.telemetry["checks"]["http"] = {
+                "name": "Frontend Web Tier (Port 80)",
+                "status": "CRITICAL",
+                "code": http_code,
+                "response_time_ms": http_lat
+            }
+            if not any(a.get("service") == "frontend" for a in state.telemetry["alerts"]):
+                state.add_alert("CRITICAL", "Frontend Web Tier Down", f"Port 80 unreachable or returned non-200 response on {target_ip}.", "frontend")
+
+        # 2. Check Backend API Tier
+        if b_type != "none":
+            b_code, b_lat = await asyncio.to_thread(probe_http_request, f"http://{target_ip}/api/health", 1.5)
+            if b_code not in (200, 404):
+                b_code, b_lat = await asyncio.to_thread(probe_http_request, f"http://{target_ip}:{b_port}/", 1.5)
+            if b_code in (200, 404):
+                state.telemetry["checks"]["backend_api"] = {
+                    "name": f"Backend API ({b_type.upper()} - {b_port})",
+                    "status": "OK",
                     "port": b_port,
                     "latency_ms": b_lat
                 }
-            except Exception:
-                # Direct socket check to backend port
-                sb = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sb.settimeout(2)
-                try:
-                    sb.connect((target_ip, b_port))
-                    sb.close()
+                state.clear_alerts_for_service("backend")
+            else:
+                # Socket fallback in threadpool
+                b_sock_ok, b_sock_lat = await asyncio.to_thread(probe_socket_connect, target_ip, b_port, 1.0)
+                if b_sock_ok:
                     state.telemetry["checks"]["backend_api"] = {
                         "name": f"Backend API ({b_type.upper()} - {b_port})",
                         "status": "OK",
                         "port": b_port,
-                        "latency_ms": 15.0
+                        "latency_ms": b_sock_lat
                     }
-                except Exception:
+                    state.clear_alerts_for_service("backend")
+                else:
                     state.telemetry["checks"]["backend_api"] = {
                         "name": f"Backend API ({b_type.upper()} - {b_port})",
                         "status": "CRITICAL",
                         "port": b_port,
                         "latency_ms": 0
                     }
+                    if not any(a.get("service") == "backend" for a in state.telemetry["alerts"]):
+                        state.add_alert("CRITICAL", "Backend API Down", f"Backend service unreachable on {target_ip}:{b_port}.", "backend")
         else:
             state.telemetry["checks"]["backend_api"] = {
                 "name": "Backend API (None)",
@@ -717,19 +829,26 @@ EOF'
                 "port": 0,
                 "latency_ms": 0
             }
+            state.clear_alerts_for_service("backend")
 
         # 3. Check Database Tier
-        d_type = state.stack.get("database", {}).get("type", "postgresql")
-        d_port = state.stack.get("database", {}).get("port", 5432)
         if d_type != "none":
-            db_cmd = f"nc -z 127.0.0.1 {d_port} || (sudo systemctl is-active postgresql || sudo systemctl is-active mysql || sudo systemctl is-active mongod)"
-            db_ok, _, _ = await self.async_ssh(target_ip, db_cmd)
+            if host_ssh_ok:
+                db_cmd = f"nc -z 127.0.0.1 {d_port} || (sudo systemctl is-active postgresql || sudo systemctl is-active mysql || sudo systemctl is-active mongod)"
+                db_ok, _, _ = await self.async_ssh(target_ip, db_cmd, timeout=3)
+            else:
+                db_ok = False
             state.telemetry["checks"]["database"] = {
                 "name": f"Database ({d_type.upper()} - {d_port})",
                 "status": "OK" if db_ok else "CRITICAL",
                 "engine": d_type.upper(),
                 "port": d_port
             }
+            if db_ok:
+                state.clear_alerts_for_service("database")
+            else:
+                if not any(a.get("service") == "database" for a in state.telemetry["alerts"]):
+                    state.add_alert("CRITICAL", "Database Down", f"Database engine {d_type.upper()} failed socket check on port {d_port}.", "database")
         else:
             state.telemetry["checks"]["database"] = {
                 "name": "Database (Stateless)",
@@ -737,98 +856,36 @@ EOF'
                 "engine": "NONE",
                 "port": 0
             }
+            state.clear_alerts_for_service("database")
 
-        # 4. Host Ping (ICMP / Network)
-        try:
-            ping_start = time.time()
-            s_ping = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s_ping.settimeout(2)
-            s_ping.connect((target_ip, 22))
-            s_ping.close()
-            ping_lat = round((time.time() - ping_start) * 1000, 1)
-            state.telemetry["checks"]["ping"] = {
-                "name": "Host Ping (Network)",
-                "status": "OK",
-                "latency_ms": ping_lat,
-                "packet_loss": "0%"
-            }
-        except Exception:
-            state.telemetry["checks"]["ping"] = {
-                "name": "Host Ping (Network)",
-                "status": "CRITICAL",
-                "latency_ms": 0,
-                "packet_loss": "100%"
-            }
-            
-        # 5. Check SSH Daemon
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(3)
-        try:
-            s.connect((target_ip, 22))
-            s.close()
-            state.telemetry["checks"]["ssh"] = {"name": "SSH Daemon (Port 22)", "status": "OK", "port_open": True}
-        except Exception:
-            state.telemetry["checks"]["ssh"] = {"name": "SSH Daemon (Port 22)", "status": "CRITICAL", "port_open": False}
-            
-        # 6. Remote Real Hardware Metrics via SSH
-        success, out, _ = await self.async_ssh(target_ip, "cat /proc/loadavg && free -m | grep Mem && df -h / | tail -n 1")
-        if success and out:
-            lines = out.strip().split("\n")
-            if len(lines) >= 3:
-                # Load avg
-                load_parts = lines[0].split()
-                cpu_load = float(load_parts[0]) * 50.0 # scale roughly to percentage
-                cpu_val = min(round(cpu_load, 1), 99.0)
-                state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "OK" if cpu_val < 85 else "CRITICAL", "value": cpu_val, "unit": "%"}
-                
-                # Mem
-                mem_parts = lines[1].split()
-                total_mem = float(mem_parts[1])
-                used_mem = float(mem_parts[2])
-                mem_percent = round((used_mem / total_mem) * 100, 1)
-                state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "OK", "value": mem_percent, "unit": "%"}
-                
-                # Disk
-                disk_parts = lines[2].split()
-                disk_percent = float(disk_parts[4].replace("%", ""))
-                state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "OK", "value": disk_percent, "unit": "%"}
+        # 4. Hardware metrics via SSH (timeout=3)
+        if host_ssh_ok:
+            success, out, _ = await self.async_ssh(target_ip, "cat /proc/loadavg && free -m | grep Mem && df -h / | tail -n 1", timeout=3)
+            if success and out:
+                lines = out.strip().split("\n")
+                if len(lines) >= 3:
+                    load_parts = lines[0].split()
+                    cpu_load = float(load_parts[0]) * 50.0
+                    cpu_val = min(round(cpu_load, 1), 99.0)
+                    state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "OK" if cpu_val < 85 else "CRITICAL", "value": cpu_val, "unit": "%"}
+
+                    mem_parts = lines[1].split()
+                    total_mem = float(mem_parts[1])
+                    used_mem = float(mem_parts[2])
+                    mem_percent = round((used_mem / total_mem) * 100, 1)
+                    state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "OK", "value": mem_percent, "unit": "%"}
+
+                    disk_parts = lines[2].split()
+                    disk_percent = float(disk_parts[4].replace("%", ""))
+                    state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "OK", "value": disk_percent, "unit": "%"}
+            else:
+                state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
+                state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
+                state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "CRITICAL", "value": 0, "unit": "%"}
         else:
             state.telemetry["checks"]["cpu"] = {"name": "CPU Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
             state.telemetry["checks"]["memory"] = {"name": "RAM Utilization", "status": "CRITICAL", "value": 0, "unit": "%"}
             state.telemetry["checks"]["disk"] = {"name": "Disk Usage (/)", "status": "CRITICAL", "value": 0, "unit": "%"}
-
-        # Host connectivity assessment
-        is_ping_dead = state.telemetry["checks"]["ping"]["status"] == "CRITICAL"
-        is_ssh_dead = not state.telemetry["checks"]["ssh"].get("port_open", False)
-        is_http_dead = state.telemetry["checks"]["http"]["status"] == "CRITICAL"
-
-        if is_ping_dead and is_ssh_dead:
-            # Entire EC2 instance is terminated or unreachable
-            state.infrastructure["status"] = "down"
-            if not any(a.get("service") == "host" for a in state.telemetry["alerts"]):
-                state.add_alert("CRITICAL", "EC2 Node Unreachable", f"Target node {target_ip} is unresponsive (100% packet loss, SSH closed).", "host")
-        else:
-            state.clear_alerts_for_service("host")
-            if state.infrastructure.get("status") == "down":
-                state.infrastructure["status"] = "ready"
-
-        if is_http_dead:
-            if not any(a.get("service") == "frontend" for a in state.telemetry["alerts"]):
-                state.add_alert("CRITICAL", "Frontend Web Tier Down", f"Port 80 unreachable or returned non-200 response on {target_ip}.", "frontend")
-        else:
-            state.clear_alerts_for_service("frontend")
-
-        if state.telemetry["checks"]["backend_api"]["status"] == "CRITICAL" and b_type != "none":
-            if not any(a.get("service") == "backend" for a in state.telemetry["alerts"]):
-                state.add_alert("CRITICAL", "Backend API Down", f"Backend service unreachable on {target_ip}:{b_port}.", "backend")
-        else:
-            state.clear_alerts_for_service("backend")
-
-        if state.telemetry["checks"]["database"]["status"] == "CRITICAL" and d_type != "none":
-            if not any(a.get("service") == "database" for a in state.telemetry["alerts"]):
-                state.add_alert("CRITICAL", "Database Down", f"Database engine {d_type.upper()} failed socket check on port {d_port}.", "database")
-        else:
-            state.clear_alerts_for_service("database")
 
         # Overall health calculation
         if any(c.get("status") == "CRITICAL" for c in state.telemetry["checks"].values()):
@@ -838,7 +895,6 @@ EOF'
         else:
             state.telemetry["overall_health"] = "HEALTHY"
 
-        # Record real historical rolling time-series point
         cur_cpu = state.telemetry["checks"]["cpu"].get("value", 20.0)
         cur_mem = state.telemetry["checks"]["memory"].get("value", 40.0)
         cur_lat = state.telemetry["checks"]["http"].get("response_time_ms", 30.0)

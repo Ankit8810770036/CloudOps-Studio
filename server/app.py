@@ -103,7 +103,12 @@ def sync_terraform_state_if_available():
                 sg = outputs.get("security_group_id", {}).get("value")
                 ssh_cmd = outputs.get("ssh_command", {}).get("value")
                 app_url = outputs.get("app_url", {}).get("value")
-                if pub_ip and instance_id:
+                if pub_ip and instance_id and pub_ip != "null" and instance_id != "null":
+                    # Check if this instance was explicitly deleted by the user
+                    if (pub_ip in state.deleted_project_ips or
+                        "proj-live-aws" in state.deleted_project_ids or
+                        instance_id in state.deleted_project_ids):
+                        return None
                     return {
                         "status": "ready",
                         "instance_id": instance_id,
@@ -124,10 +129,13 @@ def register_live_project_if_available():
     if not live_tf:
         return None
     live_id = "proj-live-aws"
+    if live_id in state.deleted_project_ids or live_tf["public_ip"] in state.deleted_project_ips:
+        return None
     existing = next((p for p in state.projects if p.get("id") == live_id or p.get("public_ip") == live_tf["public_ip"]), None)
     if not existing:
         live_proj = {
             "id": live_id,
+            "mode": "live",
             "name": f"Live AWS EC2 ({live_tf['instance_id']})",
             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "region": state.config.get("aws_region", "ap-south-1"),
@@ -315,31 +323,118 @@ async def set_mode(req: ModeRequest):
                 detail=err_msg
             )
 
-        if state.infrastructure.get("public_ip"):
+        # Save active simulation project state if valid and not deleted
+        if state.mode == "simulation" and state.infrastructure.get("status") == "ready":
             state.save_current_project()
 
         state.mode = "live"
-        live_tf = sync_terraform_state_if_available()
-        if live_tf:
-            register_live_project_if_available()
-            state.infrastructure.update(live_tf)
-            state.deployment["status"] = "deployed"
-            state.deployment["response_code"] = 200
-            state.compliance["status"] = "compliant"
-            state.active_project_id = "proj-live-aws"
-            state.add_log(f"[Live AWS Mode] Connected to live AWS EC2 instance: {live_tf['instance_id']} at {live_tf['public_ip']}.", stage="TERRAFORM")
+        
+        # 1. Look for existing, non-deleted live project
+        live_proj = next(
+            (p for p in state.projects 
+             if (p.get("id") == "proj-live-aws" or p.get("mode") == "live") 
+             and p.get("id") not in state.deleted_project_ids 
+             and p.get("public_ip") not in state.deleted_project_ips), 
+            None
+        )
+        
+        if live_proj:
+            state.switch_project(live_proj["id"])
+            state.add_log(f"[Live AWS Mode] Connected to live AWS project: {live_proj.get('instance_id')} at {live_proj.get('public_ip')}.", stage="TERRAFORM")
             asyncio.create_task(live_engine.run_nagios_probe())
         else:
-            state.add_log("Switched to LIVE AWS MODE. No EC2 instance provisioned yet; use Step 1 to deploy.", stage="SYSTEM")
+            live_tf = sync_terraform_state_if_available()
+            if live_tf and "proj-live-aws" not in state.deleted_project_ids and live_tf["public_ip"] not in state.deleted_project_ips:
+                reg_proj = register_live_project_if_available()
+                state.infrastructure.update(live_tf)
+                state.deployment["status"] = "deployed"
+                state.deployment["response_code"] = 200
+                state.compliance["status"] = "compliant"
+                state.active_project_id = reg_proj["id"] if reg_proj else "proj-live-aws"
+                state.add_log(f"[Live AWS Mode] Connected to live AWS EC2 instance: {live_tf['instance_id']} at {live_tf['public_ip']}.", stage="TERRAFORM")
+                asyncio.create_task(live_engine.run_nagios_probe())
+            else:
+                state.active_project_id = None
+                state.infrastructure.update({
+                    "status": "not_provisioned",
+                    "instance_id": None,
+                    "public_ip": None,
+                    "public_dns": None,
+                    "security_group": None,
+                    "vpc_id": None,
+                    "app_url": None,
+                    "ssh_command": None,
+                    "provisioned_at": None
+                })
+                state.deployment.update({
+                    "status": "not_deployed",
+                    "web_server": "nginx",
+                    "deployed_app": "Production Web App",
+                    "deployed_at": None,
+                    "response_code": None
+                })
+                state.compliance.update({
+                    "status": "pending",
+                    "last_enforced": None,
+                    "drift_count": 0
+                })
+                state.telemetry["overall_health"] = "UNKNOWN"
+                state.telemetry["alerts"] = []
+                state.chaos = {
+                    "active_fault": None,
+                    "description": None,
+                    "injected_at": None
+                }
+                state.add_log("Switched to LIVE AWS MODE. No EC2 instance provisioned yet; use Step 1 to deploy.", stage="SYSTEM")
     else:
-        if state.infrastructure.get("public_ip"):
+        # Switching from Live to Simulation
+        if state.mode == "live" and state.infrastructure.get("status") == "ready":
             state.save_current_project()
 
         state.mode = "simulation"
-        sim_proj = next((p for p in state.projects if p.get("id") != "proj-live-aws" and p.get("public_ip") != "13.201.34.154"), None)
+        sim_proj = next(
+            (p for p in state.projects 
+             if p.get("id") != "proj-live-aws" 
+             and p.get("id") not in state.deleted_project_ids 
+             and p.get("public_ip") not in state.deleted_project_ips), 
+            None
+        )
         if sim_proj:
             state.switch_project(sim_proj["id"])
-        state.add_log("Switched to SIMULATION MODE (Safe sandbox).", stage="SYSTEM")
+            state.add_log(f"Switched to SIMULATION MODE (Safe sandbox). Loaded project: {sim_proj.get('name')}.", stage="SYSTEM")
+        else:
+            state.active_project_id = None
+            state.infrastructure.update({
+                "status": "not_provisioned",
+                "instance_id": None,
+                "public_ip": None,
+                "public_dns": None,
+                "security_group": None,
+                "vpc_id": None,
+                "app_url": None,
+                "ssh_command": None,
+                "provisioned_at": None
+            })
+            state.deployment.update({
+                "status": "not_deployed",
+                "web_server": "nginx",
+                "deployed_app": "Full-Stack Web Application",
+                "deployed_at": None,
+                "response_code": None
+            })
+            state.compliance.update({
+                "status": "pending",
+                "last_enforced": None,
+                "drift_count": 0
+            })
+            state.telemetry["overall_health"] = "UNKNOWN"
+            state.telemetry["alerts"] = []
+            state.chaos = {
+                "active_fault": None,
+                "description": None,
+                "injected_at": None
+            }
+            state.add_log("Switched to SIMULATION MODE (Safe sandbox).", stage="SYSTEM")
 
     return {"status": "ok", "mode": state.mode}
 
@@ -428,6 +523,10 @@ async def update_config(req: ConfigRequest):
 async def apply_terraform(req: ProvisionRequest):
     if state.is_running_pipeline:
         raise HTTPException(status_code=409, detail=f"A pipeline step is already running: {state.current_action}")
+
+    # If provisioning fresh, unmark deleted live project IDs so new live deployment is accepted
+    if state.mode == "live":
+        state.deleted_project_ids.discard("proj-live-aws")
 
     target_region = req.aws_region if (req.aws_region and req.aws_region != "us-east-1") else state.config.get("aws_region", "ap-south-1")
     state.is_running_pipeline = True

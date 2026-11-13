@@ -60,6 +60,9 @@ class SimulationEngine:
         sim_ip = "54.210.88.142" if proj_idx == 1 else f"54.210.88.{141 + proj_idx}"
         sim_id = "i-094b81c29e710dfa4" if proj_idx == 1 else f"i-0{abs(hash(sim_ip)) % 100000000:08d}a"
 
+        state.deleted_project_ips.discard(sim_ip)
+        state.deleted_project_ids.discard(sim_id)
+
         state.infrastructure.update({
             "status": "ready",
             "instance_id": sim_id,

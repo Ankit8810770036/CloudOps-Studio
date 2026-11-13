@@ -1,9 +1,11 @@
 import asyncio
 import os
+import json
 import time
 import copy
 import random
-from typing import List, Dict, Any, Optional
+from pathlib import Path
+from typing import List, Dict, Any, Optional, Set
 
 class PlatformState:
     def __init__(self):
@@ -52,6 +54,8 @@ class PlatformState:
         # Multi-Project Registry (Allows deploying multiple projects and switching between them)
         self.projects: List[Dict[str, Any]] = []
         self.active_project_id: Optional[str] = None
+        self.deleted_project_ids: set = set()
+        self.deleted_project_ips: set = set()
         
         # Step 1: Terraform Infrastructure
         self.infrastructure = {
@@ -273,10 +277,16 @@ class PlatformState:
 
     def save_current_project(self, name: Optional[str] = None) -> Optional[Dict[str, Any]]:
         ip = self.infrastructure.get("public_ip")
-        if not ip:
+        if not ip or self.infrastructure.get("status") in ["not_provisioned", "teardown"]:
+            return None
+
+        # Guard against resurrecting deleted projects
+        if (self.active_project_id and self.active_project_id in self.deleted_project_ids) or (ip in self.deleted_project_ips):
             return None
 
         instance_id = self.infrastructure.get("instance_id") or f"i-{abs(hash(ip)) % 10000000:07d}"
+        if instance_id in self.deleted_project_ids:
+            return None
         existing = next((p for p in self.projects if p.get("id") == self.active_project_id or p.get("public_ip") == ip), None)
         
         project_snapshot = {
@@ -322,7 +332,7 @@ class PlatformState:
     def reset_for_new_project(self, project_name: Optional[str] = None):
         # 1. Archive current project to projects registry if it has an IP
         if self.infrastructure.get("public_ip"):
-            self.save_current_project(name=project_name)
+            self.save_current_project()
 
         # 2. Reset infrastructure, deployment, and monitoring pipeline wizard
         self.infrastructure.update({
@@ -438,6 +448,26 @@ class PlatformState:
         self.add_log(f"[PROJECT SWITCH] 🎯 Switched active target to '{target['name']}' (IP: {target.get('public_ip')}, Region: {target.get('region', 'ap-south-1')}).", stage="SYSTEM")
         return target
 
+    def clear_terraform_state_outputs(self):
+        """Clean terraform state outputs on disk so deleted live instances cannot resurrect."""
+        try:
+            tfstate_file = Path(__file__).resolve().parent.parent / "terraform" / "terraform.tfstate"
+            if tfstate_file.exists():
+                with open(tfstate_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                data["outputs"] = {
+                    "app_url": {"value": None, "type": "string"},
+                    "instance_id": {"value": None, "type": "dynamic"},
+                    "public_dns": {"value": None, "type": "dynamic"},
+                    "public_ip": {"value": None, "type": "dynamic"},
+                    "security_group_id": {"value": None, "type": "dynamic"},
+                    "ssh_command": {"value": None, "type": "string"}
+                }
+                with open(tfstate_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+        except Exception:
+            pass
+
     def delete_project(self, project_id: str) -> Optional[Dict[str, Any]]:
         target = next((p for p in self.projects if p["id"] == project_id or p.get("public_ip") == project_id), None)
         if not target:
@@ -451,15 +481,31 @@ class PlatformState:
             else:
                 return None
 
+        # Track as permanently deleted
+        t_id = target.get("id") or project_id
+        t_ip = target.get("public_ip")
+        t_instance = target.get("instance_id")
+        if t_id:
+            self.deleted_project_ids.add(t_id)
+        if project_id:
+            self.deleted_project_ids.add(project_id)
+        if t_ip:
+            self.deleted_project_ips.add(t_ip)
+        if t_instance:
+            self.deleted_project_ids.add(t_instance)
+
         # Remove from projects array if present
         self.projects = [p for p in self.projects if p["id"] != target.get("id") and p.get("public_ip") != target.get("public_ip")]
 
         # If deleted project was the currently active one
         is_active = (self.active_project_id == target.get("id")) or (self.infrastructure.get("public_ip") == target.get("public_ip"))
         if is_active:
-            if self.projects:
-                next_proj = self.projects[0]
-                self.switch_project(next_proj["id"])
+            # Prefer remaining project in the same mode
+            matching = [p for p in self.projects if (p.get("id") == "proj-live-aws" if self.mode == "live" else p.get("id") != "proj-live-aws")]
+            if matching:
+                self.switch_project(matching[0]["id"])
+            elif self.projects:
+                self.switch_project(self.projects[0]["id"])
             else:
                 self.active_project_id = None
                 self.infrastructure.update({
@@ -476,7 +522,7 @@ class PlatformState:
                 self.deployment.update({
                     "status": "not_deployed",
                     "web_server": "nginx",
-                    "deployed_app": "Full-Stack Web Application",
+                    "deployed_app": "Production Web App" if self.mode == "live" else "Full-Stack Web Application",
                     "deployed_at": None,
                     "response_code": None
                 })
@@ -486,11 +532,16 @@ class PlatformState:
                     "drift_count": 0
                 })
                 self.telemetry["overall_health"] = "UNKNOWN"
+                self.telemetry["alerts"] = []
                 self.chaos = {
                     "active_fault": None,
                     "description": None,
                     "injected_at": None
                 }
+
+        # If this was a live AWS project or deleted in live mode, ensure disk tfstate outputs are cleared
+        if t_id == "proj-live-aws" or t_ip == "13.201.34.154" or self.mode == "live":
+            self.clear_terraform_state_outputs()
 
         self.add_log(f"[PROJECT REGISTRY] 🗑️ Project '{target.get('name')}' ({target.get('public_ip')}) deleted.", stage="SYSTEM")
         return target
