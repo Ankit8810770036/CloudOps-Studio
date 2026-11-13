@@ -433,7 +433,7 @@ async def apply_terraform(req: ProvisionRequest):
     state.is_running_pipeline = True
     state.current_action = "Terraform IaC Provisioning"
     engine = simulator if state.mode == "simulation" else live_engine
-    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t3.micro"))
+    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t2.micro"))
     return {"status": "started", "action": "terraform_apply", "region": target_region}
 
 @app.post("/api/terraform/destroy")

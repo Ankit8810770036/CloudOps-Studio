@@ -112,7 +112,7 @@ export const ConsoleOverview: React.FC<ConsoleOverviewProps> = React.memo(({
       actionText: 'Go to Step 1: Terraform IaC',
       instructions: [
         'Navigate to Step 1: Terraform IaC from the sidebar or stepper above.',
-        'Choose your AWS region (default: ap-south-1 Mumbai) and instance type (t3.micro Free Tier eligible).',
+        'Choose your AWS region (default: ap-south-1 Mumbai) and instance type (t2.micro Free Tier eligible).',
         'Click "Apply (Terraform)" to initialize the provider, create VPC & Security Groups, and launch the Ubuntu EC2 node.',
         'Review the assigned Public IP address and copy the SSH connection string once ready.',
       ],
@@ -472,7 +472,7 @@ export const ConsoleOverview: React.FC<ConsoleOverviewProps> = React.memo(({
               AWS Free Tier Ready
             </div>
             <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', lineHeight: 1.4 }}>
-              Pre-configured with <code style={{ color: 'var(--aws-orange)' }}>t3.micro</code> instances and gp3 storage to stay completely within AWS Free Tier limits.
+              Pre-configured with <code style={{ color: 'var(--aws-orange)' }}>t2.micro</code> instances and gp3 storage to stay completely within AWS Free Tier limits.
             </div>
           </div>
         </div>

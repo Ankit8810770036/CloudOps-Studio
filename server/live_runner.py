@@ -639,6 +639,10 @@ EOF'
     async def run_nagios_probe(self):
         target_ip = state.infrastructure.get("public_ip")
         if not target_ip:
+            state.telemetry["overall_health"] = "UNKNOWN"
+            for k in state.telemetry["checks"]:
+                state.telemetry["checks"][k]["status"] = "UNKNOWN"
+            state.telemetry["alerts"] = []
             return
             
         state.telemetry["last_check"] = time.strftime("%H:%M:%S")
@@ -909,8 +913,9 @@ EOF'
         state.current_action = "Auto-Remediation (Live EC2 Node)"
         try:
             is_host_dead = state.telemetry["checks"]["ping"]["status"] == "CRITICAL" and not state.telemetry["checks"]["ssh"].get("port_open", False)
+            display_ip = target_ip or "No Active Node"
             if not target_ip or is_host_dead:
-                state.add_log(f"[CHAOS WARNING] Cannot auto-remediate live node: EC2 instance ({target_ip}) is terminated or unreachable. Re-provision with Step 1 (Terraform IaC) first.", stage="CHAOS", stream="stderr")
+                state.add_log(f"[CHAOS WARNING] Cannot auto-remediate live node: EC2 instance ({display_ip}) is terminated or unreachable. Re-provision with Step 1 (Terraform IaC) first.", stage="CHAOS", stream="stderr")
                 return
             
             server = state.deployment.get("web_server", "nginx")

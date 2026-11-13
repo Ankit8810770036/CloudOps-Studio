@@ -22,7 +22,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
   onSelectRegion,
 }) => {
   const [localRegion, setLocalRegion] = useState('ap-south-1');
-  const [instanceType, setInstanceType] = useState('t3.micro');
+  const [instanceType, setInstanceType] = useState('t2.micro');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState('');
 
