@@ -56,9 +56,9 @@ resource "tls_private_key" "devops_key" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  count      = var.key_name == "" ? 1 : 0
-  key_name   = "devops-platform-key-${var.environment}"
-  public_key = tls_private_key.devops_key[0].public_key_openssh
+  count           = var.key_name == "" ? 1 : 0
+  key_name_prefix = "devops-key-${var.environment}-"
+  public_key      = tls_private_key.devops_key[0].public_key_openssh
 }
 
 resource "local_file" "private_key_pem" {
@@ -70,7 +70,7 @@ resource "local_file" "private_key_pem" {
 
 # 4. Security Group for Web, SSH & Nagios NRPE
 resource "aws_security_group" "devops_sg" {
-  name        = "devops-platform-sg-${var.environment}"
+  name_prefix = "devops-platform-sg-${var.environment}-"
   description = "Allow SSH, HTTP, HTTPS, and Nagios NRPE inbound traffic"
   vpc_id      = data.aws_vpc.default.id
 
@@ -132,6 +132,10 @@ resource "aws_security_group" "devops_sg" {
     Name        = "devops-platform-sg"
     Environment = var.environment
     ManagedBy   = "Terraform"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
