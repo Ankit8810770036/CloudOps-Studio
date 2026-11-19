@@ -73,6 +73,13 @@ export function parseActionableError(rawMsg: string, defaultTitle = 'Execution B
       tip: '💡 Troubleshooting Tip: Verify that your EC2 instance is in "Running" state and its AWS Security Group allows inbound SSH (Port 22) and HTTP (Port 80).'
     };
   }
+  if (lower.includes('not eligible for free tier') || lower.includes('free-tier-eligible') || lower.includes('invalidparametercombination')) {
+    return {
+      title: 'EC2 Instance Type Not Eligible for Free Tier',
+      message: 'AWS restricted t2.micro for your account under the Free Tier policy.',
+      tip: '💡 Solution: Select "t3.micro (2 vCPU, 1 GB) - Free Tier Eligible" in the EC2 Instance dropdown and click Provision again.'
+    };
+  }
   if (lower.includes('already running')) {
     return {
       title: 'Pipeline Step In Progress',

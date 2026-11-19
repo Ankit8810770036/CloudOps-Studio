@@ -334,7 +334,7 @@ class ConfigRequest(BaseModel):
 
 class ProvisionRequest(BaseModel):
     aws_region: Optional[str] = Field("ap-south-1", max_length=32)
-    instance_type: Optional[str] = Field("t2.micro", max_length=32)
+    instance_type: Optional[str] = Field("t3.micro", max_length=32)
 
 class DeployRequest(BaseModel):
     web_server: Optional[str] = Field("nginx", pattern="^(nginx|apache)$")
@@ -576,7 +576,7 @@ async def get_config():
     masked_secret = f"{secret_key[:4]}...{secret_key[-4:]}" if has_secret else ""
     return {
         "aws_region": state.config.get("aws_region", "ap-south-1"),
-        "instance_type": state.config.get("instance_type", "t2.micro"),
+        "instance_type": state.config.get("instance_type", "t3.micro"),
         "environment": state.config.get("environment", "devops-production"),
         "has_aws_keys": bool(has_access and has_secret),
         "has_access_key": has_access,
@@ -632,7 +632,7 @@ async def update_config(req: ConfigRequest):
         "status": "ok",
         "config": {
             "aws_region": state.config.get("aws_region", "ap-south-1"),
-            "instance_type": state.config.get("instance_type", "t2.micro"),
+            "instance_type": state.config.get("instance_type", "t3.micro"),
             "environment": state.config.get("environment", "devops-production"),
             "has_aws_keys": bool(has_access and has_secret),
             "has_access_key": has_access,
@@ -658,7 +658,7 @@ async def apply_terraform(req: ProvisionRequest):
     state.is_running_pipeline = True
     state.current_action = "Terraform IaC Provisioning"
     engine = simulator if state.mode == "simulation" else live_engine
-    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t2.micro"))
+    asyncio.create_task(engine.run_terraform_apply(region=target_region, instance_type=req.instance_type or "t3.micro"))
     return {"status": "started", "action": "terraform_apply", "region": target_region}
 
 @app.post("/api/terraform/destroy")

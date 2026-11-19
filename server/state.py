@@ -15,7 +15,7 @@ class PlatformState:
         # Cloud Configuration (Default: Asia Pacific (Mumbai) - ap-south-1)
         self.config = {
             "aws_region": os.environ.get("AWS_DEFAULT_REGION", "ap-south-1"),
-            "instance_type": "t2.micro",
+            "instance_type": "t3.micro",
             "environment": "devops-production",
             "has_aws_keys": bool(os.environ.get("AWS_ACCESS_KEY_ID") and os.environ.get("AWS_SECRET_ACCESS_KEY")),
             "aws_access_key": os.environ.get("AWS_ACCESS_KEY_ID", ""),

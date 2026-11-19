@@ -22,7 +22,7 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
   onSelectRegion,
 }) => {
   const [localRegion, setLocalRegion] = useState('ap-south-1');
-  const [instanceType, setInstanceType] = useState('t2.micro');
+  const [instanceType, setInstanceType] = useState('t3.micro');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState('');
 
@@ -125,8 +125,8 @@ export const TerraformStep: React.FC<TerraformStepProps> = React.memo(({
               onChange={(e) => setInstanceType(e.target.value)}
               disabled={isRunning || isProvisioned}
             >
-              <option value="t2.micro">t2.micro (1 vCPU, 1 GB)</option>
-              <option value="t3.micro">t3.micro (2 vCPU, 1 GB)</option>
+              <option value="t3.micro">t3.micro (2 vCPU, 1 GB) - Free Tier Eligible</option>
+              <option value="t2.micro">t2.micro (1 vCPU, 1 GB) - Legacy Free Tier</option>
               <option value="t3.small">t3.small (2 vCPU, 2 GB)</option>
             </select>
           </div>

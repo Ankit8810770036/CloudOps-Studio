@@ -56,7 +56,7 @@ class LiveEngine:
         env["AWS_REGION"] = region
         return env
 
-    async def run_terraform_apply(self, region: str = "ap-south-1", instance_type: str = "t2.micro"):
+    async def run_terraform_apply(self, region: str = "ap-south-1", instance_type: str = "t3.micro"):
         state.is_running_pipeline = True
         state.current_action = "Terraform Live Provisioning"
         state.infrastructure["status"] = "provisioning"
