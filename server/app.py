@@ -12,13 +12,15 @@ from pathlib import Path
 server_dir = str(Path(__file__).resolve().parent)
 if server_dir not in sys.path:
     sys.path.insert(0, server_dir)
+import uuid
+from collections import defaultdict
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Response, Query
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.types import Scope
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 from state import state
@@ -187,6 +189,8 @@ async def lifespan(app: FastAPI):
     yield
     poller_task.cancel()
 
+server_start_time = time.time()
+
 app = FastAPI(
     title="CloudOps Automation API",
     description="Backend API for Terraform, Ansible, Puppet, and Nagios Cloud Platform",
@@ -194,47 +198,161 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Strict CORS Allowlist (No wildcard '*' when allow_credentials=True)
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000,http://127.0.0.1:3000"
+    ).split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID", "X-Process-Time", "Retry-After"]
 )
 
-# Request Models
+# In-Memory Sliding-Window Rate Limiter
+rate_limit_history = defaultdict(list)
+RATE_LIMIT_MUTATING = int(os.environ.get("RATE_LIMIT_MUTATING", "60")) # 60 mutating actions / min
+RATE_LIMIT_DEFAULT = int(os.environ.get("RATE_LIMIT_DEFAULT", "300"))  # 300 read requests / min (allows 4s continuous telemetry polling)
+MUTATING_PREFIXES = (
+    "/api/terraform",
+    "/api/ansible",
+    "/api/puppet",
+    "/api/chaos",
+    "/api/mode",
+    "/api/config",
+    "/api/project/new"
+)
+
+@app.middleware("http")
+async def rate_limiting_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/api/"):
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        now = time.time()
+        is_mutating = any(path.startswith(prefix) for prefix in MUTATING_PREFIXES)
+        max_requests = RATE_LIMIT_MUTATING if is_mutating else RATE_LIMIT_DEFAULT
+        window_seconds = 60.0
+        
+        history = rate_limit_history[client_ip]
+        history = [t for t in history if now - t < window_seconds]
+        rate_limit_history[client_ip] = history
+        
+        if len(history) >= max_requests:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Too Many Requests",
+                    "message": f"Rate limit of {max_requests} requests/minute exceeded for {client_ip}. Please wait before retrying.",
+                    "retry_after": 60
+                },
+                headers={"Retry-After": "60"}
+            )
+        rate_limit_history[client_ip].append(now)
+
+    return await call_next(request)
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    start_time = time.time()
+    request.state.request_id = request_id
+
+    response = await call_next(request)
+
+    process_time = round((time.time() - start_time) * 1000, 2)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time"] = f"{process_time}ms"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+@app.exception_handler(Exception)
+async def centralized_exception_handler(request: Request, exc: Exception):
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    if isinstance(exc, (HTTPException, StarletteHTTPException)):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.detail if isinstance(exc.detail, str) else "Request Error",
+                "detail": exc.detail,
+                "request_id": req_id
+            },
+            headers={"X-Request-ID": req_id}
+        )
+    
+    sys.stderr.write(f"[ERROR] [{req_id}] Centralized Unhandled Exception: {type(exc).__name__}: {exc}\n")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "message": "An unexpected server error occurred while processing the request.",
+            "request_id": req_id
+        },
+        headers={"X-Request-ID": req_id}
+    )
+
+# Observability & Monitoring Health Checks
+@app.get("/health")
+@app.get("/api/health")
+async def health_check():
+    uptime = round(time.time() - server_start_time, 1)
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "service": "CloudOps Automation Platform",
+        "mode": state.mode,
+        "active_project": state.active_project_id,
+        "uptime_seconds": uptime,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "checks": {
+            "server": "UP",
+            "orchestrator_state": "READY" if state.infrastructure.get("status") != "error" else "ERROR",
+            "telemetry": state.telemetry.get("overall_health", "UNKNOWN")
+        }
+    }
+
+# Request Models with Strict Validation & Sanitization
 class ModeRequest(BaseModel):
-    mode: str # 'simulation' or 'live'
+    mode: str = Field(..., pattern="^(simulation|live)$", description="Mode must be 'simulation' or 'live'")
 
 class ConfigRequest(BaseModel):
-    aws_region: Optional[str] = None
-    instance_type: Optional[str] = None
-    environment: Optional[str] = None
-    aws_access_key: Optional[str] = None
-    aws_secret_key: Optional[str] = None
-    aws_session_token: Optional[str] = None
+    aws_region: Optional[str] = Field(None, max_length=32)
+    instance_type: Optional[str] = Field(None, max_length=32)
+    environment: Optional[str] = Field(None, max_length=64)
+    aws_access_key: Optional[str] = Field(None, max_length=128)
+    aws_secret_key: Optional[str] = Field(None, max_length=128)
+    aws_session_token: Optional[str] = Field(None, max_length=2048)
 
 class ProvisionRequest(BaseModel):
-    aws_region: Optional[str] = "us-east-1"
-    instance_type: Optional[str] = "t2.micro"
+    aws_region: Optional[str] = Field("ap-south-1", max_length=32)
+    instance_type: Optional[str] = Field("t2.micro", max_length=32)
 
 class DeployRequest(BaseModel):
-    web_server: Optional[str] = "nginx" # 'nginx' or 'apache'
-    frontend_type: Optional[str] = "react" # 'react', 'html', 'nodejs_ssr'
-    backend_type: Optional[str] = "python" # 'python', 'java_springboot', 'nodejs', 'none'
-    database_type: Optional[str] = "postgresql" # 'postgresql', 'mysql', 'mongodb', 'sqlite', 'none'
+    web_server: Optional[str] = Field("nginx", pattern="^(nginx|apache)$")
+    frontend_type: Optional[str] = Field("react", max_length=32)
+    backend_type: Optional[str] = Field("python", max_length=32)
+    database_type: Optional[str] = Field("postgresql", max_length=32)
 
 class WebAppContentRequest(BaseModel):
-    html: str
+    html: str = Field(..., max_length=500000)
 
 class ChaosRequest(BaseModel):
-    fault_type: str # 'http_down', 'cpu_spike', 'config_tamper'
+    fault_type: str = Field(..., max_length=64)
 
 class NewProjectRequest(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=128)
 
 class SwitchProjectRequest(BaseModel):
-    project_id: str
+    project_id: str = Field(..., max_length=64)
 
 # 1. State & Status
 @app.get("/api/status")
@@ -258,11 +376,19 @@ async def get_status():
 
 # 1.1 Multi-Project Registry & Switching Endpoints
 @app.get("/api/projects")
-async def list_projects():
+async def list_projects(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0)
+):
     if state.infrastructure.get("public_ip") and not state.projects:
         state.save_current_project()
+    total = len(state.projects)
+    paginated = state.projects[offset : offset + limit] if offset < total else []
     return {
-        "projects": state.projects,
+        "projects": paginated,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
         "active_project_id": state.active_project_id
     }
 
@@ -654,8 +780,23 @@ async def heal_chaos():
 
 # 9. Log History & Management
 @app.get("/api/logs")
-async def get_logs():
-    return {"logs": state.recent_logs}
+async def get_logs(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    stage: Optional[str] = Query(default=None, max_length=32)
+):
+    filtered = state.recent_logs
+    if stage:
+        filtered = [l for l in filtered if l.get("stage", "").upper() == stage.upper()]
+    total = len(filtered)
+    paginated = filtered[offset : offset + limit] if offset < total else []
+    return {
+        "logs": paginated,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": (offset + limit) < total
+    }
 
 @app.post("/api/logs/clear")
 async def clear_logs():

@@ -16,10 +16,21 @@ export const WS_BASE = isBrowser
   ? (isDev ? `${wsProtocol}//${hostname}:8000` : `${wsProtocol}//${window.location.host}`)
   : 'ws://127.0.0.1:8000';
 
+async function handleResponse<T = any>(res: Response, defaultError = 'Request failed'): Promise<T> {
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After') || '60';
+    throw new Error(`Rate limit exceeded (HTTP 429). Please wait ${retryAfter} seconds before trying again.`);
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.detail || defaultError);
+  }
+  return res.json();
+}
+
 export async function fetchStatus(): Promise<FullStatus> {
   const res = await fetch(`${API_BASE}/api/status`);
-  if (!res.ok) throw new Error('Failed to fetch status');
-  return res.json();
+  return handleResponse(res, 'Failed to fetch status');
 }
 
 export async function setExecutionMode(mode: 'simulation' | 'live') {
@@ -28,17 +39,12 @@ export async function setExecutionMode(mode: 'simulation' | 'live') {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to switch execution mode');
-  }
-  return res.json();
+  return handleResponse(res, 'Failed to switch execution mode');
 }
 
 export async function fetchConfig(): Promise<CloudConfig> {
   const res = await fetch(`${API_BASE}/api/config`);
-  if (!res.ok) throw new Error('Failed to fetch cloud config');
-  return res.json();
+  return handleResponse(res, 'Failed to fetch cloud config');
 }
 
 export async function updateConfig(data: any) {
@@ -47,7 +53,7 @@ export async function updateConfig(data: any) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res, 'Failed to update cloud config');
 }
 
 export async function applyTerraform(region: string, instanceType: string) {
@@ -56,14 +62,14 @@ export async function applyTerraform(region: string, instanceType: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ aws_region: region, instance_type: instanceType }),
   });
-  return res.json();
+  return handleResponse(res, 'Failed to initiate Terraform provisioning');
 }
 
 export async function destroyTerraform() {
   const res = await fetch(`${API_BASE}/api/terraform/destroy`, {
     method: 'POST',
   });
-  return res.json();
+  return handleResponse(res, 'Failed to initiate Terraform teardown');
 }
 
 export async function deployAnsible(
@@ -82,17 +88,12 @@ export async function deployAnsible(
       database_type: databaseType,
     }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to deploy with Ansible');
-  }
-  return res.json();
+  return handleResponse(res, 'Failed to deploy with Ansible');
 }
 
 export async function fetchWebappContent(): Promise<{ html: string }> {
   const res = await fetch(`${API_BASE}/api/webapp/content`);
-  if (!res.ok) throw new Error('Failed to fetch webapp content');
-  return res.json();
+  return handleResponse(res, 'Failed to fetch webapp content');
 }
 
 export async function saveWebappContent(html: string): Promise<{ status: string }> {
@@ -101,30 +102,21 @@ export async function saveWebappContent(html: string): Promise<{ status: string 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ html }),
   });
-  if (!res.ok) throw new Error('Failed to save webapp content');
-  return res.json();
+  return handleResponse(res, 'Failed to save webapp content');
 }
 
 export async function enforcePuppet() {
   const res = await fetch(`${API_BASE}/api/puppet/enforce`, {
     method: 'POST',
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to enforce Puppet compliance');
-  }
-  return res.json();
+  return handleResponse(res, 'Failed to enforce Puppet compliance');
 }
 
 export async function probeNagios() {
   const res = await fetch(`${API_BASE}/api/nagios/probe`, {
     method: 'POST',
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to probe Nagios telemetry');
-  }
-  return res.json();
+  return handleResponse(res, 'Failed to probe Nagios telemetry');
 }
 
 export async function injectChaos(faultType: string) {
@@ -133,34 +125,31 @@ export async function injectChaos(faultType: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fault_type: faultType }),
   });
-  return res.json();
+  return handleResponse(res, 'Failed to inject chaos fault');
 }
 
 export async function healChaos() {
   const res = await fetch(`${API_BASE}/api/chaos/heal`, {
     method: 'POST',
   });
-  return res.json();
+  return handleResponse(res, 'Failed to auto-heal system');
 }
 
-
-export async function fetchLogs(): Promise<{ logs: LogEntry[] }> {
-  const res = await fetch(`${API_BASE}/api/logs`);
-  if (!res.ok) throw new Error('Failed to fetch logs');
-  return res.json();
+export async function fetchLogs(limit = 100, offset = 0): Promise<{ logs: LogEntry[]; total?: number }> {
+  const res = await fetch(`${API_BASE}/api/logs?limit=${limit}&offset=${offset}`);
+  return handleResponse(res, 'Failed to fetch logs');
 }
 
 export async function clearLogs() {
   const res = await fetch(`${API_BASE}/api/logs/clear`, {
     method: 'POST',
   });
-  return res.json();
+  return handleResponse(res, 'Failed to clear logs');
 }
 
 export async function fetchProjects() {
   const res = await fetch(`${API_BASE}/api/projects`);
-  if (!res.ok) throw new Error('Failed to fetch deployed projects');
-  return res.json();
+  return handleResponse(res, 'Failed to fetch deployed projects');
 }
 
 export async function createNewProject(name?: string) {
@@ -169,8 +158,7 @@ export async function createNewProject(name?: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
   });
-  if (!res.ok) throw new Error('Failed to start new project');
-  return res.json();
+  return handleResponse(res, 'Failed to start new project');
 }
 
 export async function switchProject(projectId: string) {
@@ -179,16 +167,14 @@ export async function switchProject(projectId: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ project_id: projectId }),
   });
-  if (!res.ok) throw new Error('Failed to switch project');
-  return res.json();
+  return handleResponse(res, 'Failed to switch project');
 }
 
 export async function deleteProject(projectId: string) {
   const res = await fetch(`${API_BASE}/api/projects/${projectId}`, {
     method: 'DELETE',
   });
-  if (!res.ok) throw new Error('Failed to delete project');
-  return res.json();
+  return handleResponse(res, 'Failed to delete project');
 }
 
 export function connectLogWebSocket(onLog: (entry: LogEntry) => void): () => void {
