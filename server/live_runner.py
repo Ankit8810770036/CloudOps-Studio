@@ -183,7 +183,7 @@ class LiveEngine:
         state.is_running_pipeline = False
         state.current_action = None
 
-    def execute_ssh_command(self, host: str, command: str, key_path: str = None, timeout: int = 15):
+    def execute_ssh_command(self, host: str, command: str, key_path: str = None, timeout: int = 120):
         key_path = key_path or str(KEY_FILE)
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -199,7 +199,7 @@ class LiveEngine:
         except Exception as e:
             return False, "", str(e)
 
-    async def async_ssh(self, host: str, command: str, key_path: str = None, timeout: int = 15):
+    async def async_ssh(self, host: str, command: str, key_path: str = None, timeout: int = 120):
         """Asynchronously execute SSH command in threadpool to prevent blocking the event loop."""
         return await asyncio.to_thread(self.execute_ssh_command, host, command, key_path, timeout)
 
@@ -552,7 +552,10 @@ EOF"
 
         nginx_conf_cmd = f"""
         sudo chown -R www-data:www-data /var/www/devops_app
-        sudo bash -c 'echo \'{{"status":"UP","web_server":"{web_server}","hostname":"\'$(hostname)\'","deployed_by":"Ansible","timestamp":"\'$(date -u +"%Y-%m-%dT%H:%M:%SZ")\'"}}\' > /var/www/devops_app/healthz.json'
+        sudo chmod -R 755 /var/www/devops_app
+        sudo bash -c 'cat << "EOF" > /var/www/devops_app/healthz.json
+{{"status":"UP","web_server":"{web_server}","deployed_by":"Ansible"}}
+EOF'
         
         sudo bash -c 'cat << "EOF" > /etc/nginx/sites-available/default
 server {{
@@ -568,6 +571,7 @@ server {{
 {proxy_pass_block}
 }}
 EOF'
+        sudo rm -f /var/www/html/index.nginx-debian.html
         sudo nginx -t && sudo systemctl reload nginx || sudo systemctl restart nginx
         sudo ufw allow 80/tcp
         sudo ufw allow 22/tcp
