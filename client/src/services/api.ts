@@ -135,6 +135,26 @@ export async function healChaos() {
   return handleResponse(res, 'Failed to auto-heal system');
 }
 
+export async function uploadCustomCode(formData: FormData) {
+  const res = await fetch(`${API_BASE}/api/upload/code`, {
+    method: 'POST',
+    body: formData,
+  });
+  return handleResponse(res, 'Failed to upload code package');
+}
+
+export async function clearUploadedCode(tier: 'frontend' | 'backend') {
+  const res = await fetch(`${API_BASE}/api/upload/code/${tier}`, {
+    method: 'DELETE',
+  });
+  return handleResponse(res, 'Failed to clear uploaded code');
+}
+
+export async function fetchUploadStatus() {
+  const res = await fetch(`${API_BASE}/api/upload/status`);
+  return handleResponse(res, 'Failed to fetch upload status');
+}
+
 export async function fetchLogs(limit = 100, offset = 0): Promise<{ logs: LogEntry[]; total?: number }> {
   const res = await fetch(`${API_BASE}/api/logs?limit=${limit}&offset=${offset}`);
   return handleResponse(res, 'Failed to fetch logs');

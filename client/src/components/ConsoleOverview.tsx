@@ -457,10 +457,10 @@ export const ConsoleOverview: React.FC<ConsoleOverviewProps> = React.memo(({
           <FolderUp size={18} color="var(--accent-ansible)" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-              Polyglot Application Stacks
+              Custom Code & Folder Upload (Bring Your Own Code)
             </div>
             <div style={{ fontSize: '0.74rem', color: 'var(--text-dim)', lineHeight: 1.4 }}>
-              In Step 2, configure and deploy Python FastAPI, Node.js Express, Java Spring Boot, or Docker containers via automated Ansible playbooks.
+              In Step 2, upload your project folder, .zip, or repository (React, Node.js, Spring Boot, Python, or Dockerfile) to deploy directly via Ansible.
             </div>
           </div>
         </div>
